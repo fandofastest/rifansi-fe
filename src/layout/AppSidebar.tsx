@@ -5,17 +5,19 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  BoxCubeIcon,
-  CalenderIcon,
-  ChevronDownIcon,
-  GridIcon,
-  HorizontaLDots,
-  ListIcon,
-  PageIcon,
-  PieChartIcon,
-  PlugInIcon,
-  TableIcon,
   UserCircleIcon,
+  DocumentTextIcon,
+  ClipboardDocumentListIcon,
+  FolderIcon,
+  CubeIcon,
+  TruckIcon,
+  UserGroupIcon,
+  CurrencyDollarIcon,
+  PieChartIcon,
+  ChevronDownIcon,
+  BoxCubeIcon,
+  HorizontaLDots,
+  PlugInIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
 
@@ -28,71 +30,63 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    icon: <GridIcon />,
-    name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
-  },
-  {
-    icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
-  },
-  {
-    icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "/profile",
-  },
-
-  {
-    name: "Forms",
-    icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  },
-  {
-    name: "Tables",
-    icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
-  },
-  {
-    name: "Pages",
-    icon: <PageIcon />,
+    icon: <FolderIcon />,
+    name: "Master Data",
     subItems: [
-      { name: "Blank Page", path: "/blank", pro: false },
-      { name: "404 Error", path: "/error-404", pro: false },
+      { name: "User Management", path: "/users" },
+      { name: "SPK Management", path: "/spk" },
+      { name: "Areas Management", path: "/areas" },
+      { name: "Work Item Management", path: "/work-items" },
+      { name: "Category & Subcategory", path: "/categories" },
+      { name: "Unit Management", path: "/units" },
+      { name: "Material Management", path: "/materials" },
+      { name: "Equipment Management", path: "/equipment" },
+      { name: "Contract Management", path: "/contracts" },
+      { name: "Personnel Role Management", path: "/roles" },
+      { name: "Fuel Price Management", path: "/fuel-prices" },
     ],
   },
-];
-
-const othersItems: NavItem[] = [
+  {
+    icon: <DocumentTextIcon />,
+    name: "Laporan Harian",
+    subItems: [
+      { name: "List Laporan", path: "/daily-reports/list" },
+      { name: "Approval Laporan", path: "/daily-reports/approval" },
+    ],
+  },
   {
     icon: <PieChartIcon />,
-    name: "Charts",
+    name: "Monitoring Proyek",
     subItems: [
-      { name: "Line Chart", path: "/line-chart", pro: false },
-      { name: "Bar Chart", path: "/bar-chart", pro: false },
+      { name: "List SPK", path: "/project-monitoring/spk-list" },
+      { name: "Detail SPK", path: "/project-monitoring/spk-detail" },
+      { name: "Progress Monitoring", path: "/project-monitoring/progress" },
+      { name: "Cost Summary", path: "/project-monitoring/cost-summary" },
     ],
   },
   {
-    icon: <BoxCubeIcon />,
-    name: "UI Elements",
+    icon: <DocumentTextIcon />,
+    name: "Laporan",
     subItems: [
-      { name: "Alerts", path: "/alerts", pro: false },
-      { name: "Avatar", path: "/avatars", pro: false },
-      { name: "Badge", path: "/badge", pro: false },
-      { name: "Buttons", path: "/buttons", pro: false },
-      { name: "Images", path: "/images", pro: false },
-      { name: "Videos", path: "/videos", pro: false },
+      { name: "Harian", path: "/reports/daily" },
+      { name: "Mingguan", path: "/reports/weekly" },
+      { name: "Bulanan", path: "/reports/monthly" },
+      { name: "Export", path: "/reports/export" },
     ],
+  },
+  {
+    icon: <TruckIcon />,
+    name: "Approval Alat Rusak",
+    path: "/equipment/approval",
   },
   {
     icon: <PlugInIcon />,
-    name: "Authentication",
-    subItems: [
-      { name: "Sign In", path: "/signin", pro: false },
-      { name: "Sign Up", path: "/signup", pro: false },
-    ],
+    name: "Settings",
+    path: "/settings",
   },
 ];
+
+const othersItems: NavItem[] = [];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -233,11 +227,9 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => path === pathname;
-   const isActive = useCallback((path: string) => path === pathname, [pathname]);
+  const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
   useEffect(() => {
-    // Check if the current path matches any submenu item
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
       const items = menuType === "main" ? navItems : othersItems;
@@ -256,14 +248,12 @@ const AppSidebar: React.FC = () => {
       });
     });
 
-    // If no submenu item matches, close the open submenu
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [pathname,isActive]);
+  }, [pathname, isActive]);
 
   useEffect(() => {
-    // Set the height of the submenu items when the submenu is opened
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
@@ -313,26 +303,36 @@ const AppSidebar: React.FC = () => {
             <>
               <Image
                 className="dark:hidden"
-                src="/images/logo/logo.svg"
-                alt="Logo"
+                src="/images/logo/rifansi-light.png"
+                alt="Rifansi Logo"
                 width={150}
                 height={40}
               />
               <Image
                 className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
-                alt="Logo"
+                src="/images/logo/rifansi-dark.png"
+                alt="Rifansi Logo"
                 width={150}
                 height={40}
               />
             </>
           ) : (
-            <Image
-              src="/images/logo/logo-icon.svg"
-              alt="Logo"
-              width={32}
-              height={32}
-            />
+            <>
+              <Image
+                src="/images/logo/rifansi-light.png"
+                alt="Rifansi Logo"
+                width={32}
+                height={32}
+                className="dark:hidden"
+              />
+              <Image
+                src="/images/logo/rifansi-dark.png"
+                alt="Rifansi Logo"
+                width={32}
+                height={32}
+                className="hidden dark:block"
+              />
+            </>
           )}
         </Link>
       </div>
@@ -356,7 +356,7 @@ const AppSidebar: React.FC = () => {
               {renderMenuItems(navItems, "main")}
             </div>
 
-            <div className="">
+            {/* <div className="">
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
@@ -371,10 +371,10 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(othersItems, "others")}
-            </div>
+            </div> */}
           </div>
         </nav>
-        {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
+        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );

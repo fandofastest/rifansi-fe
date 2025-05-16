@@ -51,6 +51,12 @@ import HorizontaLDots from "./horizontal-dots.svg";
 import ChatIcon from "./chat.svg";
 import MoreDotIcon from "./more-dot.svg";
 import BellIcon from "./bell.svg";
+import DocumentTextIcon from "./document-text.svg";
+import ClipboardDocumentListIcon from "./clipboard-document-list.svg";
+import CubeIcon from "./cube.svg";
+import TruckIcon from "./truck.svg";
+import UserGroupIcon from "./user-group.svg";
+import CurrencyDollarIcon from "./currency-dollar.svg";
 
 export {
   DownloadIcon,
@@ -106,4 +112,10 @@ export {
   HorizontaLDots,
   ChevronUpIcon,
   ChatIcon,
+  DocumentTextIcon,
+  ClipboardDocumentListIcon,
+  CubeIcon,
+  TruckIcon,
+  UserGroupIcon,
+  CurrencyDollarIcon,
 };
