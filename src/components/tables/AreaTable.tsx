@@ -13,7 +13,6 @@ import { PencilIcon, TrashBinIcon } from "@/icons";
 import { useAuth } from "@/context/AuthContext";
 import { AddAreaModal, EditAreaModal } from "@/components/areas";
 import { Modal } from "../ui/modal";
-import { useModalContext } from "@/context/ModalContext";
 import { formatDateIndonesia } from "@/utils/date";
 
 export const AreaTable: React.FC = () => {
@@ -21,8 +20,6 @@ export const AreaTable: React.FC = () => {
   const [areas, setAreas] = useState<Area[]>([]);
   const [loading, setLoading] = useState(true);
   const [areaToDelete, setAreaToDelete] = useState<Area | null>(null);
-  const [areaToEdit, setAreaToEdit] = useState<Area | null>(null);
-  const { isOpen, closeModal } = useModalContext();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedArea, setSelectedArea] = useState<Area | null>(null);
@@ -53,13 +50,12 @@ export const AreaTable: React.FC = () => {
       return;
     }
 
-    if (window.confirm("Are you sure you want to delete this area?")) {
-      try {
-        await deleteArea({ id: areaId }, token);
-        await fetchAreas();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to delete area");
-      }
+    try {
+      setAreaToDelete(areas.find(area => area.id === areaId) || null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete area";
+      setError(errorMessage);
+      console.error('Error in handleDelete:', err);
     }
   };
 
@@ -70,12 +66,19 @@ export const AreaTable: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!token || !areaToDelete) return;
+    
     try {
-      await deleteArea({ id: areaToDelete.id }, token);
-      setAreas(areas.filter(area => area.id !== areaToDelete.id));
-      setAreaToDelete(null);
-    } catch (error) {
-      console.error('Error deleting area:', error);
+      const success = await deleteArea({ id: areaToDelete.id }, token);
+      if (success) {
+        setAreas(areas.filter(area => area.id !== areaToDelete.id));
+        setAreaToDelete(null);
+      } else {
+        throw new Error("Failed to delete area");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete area";
+      setError(errorMessage);
+      console.error('Error in confirmDelete:', err);
     }
   };
 
@@ -205,7 +208,7 @@ export const AreaTable: React.FC = () => {
             Delete Area
           </h4>
           <p className="mb-6 text-gray-600 dark:text-gray-400">
-            Are you sure you want to delete area "{areaToDelete?.name}"? This action cannot be undone.
+            Are you sure you want to delete area &quot;{areaToDelete?.name}&quot;? This action cannot be undone.
           </p>
           <div className="flex items-center justify-end gap-3">
             <Button

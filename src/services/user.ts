@@ -12,6 +12,7 @@ export interface User {
   lastLogin?: string;
   createdAt?: string;
   updatedAt?: string;
+  approverId?: string;
 }
 
 interface RegisterInput {
@@ -33,12 +34,6 @@ interface UpdateUserInput {
   phone?: string;
 }
 
-interface UpdateProfileInput {
-  fullName?: string;
-  email?: string;
-  phone?: string;
-}
-
 interface DeleteUserInput {
   id: string;
 }
@@ -52,10 +47,6 @@ interface RegisterResponse {
 
 interface UpdateUserResponse {
   updateUser: User;
-}
-
-interface UpdateMyProfileResponse {
-  updateMyProfile: User;
 }
 
 interface DeleteUserResponse {
@@ -74,27 +65,6 @@ interface MeResponse {
   me: User;
 }
 
-const CHANGE_MY_PASSWORD = `
-  mutation ChangeMyPassword($currentPassword: String!, $newPassword: String!) {
-    changeMyPassword(currentPassword: $currentPassword, newPassword: $newPassword) {
-      success
-      message
-    }
-  }
-`;
-
-interface ChangePasswordInput {
-  currentPassword: string;
-  newPassword: string;
-}
-
-interface ChangePasswordResponse {
-  changeMyPassword: {
-    success: boolean;
-    message: string;
-  };
-}
-
 const GET_USERS = `
   query GetAllUsers {
     users {
@@ -109,6 +79,15 @@ const GET_USERS = `
         id
         roleCode
         roleName
+        description
+        salaryComponent {
+          gajiPokok
+          tunjanganTetap
+          tunjanganTidakTetap
+          transport
+          biayaTetapHarian
+          upahLemburHarian
+        }
       }
       createdAt
       updatedAt
@@ -130,7 +109,15 @@ const GET_USER = `
         id
         roleCode
         roleName
-        hourlyRate
+        description
+        salaryComponent {
+          gajiPokok
+          tunjanganTetap
+          tunjanganTidakTetap
+          transport
+          biayaTetapHarian
+          upahLemburHarian
+        }
       }
       createdAt
       updatedAt
@@ -152,7 +139,15 @@ const GET_ME = `
         id
         roleCode
         roleName
-        hourlyRate
+        description
+        salaryComponent {
+          gajiPokok
+          tunjanganTetap
+          tunjanganTidakTetap
+          transport
+          biayaTetapHarian
+          upahLemburHarian
+        }
       }
       createdAt
       updatedAt
@@ -181,7 +176,15 @@ const REGISTER_USER = `
           id
           roleCode
           roleName
-          hourlyRate
+          description
+          salaryComponent {
+            gajiPokok
+            tunjanganTetap
+            tunjanganTidakTetap
+            transport
+            biayaTetapHarian
+            upahLemburHarian
+          }
         }
         createdAt
       }
@@ -209,27 +212,15 @@ const UPDATE_USER = `
         id
         roleCode
         roleName
-      }
-      updatedAt
-    }
-  }
-`;
-
-const UPDATE_MY_PROFILE = `
-  mutation UpdateMyProfile($fullName: String, $email: String, $phone: String) {
-    updateMyProfile(
-      fullName: $fullName
-      email: $email
-      phone: $phone
-    ) {
-      id
-      username
-      fullName
-      email
-      phone
-      role {
-        roleCode
-        roleName
+        description
+        salaryComponent {
+          gajiPokok
+          tunjanganTetap
+          tunjanganTidakTetap
+          transport
+          biayaTetapHarian
+          upahLemburHarian
+        }
       }
       updatedAt
     }
@@ -305,18 +296,6 @@ export const updateUser = async (input: UpdateUserInput, token: string): Promise
   }
 };
 
-export const updateMyProfile = async (input: UpdateProfileInput, token: string): Promise<User> => {
-  try {
-    const response = await graphQLClient.request<UpdateMyProfileResponse>(UPDATE_MY_PROFILE, input, {
-      Authorization: `Bearer ${token}`
-    });
-    return response.updateMyProfile;
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    throw error;
-  }
-};
-
 export const deleteUser = async (input: DeleteUserInput, token: string): Promise<boolean> => {
   try {
     const response = await graphQLClient.request<DeleteUserResponse>(DELETE_USER, input, {
@@ -329,14 +308,50 @@ export const deleteUser = async (input: DeleteUserInput, token: string): Promise
   }
 };
 
-export const changeMyPassword = async (input: ChangePasswordInput, token: string): Promise<{ success: boolean; message: string }> => {
+export interface Supervisor {
+  id: string;
+  fullName: string;
+  role: string;
+}
+
+interface GetSupervisorsResponse {
+  users: {
+    id: string;
+    fullName: string;
+    role?: {
+      roleCode: string;
+    };
+  }[];
+}
+
+const GET_SUPERVISORS = `
+  query GetSupervisors {
+    users {
+      id
+      fullName
+      role {
+        roleCode
+      }
+    }
+  }
+`;
+
+export const getSupervisors = async (token: string): Promise<Supervisor[]> => {
   try {
-    const response = await graphQLClient.request<ChangePasswordResponse>(CHANGE_MY_PASSWORD, input, {
-      Authorization: `Bearer ${token}`
-    });
-    return response.changeMyPassword;
+    const response = await graphQLClient.request<GetSupervisorsResponse>(
+      GET_SUPERVISORS,
+      {},
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.users
+      .filter(user => user.role?.roleCode === 'SUPERVISOR')
+      .map(user => ({
+        id: user.id,
+        fullName: user.fullName,
+        role: user.role?.roleCode || ''
+      }));
   } catch (error) {
-    console.error('Error changing password:', error);
+    console.error('Error fetching supervisors:', error);
     throw error;
   }
 }; 

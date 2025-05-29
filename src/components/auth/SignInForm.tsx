@@ -1,5 +1,4 @@
 "use client";
-import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
@@ -29,7 +28,7 @@ export default function SignInForm() {
     try {
       await login(formData);
       router.push('/'); // Redirect to admin dashboard after successful login
-    } catch (err) {
+    } catch {
       setError('Invalid username or password');
     } finally {
       setLoading(false);

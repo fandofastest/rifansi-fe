@@ -2,15 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { CategoryWithSubcategories, getCategoriesWithSubcategories, deleteCategory } from "@/services/category";
-import { deleteSubcategory } from "@/services/subcategory";
+import { CategoryWithSubcategories, getCategoriesWithSubcategories, deleteCategory, Category } from "@/services/category";
+import { deleteSubcategory, Subcategory } from "@/services/subcategory";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useModalContext } from "@/context/ModalContext";
 import { EditCategoryModal } from "@/components/category/EditCategoryModal";
 import { EditSubcategoryModal } from "@/components/category/EditSubcategoryModal";
 import { PencilIcon, TrashBinIcon, PlusIcon } from "@/icons";
-import { formatDateIndonesia } from "@/utils/date";
+
+type EditItem = {
+  type: 'category';
+  data: Category;
+} | {
+  type: 'subcategory';
+  data: Subcategory | { parentCategoryId: string };
+};
 
 export const CategoryTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
   const { token } = useAuth();
@@ -19,7 +26,7 @@ export const CategoryTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'category' | 'subcategory', id: string } | null>(null);
-  const [itemToEdit, setItemToEdit] = useState<{ type: 'category' | 'subcategory', data: any } | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<EditItem | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
@@ -50,8 +57,12 @@ export const CategoryTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
     openModal();
   };
 
-  const handleEdit = (type: 'category' | 'subcategory', data: any) => {
-    setItemToEdit({ type, data });
+  const handleEdit = (type: 'category' | 'subcategory', data: Category | Subcategory | { parentCategoryId: string }) => {
+    if (type === 'category' && 'code' in data) {
+      setItemToEdit({ type: 'category', data: data as Category });
+    } else if (type === 'subcategory' && ('categoryId' in data || 'parentCategoryId' in data)) {
+      setItemToEdit({ type: 'subcategory', data: data as Subcategory | { parentCategoryId: string } });
+    }
     openModal();
   };
 
@@ -179,7 +190,15 @@ export const CategoryTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleEdit('subcategory', subcategory)}
+                              onClick={() => handleEdit('subcategory', { 
+                                ...subcategory, 
+                                categoryId: category.id,
+                                category: {
+                                  id: category.id,
+                                  code: category.code,
+                                  name: category.name
+                                }
+                              })}
                             >
                               <PencilIcon className="fill-current" />
                             </Button>
@@ -249,8 +268,8 @@ export const CategoryTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
           />
         ) : (
           <EditSubcategoryModal
-            subcategory={itemToEdit.data && itemToEdit.data.id ? itemToEdit.data : undefined}
-            parentCategoryId={itemToEdit.data && itemToEdit.data.parentCategoryId ? itemToEdit.data.parentCategoryId : undefined}
+            subcategory={'id' in itemToEdit.data ? itemToEdit.data : undefined}
+            parentCategoryId={'parentCategoryId' in itemToEdit.data ? itemToEdit.data.parentCategoryId : undefined}
             onClose={() => {
               closeModal();
               setItemToEdit(null);

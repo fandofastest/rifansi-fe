@@ -7,12 +7,10 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import Badge from "../ui/badge/Badge";
 import { getWorkItems, deleteWorkItem } from "@/services/workItem";
 import type { WorkItem } from "@/services/workItem";
 import Button from "../ui/button/Button";
 import { PencilIcon, TrashBinIcon } from "@/icons";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import EditWorkItemModal from "@/components/work-items/EditWorkItemModal";
 import { Modal } from "../ui/modal";
@@ -26,7 +24,6 @@ export default function WorkItemTable({ refresh }: WorkItemTableProps) {
   const [loading, setLoading] = useState(true);
   const [workItemToDelete, setWorkItemToDelete] = useState<WorkItem | null>(null);
   const [workItemToEdit, setWorkItemToEdit] = useState<WorkItem | null>(null);
-  const router = useRouter();
   const { token } = useAuth();
 
   useEffect(() => {
@@ -208,7 +205,7 @@ export default function WorkItemTable({ refresh }: WorkItemTableProps) {
             Delete Work Item
           </h4>
           <p className="mb-6 text-gray-600 dark:text-gray-400">
-            Are you sure you want to delete work item "{workItemToDelete?.name}"? This action cannot be undone.
+            Are you sure you want to delete work item &quot;{workItemToDelete?.name}&quot;? This action cannot be undone.
           </p>
           <div className="flex items-center justify-end gap-3">
             <Button

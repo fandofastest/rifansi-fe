@@ -4,7 +4,8 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-import { updateUser } from "@/services/user";
+import { updateUser, getSupervisors, Supervisor } from "@/services/user";
+import { createApproverSetting, getApproverByUser } from "@/services/approver";
 import type { User } from "@/services/user";
 import { useAuth } from "@/context/AuthContext";
 import { getPersonnelRoles, PersonnelRole } from "@/services/personnelRole";
@@ -24,6 +25,7 @@ interface UpdateUserFormData {
   email?: string;
   role?: string;
   phone?: string;
+  approverId?: string;
 }
 
 export default function EditUserModal({ isOpen, onClose, onSuccess, user }: EditUserModalProps) {
@@ -36,27 +38,42 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
     email: '',
     phone: '',
     password: '',
+    approverId: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState<PersonnelRole[]>([]);
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
 
   useEffect(() => {
-    const fetchRoles = async () => {
-      if (token) {
+    const fetchData = async () => {
+      if (token && user) {
         try {
-          const rolesData = await getPersonnelRoles(token);
+          const [rolesData, supervisorsData, approverData] = await Promise.all([
+            getPersonnelRoles(token),
+            getSupervisors(token),
+            getApproverByUser(user.id, token)
+          ]);
+          
           setRoles(rolesData);
+          setSupervisors(supervisorsData);
+          
+          if (approverData && approverData.role.roleCode === 'SUPERVISOR') {
+            setFormData(prev => ({
+              ...prev,
+              approverId: approverData.id
+            }));
+          }
         } catch (error) {
-          console.error('Error fetching roles:', error);
+          console.error('Error fetching data:', error);
         }
       }
     };
 
     if (isOpen) {
-      fetchRoles();
+      fetchData();
     }
-  }, [isOpen, token]);
+  }, [isOpen, token, user]);
 
   useEffect(() => {
     if (user) {
@@ -68,6 +85,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
         email: user.email,
         phone: user.phone || '',
         password: '',
+        approverId: user.approverId || '',
       });
     }
   }, [user]);
@@ -88,12 +106,22 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
     setLoading(true);
 
     try {
-      await updateUser(formData, token);
+      const updatedUser = await updateUser(formData, token);
+      
+      // Jika ada approver yang dipilih, buat approver setting
+      if (formData.approverId) {
+        await createApproverSetting({
+          userId: updatedUser.id,
+          approverId: formData.approverId
+        }, token);
+      }
+
       onClose();
       if (onSuccess) {
         onSuccess();
       }
     } catch (err) {
+      console.error('Error updating user:', err);
       setError('Failed to update user. Please try again.');
     } finally {
       setLoading(false);
@@ -183,6 +211,27 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
               onChange={handleChange}
               placeholder="Enter phone number"
             />
+          </div>
+
+          <div>
+            <Label>Approver</Label>
+            <select
+              name="approverId"
+              value={formData.approverId}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-white/90"
+            >
+              <option value="">No Approver</option>
+              {supervisors.map(supervisor => (
+                <option 
+                  key={supervisor.id} 
+                  value={supervisor.id}
+                  className="dark:bg-gray-800 dark:text-white/90"
+                >
+                  {supervisor.fullName}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

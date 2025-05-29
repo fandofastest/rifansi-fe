@@ -1,10 +1,20 @@
 export type UserRole = 'superadmin' | 'admin' | 'mandor' | 'supervisor' | 'user';
 
+export interface SalaryComponentInfo {
+  gajiPokok: number;
+  tunjanganTetap: number;
+  tunjanganTidakTetap: number;
+  transport: number;
+  biayaTetapHarian: number;
+  upahLemburHarian: number;
+}
+
 export interface Role {
   id: string;
   roleCode: string;
   roleName: string;
-  hourlyRate: number;
+  description?: string;
+  salaryComponent?: SalaryComponentInfo;
 }
 
 export interface User {

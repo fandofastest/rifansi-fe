@@ -6,8 +6,16 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import { useAuth } from "@/context/AuthContext";
-import { updateMyProfile } from "@/services/user";
+import { updateMyProfile } from "@/services/user-profile";
 import { toast } from "react-hot-toast";
+
+interface GraphQLError {
+  response?: {
+    errors?: Array<{
+      message: string;
+    }>;
+  };
+}
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -37,7 +45,7 @@ export default function UserInfoCard() {
 
   const handleSave = async () => {
     if (!token) {
-      toast.error("You must be logged in to update your profile");
+      toast.error("Anda harus masuk untuk memperbarui profil");
       return;
     }
 
@@ -52,17 +60,18 @@ export default function UserInfoCard() {
         token
       );
       
-      toast.success("Profile updated successfully");
+      toast.success("Profil berhasil diperbarui");
       // Update the display with the new data
       setProfileData({
-        fullName: response.fullName || "",
-        email: response.email || "",
-        phone: response.phone || ""
+        fullName: response.user.fullName || "",
+        email: response.user.email || "",
+        phone: response.user.phone || ""
       });
       closeModal();
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast.error(error.response?.errors?.[0]?.message || "Failed to update profile");
+    } catch (error: unknown) {
+      const graphqlError = error as GraphQLError;
+      console.error("Error updating profile:", graphqlError);
+      toast.error(graphqlError.response?.errors?.[0]?.message || "Gagal memperbarui profil");
     } finally {
       setLoading(false);
     }
@@ -73,13 +82,13 @@ export default function UserInfoCard() {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-            Personal Information
+            Informasi Pribadi
           </h4>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Full Name
+                Nama Lengkap
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {profileData.fullName || "-"}
@@ -88,7 +97,7 @@ export default function UserInfoCard() {
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Email address
+                Alamat Email
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {profileData.email || "-"}
@@ -97,7 +106,7 @@ export default function UserInfoCard() {
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Phone
+                Telepon
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {profileData.phone || "-"}
@@ -133,16 +142,16 @@ export default function UserInfoCard() {
         <div className="no-scrollbar relative w-full overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-6">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Personal Information
+              Edit Informasi Pribadi
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-              Update your details to keep your profile up-to-date.
+              Perbarui detail Anda untuk menjaga profil tetap terkini.
             </p>
           </div>
           <form className="flex flex-col">
             <div className="space-y-4 px-2">
               <div>
-                <Label>Full Name</Label>
+                <Label>Nama Lengkap</Label>
                 <Input 
                   type="text" 
                   name="fullName"
@@ -152,7 +161,7 @@ export default function UserInfoCard() {
               </div>
 
               <div>
-                <Label>Email Address</Label>
+                <Label>Alamat Email</Label>
                 <Input 
                   type="email" 
                   name="email"
@@ -162,7 +171,7 @@ export default function UserInfoCard() {
               </div>
 
               <div>
-                <Label>Phone</Label>
+                <Label>Telepon</Label>
                 <Input 
                   type="text" 
                   name="phone"
@@ -173,10 +182,10 @@ export default function UserInfoCard() {
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
               <Button size="sm" variant="outline" onClick={closeModal} disabled={loading}>
-                Cancel
+                Batal
               </Button>
               <Button size="sm" onClick={handleSave} disabled={loading}>
-                {loading ? "Saving..." : "Save Changes"}
+                {loading ? "Menyimpan..." : "Simpan Perubahan"}
               </Button>
             </div>
           </form>

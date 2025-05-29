@@ -30,7 +30,7 @@ export const EditSubcategoryModal: React.FC<EditSubcategoryModalProps> = ({
   const [formData, setFormData] = useState({
     name: subcategory?.name || "",
     description: subcategory?.description || "",
-    categoryId: subcategory?.category?.id || (subcategory as any)?.categoryId || parentCategoryId || "",
+    categoryId: subcategory?.category?.id || (subcategory as { categoryId?: string })?.categoryId || parentCategoryId || "",
   });
 
   useEffect(() => {

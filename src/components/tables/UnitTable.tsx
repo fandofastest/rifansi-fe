@@ -2,12 +2,11 @@
 import React, { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
-import { PencilIcon, TrashBinIcon, PlusIcon } from "@/icons";
+import { PencilIcon, TrashBinIcon } from "@/icons";
 import { useAuth } from "@/context/AuthContext";
 import { getUnits, deleteUnit, Unit, updateUnit } from "@/services/unit";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/textarea/TextArea";
-import { createUnit } from "@/services/unit";
 // Placeholder modals, to be implemented
 // import AddUnitModal from "@/components/unit/AddUnitModal";
 
@@ -101,7 +100,6 @@ export default function UnitTable({ refresh }: { refresh?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null);
   const [unitToEdit, setUnitToEdit] = useState<Unit | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
@@ -200,7 +198,7 @@ export default function UnitTable({ refresh }: { refresh?: boolean }) {
             Delete Unit
           </h4>
           <p className="mb-6 text-gray-600 dark:text-gray-400">
-            Are you sure you want to delete unit "{unitToDelete?.name}"? This action cannot be undone.
+            Are you sure you want to delete unit &quot;{unitToDelete?.name}&quot;? This action cannot be undone.
           </p>
           <div className="flex items-center justify-end gap-3">
             <Button

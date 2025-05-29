@@ -12,12 +12,22 @@ export const EquipmentDetailModal: React.FC<EquipmentDetailModalProps> = ({
   equipment,
   onClose,
 }) => {
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString("id-ID", {
+  const formatDate = (timestamp: string | number) => {
+    try {
+      const date = new Date(Number(timestamp));
+      if (isNaN(date.getTime())) {
+        return "-";
+      }
+      return date.toLocaleDateString("id-ID", {
       day: "numeric",
       month: "long",
       year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
     });
+    } catch {
+      return "-";
+    }
   };
 
   return (
@@ -48,17 +58,20 @@ export const EquipmentDetailModal: React.FC<EquipmentDetailModalProps> = ({
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Service Status</p>
-              <p className="font-medium">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Status:</span>
                 <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  equipment.serviceStatus === 'OPERATIONAL' 
+                  equipment.serviceStatus.toUpperCase() === 'ACTIVE' 
                     ? 'bg-success-100 text-success-600 dark:bg-success-900/30 dark:text-success-400' 
-                    : equipment.serviceStatus === 'MAINTENANCE'
+                    : equipment.serviceStatus.toUpperCase() === 'MAINTENANCE'
                     ? 'bg-warning-100 text-warning-600 dark:bg-warning-900/30 dark:text-warning-400'
-                    : 'bg-error-100 text-error-600 dark:bg-error-900/30 dark:text-error-400'
+                    : equipment.serviceStatus.toUpperCase() === 'REPAIR'
+                    ? 'bg-error-100 text-error-600 dark:bg-error-900/30 dark:text-error-400'
+                    : 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'
                 }`}>
                   {equipment.serviceStatus}
                 </span>
-              </p>
+              </div>
             </div>
           </div>
 
@@ -69,15 +82,11 @@ export const EquipmentDetailModal: React.FC<EquipmentDetailModalProps> = ({
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Area</p>
-              <p className="font-medium text-gray-800 dark:text-white/90">{equipment.area || "-"}</p>
+              <p className="font-medium text-gray-800 dark:text-white/90">{equipment.area?.name || "-"}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Fuel Type</p>
-              <p className="font-medium text-gray-800 dark:text-white/90">{equipment.fuelType || "-"}</p>
-            </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Year</p>
               <p className="font-medium text-gray-800 dark:text-white/90">{equipment.year || "-"}</p>
@@ -94,11 +103,15 @@ export const EquipmentDetailModal: React.FC<EquipmentDetailModalProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Created At</p>
-              <p className="font-medium text-gray-800 dark:text-white/90">{formatDate(equipment.createdAt)}</p>
+              <p className="font-medium text-gray-800 dark:text-white/90">
+                {formatDate(equipment.createdAt)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Updated At</p>
-              <p className="font-medium text-gray-800 dark:text-white/90">{formatDate(equipment.updatedAt)}</p>
+              <p className="font-medium text-gray-800 dark:text-white/90">
+                {formatDate(equipment.updatedAt)}
+              </p>
             </div>
           </div>
 

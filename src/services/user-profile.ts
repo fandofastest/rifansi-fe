@@ -11,7 +11,13 @@ interface UserProfile {
     roleCode: string;
     roleName: string;
   };
-  updatedAt?: number;
+  updatedAt: string;
+}
+
+interface UpdateProfileResponse {
+  success: boolean;
+  message: string;
+  user: UserProfile;
 }
 
 interface UpdateProfileInput {
@@ -20,24 +26,28 @@ interface UpdateProfileInput {
   phone?: string;
 }
 
-interface ChangePasswordInput {
-  currentPassword: string;
-  newPassword: string;
-}
-
-interface ChangePasswordResponse {
+interface UpdatePasswordResponse {
   success: boolean;
   message: string;
+  user: {
+    id: string;
+    username: string;
+    fullName: string;
+    email: string;
+  };
 }
 
-// GraphQL Mutations
-const UPDATE_MY_PROFILE = `
-  mutation UpdateMyProfile($fullName: String, $email: String, $phone: String) {
-    updateMyProfile(
-      fullName: $fullName
-      email: $email
-      phone: $phone
-    ) {
+interface GraphQLError {
+  message: string;
+  locations?: { line: number; column: number }[];
+  path?: string[];
+  extensions?: Record<string, unknown>;
+}
+
+// GraphQL Queries
+export const GET_ME = `
+  query Me {
+    me {
       id
       username
       fullName
@@ -48,21 +58,86 @@ const UPDATE_MY_PROFILE = `
         roleCode
         roleName
       }
+      updatedAt
     }
   }
 `;
 
-const CHANGE_MY_PASSWORD = `
-  mutation ChangeMyPassword($currentPassword: String!, $newPassword: String!) {
-    changeMyPassword(
-      currentPassword: $currentPassword
-      newPassword: $newPassword
-    ) {
+// GraphQL Mutations
+export const UPDATE_MY_PROFILE = `
+  mutation UpdateMyProfile($fullName: String, $email: String, $phone: String) {
+    updateMyProfile(fullName: $fullName, email: $email, phone: $phone) {
       success
       message
+      user {
+        id
+        username
+        fullName
+        email
+        phone
+        role {
+          id
+          roleCode
+          roleName
+        }
+        updatedAt
+      }
     }
   }
 `;
+
+export const UPDATE_MY_PASSWORD = `
+  mutation UpdatePassword($currentPassword: String!, $newPassword: String!) {
+    updatePassword(currentPassword: $currentPassword, newPassword: $newPassword) {
+      success
+      message
+      user {
+        id
+        username
+        fullName
+        email
+      }
+    }
+  }
+`;
+
+export const UPDATE_MY_PHOTO = `
+  mutation UpdateMyPhoto($photo: Upload!) {
+    updateMyPhoto(photo: $photo) {
+      success
+      message
+      user {
+        id
+        username
+        fullName
+        email
+        phone
+        role {
+          id
+          roleCode
+          roleName
+        }
+        updatedAt
+      }
+    }
+  }
+`;
+
+/**
+ * Get current user profile
+ */
+export const getMe = async (token: string): Promise<UserProfile> => {
+  try {
+    const response = await graphQLClient.request<{ me: UserProfile }>(GET_ME, {}, {
+      Authorization: `Bearer ${token}`
+    });
+    return response.me;
+  } catch (error: unknown) {
+    const graphqlError = error as GraphQLError;
+    console.error('Error fetching current user profile:', graphqlError.message);
+    throw error;
+  }
+};
 
 /**
  * Update user profile information
@@ -70,16 +145,17 @@ const CHANGE_MY_PASSWORD = `
 export const updateMyProfile = async (
   input: UpdateProfileInput,
   token: string
-): Promise<UserProfile> => {
+): Promise<UpdateProfileResponse> => {
   try {
-    const response = await graphQLClient.request<{ updateMyProfile: UserProfile }>(
+    const response = await graphQLClient.request<{ updateMyProfile: UpdateProfileResponse }>(
       UPDATE_MY_PROFILE,
       input,
       { Authorization: `Bearer ${token}` }
     );
     return response.updateMyProfile;
-  } catch (error) {
-    console.error('Error updating profile:', error);
+  } catch (error: unknown) {
+    const graphqlError = error as GraphQLError;
+    console.error('Error updating profile:', graphqlError.message);
     throw error;
   }
 };
@@ -88,18 +164,13 @@ export const updateMyProfile = async (
  * Change user password
  */
 export const changeMyPassword = async (
-  input: ChangePasswordInput,
+  data: { currentPassword: string; newPassword: string },
   token: string
-): Promise<ChangePasswordResponse> => {
-  try {
-    const response = await graphQLClient.request<{ changeMyPassword: ChangePasswordResponse }>(
-      CHANGE_MY_PASSWORD,
-      input,
-      { Authorization: `Bearer ${token}` }
-    );
-    return response.changeMyPassword;
-  } catch (error) {
-    console.error('Error changing password:', error);
-    throw error;
-  }
+): Promise<UpdatePasswordResponse> => {
+  const response = await graphQLClient.request<{ updatePassword: UpdatePasswordResponse }>(
+    UPDATE_MY_PASSWORD,
+    data,
+    { Authorization: `Bearer ${token}` }
+  );
+  return response.updatePassword;
 }; 

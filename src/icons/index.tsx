@@ -57,6 +57,8 @@ import CubeIcon from "./cube.svg";
 import TruckIcon from "./truck.svg";
 import UserGroupIcon from "./user-group.svg";
 import CurrencyDollarIcon from "./currency-dollar.svg";
+import LocationIcon from "./location.svg";
+import HomeIcon from "./home.svg";
 
 export {
   DownloadIcon,
@@ -118,4 +120,6 @@ export {
   TruckIcon,
   UserGroupIcon,
   CurrencyDollarIcon,
+  LocationIcon,
+  HomeIcon,
 };

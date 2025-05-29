@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import Button from "@/components/ui/button/Button";
-import { importSPKFromExcel } from "@/services/spk";
 import ImportSPKModal from "./ImportSPKModal";
 
 interface ImportSPKButtonProps {

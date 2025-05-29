@@ -1,20 +1,10 @@
 "use client";
 
 import React from "react";
-import { useModalContext } from "@/context/ModalContext";
 import { ModalProvider } from "@/context/ModalContext";
 import { ContractTable } from "@/components/tables/ContractTable";
 
-const breadcrumbsData = [
-  {
-    title: "Home",
-    href: "/",
-  },
-  {
-    title: "Contracts",
-    href: "/contracts",
-  },
-];
+
 
 const ContractsPage = () => {
   return (

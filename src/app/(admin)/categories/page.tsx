@@ -3,12 +3,10 @@
 import React, { useState } from "react";
 import { CategoryTable } from "@/components/tables/CategoryTable";
 import { EditCategoryModal } from "@/components/category/EditCategoryModal";
-import { useModalContext } from "@/context/ModalContext";
 import Button from "@/components/ui/button/Button";
 import { PlusIcon } from "@/icons";
 
 export default function CategoriesPage() {
-  const { openModal } = useModalContext();
   const [showModal, setShowModal] = useState(false);
   const [refreshTable, setRefreshTable] = useState(false);
 

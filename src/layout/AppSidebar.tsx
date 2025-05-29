@@ -4,22 +4,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
 import {
-  UserCircleIcon,
   DocumentTextIcon,
-  ClipboardDocumentListIcon,
   FolderIcon,
-  CubeIcon,
   TruckIcon,
-  UserGroupIcon,
-  CurrencyDollarIcon,
   PieChartIcon,
   ChevronDownIcon,
-  BoxCubeIcon,
   HorizontaLDots,
   PlugInIcon,
+  HomeIcon,
 } from "../icons/index";
-import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
   name: string;
@@ -30,59 +25,51 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
+    icon: <HomeIcon />,
+    name: "Dashboard",
+    path: "/",
+  },
+  {
     icon: <FolderIcon />,
-    name: "Master Data",
+    name: "Data Master",
     subItems: [
-      { name: "User Management", path: "/users" },
-      { name: "SPK Management", path: "/spk" },
-      { name: "Areas Management", path: "/areas" },
-      { name: "Work Item Management", path: "/work-items" },
-      { name: "Category & Subcategory", path: "/categories" },
-      { name: "Unit Management", path: "/units" },
-      { name: "Material Management", path: "/materials" },
-      { name: "Equipment Management", path: "/equipment" },
-      { name: "Contract Management", path: "/contracts" },
-      { name: "Personnel Role Management", path: "/roles" },
-      { name: "Fuel Price Management", path: "/fuel-prices" },
+      { name: "Manajemen Pengguna", path: "/users" },
+      { name: "Manajemen SPK", path: "/spk" },
+      { name: "Manajemen Area", path: "/areas" },
+      { name: "Manajemen Item Kerja", path: "/work-items" },
+      { name: "Kategori & Subkategori", path: "/categories" },
+      { name: "Manajemen Unit", path: "/units" },
+      { name: "Manajemen Material", path: "/materials" },
+      { name: "Manajemen Peralatan", path: "/equipment" },
+      { name: "Manajemen Kontrak", path: "/contracts" },
+      { name: "Manajemen Peran Personil", path: "/roles" },
+      { name: "Manajemen Harga BBM", path: "/fuel-prices" },
+      { name: "Manajemen Hari Libur", path: "/holidays" },
+      { name: "Manajemen Tarif Lembur", path: "/overtime-rates" },
     ],
   },
   {
     icon: <DocumentTextIcon />,
     name: "Laporan Harian",
-    subItems: [
-      { name: "List Laporan", path: "/daily-reports/list" },
-      { name: "Approval Laporan", path: "/daily-reports/approval" },
-    ],
+    path: "/daily-reports/approval",
   },
   {
     icon: <PieChartIcon />,
-    name: "Monitoring Proyek",
-    subItems: [
-      { name: "List SPK", path: "/project-monitoring/spk-list" },
-      { name: "Detail SPK", path: "/project-monitoring/spk-detail" },
-      { name: "Progress Monitoring", path: "/project-monitoring/progress" },
-      { name: "Cost Summary", path: "/project-monitoring/cost-summary" },
-    ],
-  },
-  {
-    icon: <DocumentTextIcon />,
-    name: "Laporan",
-    subItems: [
-      { name: "Harian", path: "/reports/daily" },
-      { name: "Mingguan", path: "/reports/weekly" },
-      { name: "Bulanan", path: "/reports/monthly" },
-      { name: "Export", path: "/reports/export" },
-    ],
+    name: "Laporan SPK",
+    path: "/project-monitoring/spk-list",
   },
   {
     icon: <TruckIcon />,
-    name: "Approval Alat Rusak",
-    path: "/equipment/approval",
+    name: "Status Alat",
+    path: "/equipment-status",
   },
   {
     icon: <PlugInIcon />,
-    name: "Settings",
-    path: "/settings",
+    name: "Pengaturan",
+    subItems: [
+      { name: "Profil Pengguna", path: "/settings/profile" },
+      { name: "Pengaturan Sistem", path: "/settings/system" },
+    ],
   },
 ];
 
@@ -91,6 +78,16 @@ const othersItems: NavItem[] = [];
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  // Filter menu berdasarkan role
+  const filteredNavItems = navItems.filter(item => {
+    if (item.name === "Data Master") {
+      // Hanya tampilkan Data Master untuk ADMIN dan SUPERADMIN
+      return user?.role?.roleCode === "ADMIN" || user?.role?.roleCode === "SUPERADMIN";
+    }
+    return true;
+  });
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -232,7 +229,7 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? filteredNavItems : othersItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
@@ -353,7 +350,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(filteredNavItems, "main")}
             </div>
 
             {/* <div className="">

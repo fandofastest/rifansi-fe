@@ -93,7 +93,7 @@ export default function EditWorkItemModal({ isOpen, onClose, onSuccess, workItem
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (name.startsWith('rates.')) {
-      const [_, type, field] = name.split('.');
+      const [type, field] = name.split('.');
       setFormData(prev => ({
         ...prev,
         rates: {

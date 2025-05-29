@@ -33,12 +33,12 @@ const ImportSPKModal: React.FC<ImportSPKModalProps> = ({ open, onClose, onSucces
       const token = localStorage.getItem("token") || "";
       const result = await importSPKFromExcel(file, token);
       if (result.success) {
-        onSuccess({ message: result.message, file: result.file });
+        onSuccess({ message: result.message, file: file.name });
       } else {
         setError(result.message || "Import failed");
       }
-    } catch (err: any) {
-      setError(err.message || "Import failed");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Import failed");
     } finally {
       setLoading(false);
     }

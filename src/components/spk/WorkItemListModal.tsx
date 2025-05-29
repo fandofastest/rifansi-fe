@@ -76,7 +76,7 @@ export const WorkItemListModal: React.FC<WorkItemListModalProps> = ({
           ) : (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <p>No work items have been added yet.</p>
-              <p className="text-sm mt-2">Click "Add Work Item" to start adding work items to this SPK.</p>
+              <p className="text-sm mt-2">Click &quot;Add Work Item&quot; to start adding work items to this SPK.</p>
             </div>
           )}
         </div>

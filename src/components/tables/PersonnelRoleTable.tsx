@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/textarea/TextArea";
+import { useRouter } from "next/navigation";
 
 interface PersonnelRoleTableProps {
   refresh?: boolean;
@@ -15,6 +16,7 @@ interface PersonnelRoleTableProps {
 
 export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps) {
   const { token } = useAuth();
+  const router = useRouter();
   const [roles, setRoles] = useState<PersonnelRole[]>([]);
   const [filteredRoles, setFilteredRoles] = useState<PersonnelRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,13 +36,11 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
     id: string;
     roleCode: string;
     roleName: string;
-    hourlyRate: number;
     description: string;
   }>({
     id: '',
     roleCode: '',
     roleName: '',
-    hourlyRate: 0,
     description: '',
   });
   const [saving, setSaving] = useState(false);
@@ -123,7 +123,6 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
         id: roleData.id,
         roleCode: roleData.roleCode,
         roleName: roleData.roleName,
-        hourlyRate: roleData.hourlyRate,
         description: roleData.description || '',
       });
       setEditModalOpen(true);
@@ -139,7 +138,7 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
     const { name, value } = e.target;
     setEditFormData({
       ...editFormData,
-      [name]: name === "hourlyRate" ? parseFloat(value) || 0 : value,
+      [name]: value,
     });
   };
 
@@ -170,6 +169,16 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleViewSalaryComponents = (roleId: string) => {
+    setDetailModalOpen(false);
+    router.push(`/salary-components?roleId=${roleId}`);
+  };
+
+  const handleViewOvertimeRates = (roleId: string) => {
+    setDetailModalOpen(false);
+    router.push(`/overtime-rates?roleId=${roleId}`);
   };
 
   if (loading) {
@@ -203,9 +212,6 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
                 Role Name
               </th>
               <th scope="col" className="px-6 py-3">
-                Hourly Rate
-              </th>
-              <th scope="col" className="px-6 py-3">
                 Description
               </th>
               <th scope="col" className="px-6 py-3">
@@ -224,9 +230,6 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
                     {role.roleCode}
                   </td>
                   <td className="px-6 py-4">{role.roleName}</td>
-                  <td className="px-6 py-4">
-                    Rp {role.hourlyRate?.toLocaleString("id-ID") || 0}
-                  </td>
                   <td className="px-6 py-4">{role.description}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
@@ -254,7 +257,7 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
               ))
             ) : (
               <tr className="bg-white dark:bg-gray-900">
-                <td colSpan={5} className="px-6 py-4 text-center">
+                <td colSpan={4} className="px-6 py-4 text-center">
                   No personnel roles found
                 </td>
               </tr>
@@ -310,15 +313,6 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
                 </p>
               </div>
 
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Hourly Rate
-                </h3>
-                <p className="mt-1 text-lg font-medium text-gray-900 dark:text-white">
-                  Rp {selectedRole.hourlyRate?.toLocaleString("id-ID") || 0}
-                </p>
-              </div>
-
               <div className="md:col-span-2">
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   Description
@@ -329,6 +323,23 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
               </div>
             </div>
             
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => handleViewSalaryComponents(selectedRole.id)}
+                className="w-full"
+              >
+                Lihat Komponen Gaji
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleViewOvertimeRates(selectedRole.id)}
+                className="w-full"
+              >
+                Lihat Tarif Lembur
+              </Button>
+            </div>
+
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
               <Button variant="outline" onClick={() => setDetailModalOpen(false)}>
                 Close
@@ -384,22 +395,6 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
                 onChange={handleEditChange}
                 required
                 placeholder="Enter role name"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Hourly Rate (Rp)
-              </label>
-              <Input
-                type="number"
-                name="hourlyRate"
-                value={editFormData.hourlyRate}
-                onChange={handleEditChange}
-                required
-                placeholder="Enter hourly rate"
-                min="0"
-                step="1000"
               />
             </div>
 

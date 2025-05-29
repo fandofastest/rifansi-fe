@@ -13,7 +13,15 @@ const LOGIN_MUTATION = `
           id
           roleCode
           roleName
-          hourlyRate
+          description
+          salaryComponent {
+            gajiPokok
+            tunjanganTetap
+            tunjanganTidakTetap
+            transport
+            biayaTetapHarian
+            upahLemburHarian
+          }
         }
         email
         phone
@@ -34,7 +42,15 @@ const GET_CURRENT_USER = `
         id
         roleCode
         roleName
-        hourlyRate
+        description
+        salaryComponent {
+          gajiPokok
+          tunjanganTetap
+          tunjanganTidakTetap
+          transport
+          biayaTetapHarian
+          upahLemburHarian
+        }
       }
       email
       phone

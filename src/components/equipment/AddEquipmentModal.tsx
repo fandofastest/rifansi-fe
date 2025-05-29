@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
-import { createEquipment } from "@/services/equipment";
+import { createEquipment, ServiceStatus, Area } from "@/services/equipment";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 
 interface AddEquipmentModalProps {
+  areas: Area[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -17,13 +18,13 @@ type FormData = {
   equipmentType: string;
   defaultOperator: string;
   area: string;
-  fuelType: string;
-  year: string; // string for form, convert to number on submit
-  serviceStatus: 'OPERATIONAL' | 'MAINTENANCE' | 'INACTIVE';
+  year: string;
+  serviceStatus: ServiceStatus;
   description: string;
 };
 
 export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
+  areas,
   onClose,
   onSuccess,
 }) => {
@@ -35,9 +36,8 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
     equipmentType: "",
     defaultOperator: "",
     area: "",
-    fuelType: "DIESEL", // Default value
     year: new Date().getFullYear().toString(),
-    serviceStatus: "OPERATIONAL", // Default value
+    serviceStatus: "Active",
     description: "",
   });
 
@@ -59,12 +59,18 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
       return;
     }
 
+    if (!formData.area) {
+      toast.error("Area is required");
+      return;
+    }
+
     setLoading(true);
     try {
       await createEquipment(
         {
           ...formData,
           year: formData.year ? parseInt(formData.year, 10) : undefined,
+          area: formData.area // make sure area is always included
         },
         token
       );
@@ -141,46 +147,21 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-2.5 block text-gray-800 dark:text-white/90">
-                Default Operator
-              </label>
-              <Input
-                type="text"
-                name="defaultOperator"
-                defaultValue={formData.defaultOperator}
-                onChange={handleChange}
-                placeholder="Operator Name"
-              />
-            </div>
-            <div>
-              <label className="mb-2.5 block text-gray-800 dark:text-white/90">
-                Area
-              </label>
-              <Input
-                type="text"
-                name="area"
-                defaultValue={formData.area}
-                onChange={handleChange}
-                placeholder="e.g. Jakarta"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-2.5 block text-gray-800 dark:text-white/90">
-                Fuel Type
+                Area <span className="text-error-500">*</span>
               </label>
               <select
-                name="fuelType"
-                value={formData.fuelType}
+                name="area"
+                value={formData.area}
                 onChange={handleChange}
                 className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs focus:outline-hidden focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                required
               >
-                <option value="DIESEL">Diesel</option>
-                <option value="PETROL">Petrol</option>
-                <option value="ELECTRIC">Electric</option>
-                <option value="HYBRID">Hybrid</option>
-                <option value="OTHER">Other</option>
+                <option value="">Select Area</option>
+                {areas.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -197,6 +178,21 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-2.5 block text-gray-800 dark:text-white/90">
+                Default Operator
+              </label>
+              <Input
+                type="text"
+                name="defaultOperator"
+                defaultValue={formData.defaultOperator}
+                onChange={handleChange}
+                placeholder="Operator Name"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="mb-2.5 block text-gray-800 dark:text-white/90">
               Service Status <span className="text-error-500">*</span>
@@ -208,9 +204,9 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
               className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs focus:outline-hidden focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
               required
             >
-              <option value="OPERATIONAL">Operational</option>
-              <option value="MAINTENANCE">Maintenance</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="Active">Active</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Decommissioned">Decommissioned</option>
             </select>
           </div>
 

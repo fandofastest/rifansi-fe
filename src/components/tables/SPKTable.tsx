@@ -18,7 +18,7 @@ import { WorkItemListModal } from "@/components/spk/WorkItemListModal";
 
 export const SPKTable: React.FC = () => {
   const { token } = useAuth();
-  const { isOpen, openModal, closeModal } = useModalContext();
+  const { openModal, closeModal } = useModalContext();
   const [spks, setSPKs] = useState<SPK[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,24 +38,19 @@ export const SPKTable: React.FC = () => {
         return [];
       }
       setLoading(true);
-      // Get current date and first day of current month
-      const now = new Date();
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startDate = firstDayOfMonth.toISOString().split('T')[0];
-      const endDate = now.toISOString().split('T')[0];
-      
       const data = await getSPKs(token);
       setSPKs(data);
       setError(null);
-      return data; // Return the fetched data
-    } catch (err: any) {
+      return data;
+    } catch (err: unknown) {
       console.error('Error fetching SPKs:', err);
-      if (err.response?.errors) {
-        setError(err.response.errors[0].message || "Failed to fetch SPKs");
+      const errorResponse = err as { response?: { errors?: Array<{ message: string }> } };
+      if (errorResponse.response?.errors) {
+        setError(errorResponse.response.errors[0].message || "Failed to fetch SPKs");
       } else {
         setError("Failed to fetch SPKs. Please try again later.");
       }
-      return []; // Return empty array on error
+      return [];
     } finally {
       setLoading(false);
     }
@@ -124,9 +119,8 @@ export const SPKTable: React.FC = () => {
         rates: workItem.rates,
         description: workItem.description
       }, token);
-      toast.success("Work item added successfully");
-      const updatedSPKs = await fetchSPKs(); // Get the updated SPKs
-      // Update selectedSPK with the latest data
+      toast.success("Work item berhasil ditambahkan");
+      const updatedSPKs = await fetchSPKs();
       const updatedSPK = updatedSPKs.find(spk => spk.id === selectedSPK.id);
       if (updatedSPK) {
         setSelectedSPK(updatedSPK);
@@ -134,7 +128,7 @@ export const SPKTable: React.FC = () => {
       setShowWorkItemModal(false);
     } catch (error) {
       console.error("Error adding work item:", error);
-      toast.error("Failed to add work item");
+      toast.error("Gagal menambahkan work item");
     }
   };
 
@@ -143,16 +137,15 @@ export const SPKTable: React.FC = () => {
 
     try {
       await removeWorkItemFromSPK(selectedSPK.id, workItemId, token);
-      toast.success("Work item removed successfully");
-      const updatedSPKs = await fetchSPKs(); // Get the updated SPKs
-      // Update selectedSPK with the latest data
+      toast.success("Work item berhasil dihapus");
+      const updatedSPKs = await fetchSPKs();
       const updatedSPK = updatedSPKs.find(spk => spk.id === selectedSPK.id);
       if (updatedSPK) {
         setSelectedSPK(updatedSPK);
       }
     } catch (error) {
       console.error("Error removing work item:", error);
-      toast.error("Failed to remove work item");
+      toast.error("Gagal menghapus work item");
     }
   };
 
@@ -167,8 +160,10 @@ export const SPKTable: React.FC = () => {
         await fetchSPKs();
         setIsDeleteModalOpen(false);
         setSPKToDelete(null);
+        toast.success("SPK berhasil dihapus");
       } catch (err) {
         console.error("Failed to delete SPK:", err);
+        toast.error("Gagal menghapus SPK");
       }
     }
   };
@@ -281,10 +276,10 @@ export const SPKTable: React.FC = () => {
       }} className="max-w-[400px] p-5">
         <div className="text-center">
           <h4 className="mb-4 text-lg font-medium text-gray-800 dark:text-white/90">
-            Delete SPK
+            Hapus SPK
           </h4>
           <p className="mb-6 text-gray-600 dark:text-gray-400">
-            Are you sure you want to delete SPK {spkToDelete?.spkNo}? This action cannot be undone.
+            Apakah Anda yakin ingin menghapus SPK {spkToDelete?.spkNo}? Tindakan ini tidak dapat dibatalkan.
           </p>
           <div className="flex items-center justify-end gap-3">
             <Button
@@ -295,7 +290,7 @@ export const SPKTable: React.FC = () => {
                 setSPKToDelete(null);
               }}
             >
-              Cancel
+              Batal
             </Button>
             <Button
               size="sm"
@@ -303,7 +298,7 @@ export const SPKTable: React.FC = () => {
               className="bg-error-500 hover:bg-error-600"
               onClick={confirmDelete}
             >
-              Delete
+              Hapus
             </Button>
           </div>
         </div>
@@ -358,4 +353,6 @@ export const SPKTable: React.FC = () => {
       />
     </div>
   );
-}; 
+};
+
+export default SPKTable; 

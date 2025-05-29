@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
-import { PencilIcon, TrashBinIcon, PlusIcon } from "@/icons";
+import { PencilIcon, TrashBinIcon } from "@/icons";
 import { useAuth } from "@/context/AuthContext";
 import {
   getFuelPrices,
@@ -23,13 +23,7 @@ const FuelPriceTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (token) {
-      fetchFuelPrices();
-    }
-  }, [token, refresh]);
-
-  const fetchFuelPrices = async () => {
+  const fetchFuelPrices = useCallback(async () => {
     if (!token) return;
     try {
       const data = await getFuelPrices(token);
@@ -39,7 +33,13 @@ const FuelPriceTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchFuelPrices();
+    }
+  }, [token, refresh, fetchFuelPrices]);
 
   const handleDelete = (fuelPrice: FuelPrice) => {
     setFuelPriceToDelete(fuelPrice);
@@ -123,7 +123,7 @@ const FuelPriceTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
             Delete Fuel Price
           </h4>
           <p className="mb-6 text-gray-600 dark:text-gray-400">
-            Are you sure you want to delete fuel price for "{fuelPriceToDelete?.fuelType}"? This action cannot be undone.
+            Are you sure you want to delete fuel price for &quot;{fuelPriceToDelete?.fuelType}&quot;? This action cannot be undone.
           </p>
           <div className="flex items-center justify-end gap-3">
             <Button

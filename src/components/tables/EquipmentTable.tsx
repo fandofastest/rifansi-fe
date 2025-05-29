@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Equipment, deleteEquipment, getEquipments } from "@/services/equipment";
+import { Equipment, deleteEquipment, getEquipments, Area } from "@/services/equipment";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useModalContext } from "@/context/ModalContext";
@@ -11,11 +11,33 @@ import { EquipmentDetailModal } from "@/components/equipment/EquipmentDetailModa
 import { PencilIcon, TrashBinIcon, EyeIcon, DocumentTextIcon } from "@/icons";
 import { toast } from "react-hot-toast";
 import { ContractManagementModal } from "@/components/equipment/ContractManagementModal";
+import { graphQLClient } from "@/lib/graphql";
+
+const GET_AREAS = `
+  query GetAreas {
+    areas {
+      id
+      name
+      location {
+        type
+        coordinates
+      }
+    }
+  }
+`;
+
+interface GraphQLError {
+  message: string;
+  response?: {
+    errors?: Array<{ message: string }>;
+  };
+}
 
 export const EquipmentTable: React.FC = () => {
   const { token } = useAuth();
-  const { isOpen, openModal, closeModal } = useModalContext();
+  const { openModal, closeModal } = useModalContext();
   const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [equipmentToDelete, setEquipmentToDelete] = useState<Equipment | null>(null);
@@ -24,6 +46,20 @@ export const EquipmentTable: React.FC = () => {
   const [equipmentForContracts, setEquipmentForContracts] = useState<Equipment | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+
+  const fetchAreas = async () => {
+    try {
+      if (!token) return;
+      const response = await graphQLClient.request<{ areas: Area[] }>(
+        GET_AREAS,
+        {},
+        { Authorization: `Bearer ${token}` }
+      );
+      setAreas(response.areas || []);
+    } catch (error) {
+      console.error('Error fetching areas:', error);
+    }
+  };
 
   const fetchEquipments = async () => {
     try {
@@ -36,10 +72,11 @@ export const EquipmentTable: React.FC = () => {
       setEquipments(data);
       setError(null);
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching equipments:', err);
-      if (err.response?.errors) {
-        setError(err.response.errors[0].message || "Failed to fetch equipments");
+      const graphQLError = err as GraphQLError;
+      if (graphQLError.response?.errors) {
+        setError(graphQLError.response.errors[0].message || "Failed to fetch equipments");
       } else {
         setError("Failed to fetch equipments. Please try again later.");
       }
@@ -51,6 +88,7 @@ export const EquipmentTable: React.FC = () => {
 
   useEffect(() => {
     fetchEquipments();
+    fetchAreas();
   }, [token]);
 
   const handleDelete = (equipment: Equipment) => {
@@ -136,11 +174,13 @@ export const EquipmentTable: React.FC = () => {
                   </td>
                   <td className="px-4 py-3 text-start">
                     <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      equipment.serviceStatus === 'OPERATIONAL' 
+                      equipment.serviceStatus.toUpperCase() === 'ACTIVE' 
                         ? 'bg-success-100 text-success-600 dark:bg-success-900/30 dark:text-success-400' 
-                        : equipment.serviceStatus === 'MAINTENANCE'
+                        : equipment.serviceStatus.toUpperCase() === 'MAINTENANCE'
                         ? 'bg-warning-100 text-warning-600 dark:bg-warning-900/30 dark:text-warning-400'
-                        : 'bg-error-100 text-error-600 dark:bg-error-900/30 dark:text-error-400'
+                        : equipment.serviceStatus.toUpperCase() === 'REPAIR'
+                        ? 'bg-error-100 text-error-600 dark:bg-error-900/30 dark:text-error-400'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'
                     }`}>
                       {equipment.serviceStatus}
                     </span>
@@ -223,6 +263,7 @@ export const EquipmentTable: React.FC = () => {
       {equipmentToEdit && (
         <EditEquipmentModal
           equipment={equipmentToEdit}
+          areas={areas}
           onClose={() => {
             closeModal();
             setEquipmentToEdit(null);

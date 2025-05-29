@@ -1,7 +1,6 @@
 import React from "react";
 import { Modal } from "@/components/ui/modal";
-import { SPK, Location } from "@/services/spk";
-import Button from "@/components/ui/button/Button";
+import { SPK } from "@/services/spk";
 
 interface SPKDetailModalProps {
   spk: SPK;
@@ -9,17 +8,10 @@ interface SPKDetailModalProps {
   onEdit?: () => void;
 }
 
-const formatDate = (dateString?: string) => {
+const formatDate = (dateString?: string | number) => {
   if (!dateString) return '-';
-  const dateNum = Number(dateString);
-  if (!isNaN(dateNum)) {
-    return new Date(dateNum).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  }
-  return new Date(dateString).toLocaleDateString('id-ID', {
+  const date = typeof dateString === 'number' ? new Date(dateString) : new Date(dateString);
+  return date.toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
@@ -35,7 +27,7 @@ const formatCurrency = (amount?: number) => {
   }).format(amount);
 };
 
-export const SPKDetailModal: React.FC<SPKDetailModalProps> = ({ spk, onClose, onEdit }) => {
+export const SPKDetailModal: React.FC<SPKDetailModalProps> = ({ spk, onClose }) => {
   return (
     <Modal isOpen={true} onClose={onClose} className="max-w-2xl m-4 dark:text-white/90">
       <div className="p-6">

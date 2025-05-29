@@ -4,7 +4,8 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-import { registerUser } from "@/services/user";
+import { registerUser, getSupervisors, Supervisor } from "@/services/user";
+import { createApproverSetting } from "@/services/approver";
 import { useAuth } from "@/context/AuthContext";
 import { getPersonnelRoles, PersonnelRole } from "@/services/personnelRole";
 
@@ -15,6 +16,7 @@ interface AddUserFormData {
   role: string;
   email: string;
   phone: string;
+  approverId?: string;
 }
 
 interface AddUserModalProps {
@@ -22,6 +24,8 @@ interface AddUserModalProps {
   onClose: () => void;
   onSuccess?: () => void;
 }
+
+
 
 export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) {
   const { token } = useAuth();
@@ -32,43 +36,43 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     role: '',
     email: '',
     phone: '',
+    approverId: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState<PersonnelRole[]>([]);
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
 
   useEffect(() => {
-    const fetchRoles = async () => {
+    const fetchData = async () => {
       if (token) {
         try {
-          const rolesData = await getPersonnelRoles(token);
+          const [rolesData, supervisorsData] = await Promise.all([
+            getPersonnelRoles(token),
+            getSupervisors(token)
+          ]);
+          
           setRoles(rolesData);
-          // Set default role if roles are available
+          setSupervisors(supervisorsData);
+          
           if (rolesData.length > 0) {
             setFormData(prev => ({
               ...prev,
               role: rolesData[0].roleCode
             }));
-          } else {
-            // If no roles are available, set a default role
-            setFormData(prev => ({
-              ...prev,
-              role: "USER" // Set a default role code
-            }));
           }
         } catch (error) {
-          console.error('Error fetching roles:', error);
-          // Set a default role even if fetching fails
+          console.error('Error fetching data:', error);
           setFormData(prev => ({
             ...prev,
-            role: "USER" // Set a default role code
+            role: "USER"
           }));
         }
       }
     };
 
     if (isOpen) {
-      fetchRoles();
+      fetchData();
     }
   }, [isOpen, token]);
 
@@ -96,12 +100,22 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     setLoading(true);
 
     try {
-      await registerUser(formData, token);
+      const response = await registerUser(formData, token);
+      
+      // Jika ada approver yang dipilih, buat approver setting
+      if (formData.approverId) {
+        await createApproverSetting({
+          userId: response.user.id,
+          approverId: formData.approverId
+        }, token);
+      }
+
       onClose();
       if (onSuccess) {
         onSuccess();
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Error creating user:', error);
       setError('Failed to create user. Please try again.');
     } finally {
       setLoading(false);
@@ -165,7 +179,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-white/90"
+              className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-white/[0.05] dark:bg-gray-800 dark:text-white/90"
             >
               <option value="">No Role</option>
               {roles.map(role => (
@@ -200,6 +214,27 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
               onChange={handleChange}
               placeholder="Enter phone number"
             />
+          </div>
+
+          <div>
+            <Label>Approver</Label>
+            <select
+              name="approverId"
+              value={formData.approverId}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-white/[0.05] dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="">No Approver</option>
+              {supervisors.map(supervisor => (
+                <option 
+                  key={supervisor.id} 
+                  value={supervisor.id}
+                  className="dark:bg-gray-800 dark:text-white/90"
+                >
+                  {supervisor.fullName}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

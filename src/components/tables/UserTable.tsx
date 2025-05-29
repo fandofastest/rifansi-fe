@@ -12,7 +12,6 @@ import { getUsers, deleteUser } from "@/services/user";
 import type { User } from "@/services/user";
 import Button from "../ui/button/Button";
 import { PencilIcon, TrashBinIcon } from "@/icons";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import AddUserModal from "@/components/users/AddUserModal";
 import EditUserModal from "@/components/users/EditUserModal";
@@ -24,7 +23,6 @@ export default function UserTable() {
   const [loading, setLoading] = useState(true);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
-  const router = useRouter();
   const { token } = useAuth();
   const { isOpen, closeModal } = useModalContext();
 
@@ -191,7 +189,7 @@ export default function UserTable() {
             Delete User
           </h4>
           <p className="mb-6 text-gray-600 dark:text-gray-400">
-            Are you sure you want to delete user "{userToDelete?.username}"? This action cannot be undone.
+            Are you sure you want to delete user &quot;{userToDelete?.username}&quot;? This action cannot be undone.
           </p>
           <div className="flex items-center justify-end gap-3">
             <Button

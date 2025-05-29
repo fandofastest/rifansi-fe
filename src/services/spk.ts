@@ -137,6 +137,160 @@ interface AddWorkItemToSPKResponse {
   addWorkItemToSPK: SPK;
 }
 
+interface GetSPKsVariables {
+  startDate?: string;
+  endDate?: string;
+}
+
+interface ImportSPKResponse {
+  success: boolean;
+  message: string;
+  data?: SPK[];
+}
+
+export interface SPKProgress {
+  percentage: number;
+  totalBudget: number;
+  totalSpent: number;
+  remainingBudget: number;
+}
+
+export interface WorkItemProgress {
+  completedVolume: {
+    nr: number;
+    r: number;
+  };
+  remainingVolume: {
+    nr: number;
+    r: number;
+  };
+  percentageComplete: number;
+  spentAmount: number;
+  remainingAmount: number;
+}
+
+export interface CostBreakdownItem {
+  material?: string;
+  quantity?: number;
+  unit?: string;
+  unitRate?: number;
+  role?: string;
+  numberOfWorkers?: number;
+  workingHours?: number;
+  hourlyRate?: number;
+  equipment?: {
+    id: string;
+    equipmentCode: string;
+    plateOrSerialNo: string;
+    equipmentType: string;
+    description: string;
+  };
+  fuelUsed?: number;
+  fuelPrice?: number;
+  description?: string;
+  cost: number;
+}
+
+export interface CostBreakdownCategory {
+  totalCost: number;
+  items: CostBreakdownItem[];
+}
+
+export interface CostBreakdown {
+  totalCost: number;
+  dailyActivities: {
+    activityId: string;
+    date: number;
+    totalCost: number;
+    materials: CostBreakdownCategory;
+    manpower: CostBreakdownCategory;
+    equipment: CostBreakdownCategory;
+    otherCosts: CostBreakdownCategory;
+  }[];
+}
+
+export interface DailyActivityWorkItem {
+  id: string;
+  name: string;
+  description: string;
+  categoryId: string;
+  subCategoryId: string;
+  unitId: string;
+  category: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  subCategory: {
+    id: string;
+    name: string;
+  };
+  unit: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  rates: {
+    nr: {
+      rate: number;
+      description: string;
+    };
+    r: {
+      rate: number;
+      description: string;
+    };
+  };
+  boqVolume: {
+    nr: number;
+    r: number;
+  };
+  dailyProgress: {
+    nr: number;
+    r: number;
+  };
+  progressAchieved: {
+    nr: number;
+    r: number;
+  };
+  actualQuantity: {
+    nr: number;
+    r: number;
+  };
+  dailyCost: {
+    nr: number;
+    r: number;
+  };
+  lastUpdatedAt: number;
+}
+
+export interface DailyActivity {
+  id: string;
+  date: number;
+  location: string;
+  weather: string;
+  status: string;
+  workStartTime: string;
+  workEndTime: string;
+  createdBy: string;
+  closingRemarks: string;
+  workItems: DailyActivityWorkItem[];
+  costs: {
+    materials: CostBreakdownCategory;
+    manpower: CostBreakdownCategory;
+    equipment: CostBreakdownCategory;
+    otherCosts: CostBreakdownCategory;
+  };
+}
+
+export interface SPKDetailWithProgress extends SPK {
+  totalProgress: SPKProgress;
+  workItems: (SPKWorkItem & {
+    progress: WorkItemProgress;
+  })[];
+  dailyActivities: DailyActivity[];
+  costBreakdown: CostBreakdown;
+}
+
 const GET_SPKS = `
   query GetSPKs($startDate: String, $endDate: String) {
     spks(startDate: $startDate, endDate: $endDate) {
@@ -369,13 +523,153 @@ const REMOVE_WORK_ITEM_FROM_SPK = `
   }
 `;
 
+const GET_SPK_DETAILS_WITH_PROGRESS = `
+  query GetSPKDetailsWithProgressBySpkId($spkId: ID!) {
+    spkDetailsWithProgress(spkId: $spkId) {
+      id
+      spkNo
+      wapNo
+      title
+      projectName
+      date
+      contractor
+      workDescription
+      location {
+        id
+        name
+      }
+      startDate
+      endDate
+      budget
+      dailyActivities {
+        id
+        date
+        location
+        weather
+        status
+        workStartTime
+        workEndTime
+        createdBy
+        closingRemarks
+        workItems {
+          id
+          name
+          description
+          categoryId
+          subCategoryId
+          unitId
+          category {
+            id
+            name
+            code
+          }
+          subCategory {
+            id
+            name
+          }
+          unit {
+            id
+            name
+            code
+          }
+          rates {
+            nr {
+              rate
+              description
+            }
+            r {
+              rate
+              description
+            }
+          }
+          boqVolume {
+            nr
+            r
+          }
+          dailyProgress {
+            nr
+            r
+          }
+          progressAchieved {
+            nr
+            r
+          }
+          actualQuantity {
+            nr
+            r
+          }
+          dailyCost {
+            nr
+            r
+          }
+          lastUpdatedAt
+        }
+        costs {
+          materials {
+            totalCost
+            items {
+              material
+              quantity
+              unit
+              unitRate
+              cost
+            }
+          }
+          manpower {
+            totalCost
+            items {
+              role
+              numberOfWorkers
+              workingHours
+              hourlyRate
+              cost
+            }
+          }
+          equipment {
+            totalCost
+            items {
+              equipment {
+                id
+                equipmentCode
+                plateOrSerialNo
+                equipmentType
+                description
+              }
+              workingHours
+              hourlyRate
+              fuelUsed
+              fuelPrice
+              cost
+            }
+          }
+          otherCosts {
+            totalCost
+            items {
+              description
+              cost
+            }
+          }
+        }
+      }
+      totalProgress {
+        percentage
+        totalBudget
+        totalSpent
+        remainingBudget
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 export const getSPKs = async (
   token: string,
   startDate?: string,
   endDate?: string
 ): Promise<SPK[]> => {
   try {
-    const variables: any = {};
+    const variables: GetSPKsVariables = {};
     if (startDate) variables.startDate = startDate;
     if (endDate) variables.endDate = endDate;
 
@@ -500,7 +794,7 @@ export const removeWorkItemFromSPK = async (
 export const importSPKFromExcel = async (
   file: File | Blob,
   token: string
-): Promise<any> => {
+): Promise<ImportSPKResponse> => {
   const formData = new FormData();
   formData.append('excelFile', file);
 
@@ -520,4 +814,21 @@ export const importSPKFromExcel = async (
   }
 
   return response.json();
+};
+
+export const getSPKDetailsWithProgress = async (
+  spkId: string,
+  token: string
+): Promise<SPKDetailWithProgress> => {
+  try {
+    const response = await graphQLClient.request<{ spkDetailsWithProgress: SPKDetailWithProgress }>(
+      GET_SPK_DETAILS_WITH_PROGRESS,
+      { spkId },
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.spkDetailsWithProgress;
+  } catch (error) {
+    console.error('Error fetching SPK details with progress:', error);
+    throw error;
+  }
 }; 

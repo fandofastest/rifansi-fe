@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { SPKTable } from "@/components/tables/SPKTable";
+import SPKTable from "@/components/tables/SPKTable";
 import { AddSPKButton } from "@/components/spk";
 import { ImportSPKButton } from "@/components/spk/ImportSPKButton";
 

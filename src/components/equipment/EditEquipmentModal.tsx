@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
-import { Equipment, updateEquipment } from "@/services/equipment";
+import { Equipment, updateEquipment, ServiceStatus, Area, UpdateEquipmentInput } from "@/services/equipment";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 
 interface EditEquipmentModalProps {
   equipment: Equipment;
+  areas: Area[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -18,14 +19,14 @@ type FormData = {
   equipmentType: string;
   defaultOperator: string;
   area: string;
-  fuelType: string;
   year: string;
-  serviceStatus: 'OPERATIONAL' | 'MAINTENANCE' | 'INACTIVE';
+  serviceStatus: ServiceStatus;
   description: string;
 };
 
 export const EditEquipmentModal: React.FC<EditEquipmentModalProps> = ({
   equipment,
+  areas,
   onClose,
   onSuccess,
 }) => {
@@ -36,24 +37,21 @@ export const EditEquipmentModal: React.FC<EditEquipmentModalProps> = ({
     plateOrSerialNo: equipment.plateOrSerialNo || "",
     equipmentType: equipment.equipmentType || "",
     defaultOperator: equipment.defaultOperator || "",
-    area: equipment.area || "",
-    fuelType: equipment.fuelType || "DIESEL",
+    area: equipment.area?.id || "",
     year: equipment.year ? equipment.year.toString() : "",
-    serviceStatus: equipment.serviceStatus || "OPERATIONAL",
+    serviceStatus: equipment.serviceStatus || "Active",
     description: equipment.description || "",
   });
 
   useEffect(() => {
-    // Update form data if equipment changes
     setFormData({
       equipmentCode: equipment.equipmentCode || "",
       plateOrSerialNo: equipment.plateOrSerialNo || "",
       equipmentType: equipment.equipmentType || "",
       defaultOperator: equipment.defaultOperator || "",
-      area: equipment.area || "",
-      fuelType: equipment.fuelType || "DIESEL",
+      area: equipment.area?.id || "",
       year: equipment.year ? equipment.year.toString() : "",
-      serviceStatus: equipment.serviceStatus || "OPERATIONAL",
+      serviceStatus: equipment.serviceStatus || "Active",
       description: equipment.description || "",
     });
   }, [equipment]);
@@ -78,12 +76,37 @@ export const EditEquipmentModal: React.FC<EditEquipmentModalProps> = ({
 
     setLoading(true);
     try {
+      // Hanya kirim field yang berubah
+      const updates: UpdateEquipmentInput = {};
+      
+      if (formData.equipmentCode !== equipment.equipmentCode) {
+        updates.equipmentCode = formData.equipmentCode;
+      }
+      if (formData.plateOrSerialNo !== equipment.plateOrSerialNo) {
+        updates.plateOrSerialNo = formData.plateOrSerialNo;
+      }
+      if (formData.equipmentType !== equipment.equipmentType) {
+        updates.equipmentType = formData.equipmentType;
+      }
+      if (formData.defaultOperator !== equipment.defaultOperator) {
+        updates.defaultOperator = formData.defaultOperator;
+      }
+      if (formData.area !== equipment.area?.id) {
+        updates.area = formData.area;
+      }
+      if (formData.year && parseInt(formData.year) !== equipment.year) {
+        updates.year = parseInt(formData.year, 10);
+      }
+      if (formData.serviceStatus !== equipment.serviceStatus) {
+        updates.serviceStatus = formData.serviceStatus;
+      }
+      if (formData.description !== equipment.description) {
+        updates.description = formData.description;
+      }
+
       updateEquipment(
         equipment.id,
-        {
-          ...formData,
-          year: formData.year ? parseInt(formData.year, 10) : undefined,
-        },
+        updates,
         token
       ).then(() => {
         toast.success("Equipment updated successfully");
@@ -164,46 +187,21 @@ export const EditEquipmentModal: React.FC<EditEquipmentModalProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-2.5 block text-gray-800 dark:text-white/90">
-                Default Operator
-              </label>
-              <Input
-                type="text"
-                name="defaultOperator"
-                defaultValue={formData.defaultOperator}
-                onChange={handleChange}
-                placeholder="Operator Name"
-              />
-            </div>
-            <div>
-              <label className="mb-2.5 block text-gray-800 dark:text-white/90">
-                Area
-              </label>
-              <Input
-                type="text"
-                name="area"
-                defaultValue={formData.area}
-                onChange={handleChange}
-                placeholder="e.g. Jakarta"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-2.5 block text-gray-800 dark:text-white/90">
-                Fuel Type
+                Area <span className="text-error-500">*</span>
               </label>
               <select
-                name="fuelType"
-                value={formData.fuelType}
+                name="area"
+                value={formData.area}
                 onChange={handleChange}
                 className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs focus:outline-hidden focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                required
               >
-                <option value="DIESEL">Diesel</option>
-                <option value="PETROL">Petrol</option>
-                <option value="ELECTRIC">Electric</option>
-                <option value="HYBRID">Hybrid</option>
-                <option value="OTHER">Other</option>
+                <option value="">Select Area</option>
+                {areas.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -220,6 +218,21 @@ export const EditEquipmentModal: React.FC<EditEquipmentModalProps> = ({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-2.5 block text-gray-800 dark:text-white/90">
+                Default Operator
+              </label>
+              <Input
+                type="text"
+                name="defaultOperator"
+                defaultValue={formData.defaultOperator}
+                onChange={handleChange}
+                placeholder="Operator Name"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="mb-2.5 block text-gray-800 dark:text-white/90">
               Service Status <span className="text-error-500">*</span>
@@ -231,9 +244,9 @@ export const EditEquipmentModal: React.FC<EditEquipmentModalProps> = ({
               className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs focus:outline-hidden focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
               required
             >
-              <option value="OPERATIONAL">Operational</option>
-              <option value="MAINTENANCE">Maintenance</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="Active">Active</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Decommissioned">Decommissioned</option>
             </select>
           </div>
 

@@ -4,7 +4,6 @@ export interface PersonnelRole {
   id: string;
   roleCode: string;
   roleName: string;
-  hourlyRate: number;
   description?: string;
 }
 
@@ -19,7 +18,6 @@ interface GetPersonnelRoleResponse {
 interface CreatePersonnelRoleInput {
   roleCode: string;
   roleName: string;
-  hourlyRate: number;
   description?: string;
 }
 
@@ -27,7 +25,6 @@ interface UpdatePersonnelRoleInput {
   id: string;
   roleCode?: string;
   roleName?: string;
-  hourlyRate?: number;
   description?: string;
 }
 
@@ -54,7 +51,6 @@ interface AssignRoleToPersonnelResponse {
     role: {
       id: string;
       roleName: string;
-      hourlyRate: number;
     };
   };
 }
@@ -67,7 +63,6 @@ interface GetPersonnelByRoleResponse {
     role: {
       id: string;
       roleName: string;
-      hourlyRate: number;
     };
   }>;
 }
@@ -78,7 +73,6 @@ const GET_PERSONNEL_ROLES = `
       id
       roleCode
       roleName
-      hourlyRate
       description
     }
   }
@@ -90,42 +84,37 @@ const GET_PERSONNEL_ROLE = `
       id
       roleCode
       roleName
-      hourlyRate
       description
     }
   }
 `;
 
 const CREATE_PERSONNEL_ROLE = `
-  mutation CreatePersonnelRole($roleCode: String!, $roleName: String!, $hourlyRate: Float!, $description: String) {
+  mutation CreatePersonnelRole($roleCode: String!, $roleName: String!, $description: String) {
     createPersonnelRole(
       roleCode: $roleCode
       roleName: $roleName
-      hourlyRate: $hourlyRate
       description: $description
     ) {
       id
       roleCode
       roleName
-      hourlyRate
       description
     }
   }
 `;
 
 const UPDATE_PERSONNEL_ROLE = `
-  mutation UpdatePersonnelRole($id: ID!, $roleCode: String, $roleName: String, $hourlyRate: Float, $description: String) {
+  mutation UpdatePersonnelRole($id: ID!, $roleCode: String, $roleName: String, $description: String) {
     updatePersonnelRole(
       id: $id
       roleCode: $roleCode
       roleName: $roleName
-      hourlyRate: $hourlyRate
       description: $description
     ) {
       id
       roleCode
       roleName
-      hourlyRate
       description
     }
   }
@@ -148,7 +137,6 @@ const ASSIGN_ROLE_TO_PERSONNEL = `
       role {
         id
         roleName
-        hourlyRate
       }
     }
   }
@@ -163,7 +151,6 @@ const GET_PERSONNEL_BY_ROLE = `
       role {
         id
         roleName
-        hourlyRate
       }
     }
   }

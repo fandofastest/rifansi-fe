@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
-import { PencilIcon, TrashBinIcon, PlusIcon } from "@/icons";
+import { PencilIcon, TrashBinIcon } from "@/icons";
 import { useAuth } from "@/context/AuthContext";
 import { getMaterials, deleteMaterial, Material, updateMaterial } from "@/services/material";
 import Input from "@/components/ui/input/Input";
@@ -186,10 +186,7 @@ export default function MaterialTable({ refresh }: { refresh?: boolean }) {
     setIsEditModalOpen(true);
   };
 
-  const handleView = (materialId: string) => {
-    setMaterialToView(materialId);
-    setIsDetailModalOpen(true);
-  };
+
 
   const confirmDelete = async () => {
     if (!token || !materialToDelete) return;
@@ -294,7 +291,7 @@ export default function MaterialTable({ refresh }: { refresh?: boolean }) {
             Delete Material
           </h4>
           <p className="mb-6 text-gray-600 dark:text-gray-400">
-            Are you sure you want to delete material "{materialToDelete?.name}"? This action cannot be undone.
+            Are you sure you want to delete material &quot;{materialToDelete?.name}&quot;? This action cannot be undone.
           </p>
           <div className="flex items-center justify-end gap-3">
             <Button

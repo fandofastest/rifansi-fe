@@ -1,5 +1,16 @@
 import { graphQLClient } from '@/lib/graphql';
 
+export interface Location {
+  type: string;
+  coordinates: number[];
+}
+
+export interface Area {
+  id: string;
+  name: string;
+  location?: Location;
+}
+
 export interface EquipmentContract {
   contractId: string;
   equipmentId: number;
@@ -14,20 +25,65 @@ export interface EquipmentContract {
   };
 }
 
+export type EquipmentServiceStatus = 'ACTIVE' | 'MAINTENANCE' | 'REPAIR' | 'INACTIVE';
+
+export interface User {
+  id: string;
+  username: string;
+  fullName: string;
+}
+
+export interface ServiceHistory {
+  status: EquipmentServiceStatus;
+  remarks?: string;
+  updatedAt: string;
+  updatedBy: User;
+}
+
+export interface AreaHistory {
+  area: {
+    id: string;
+    name: string;
+    location?: {
+      type: string;
+      coordinates: number[];
+    };
+  };
+  remarks: string;
+  updatedBy: {
+    id: string;
+    username: string;
+    fullName: string;
+  };
+  updatedAt: string;
+}
+
 export interface Equipment {
   id: string;
   equipmentCode: string;
   plateOrSerialNo: string;
   equipmentType: string;
   defaultOperator?: string;
-  area?: string;
-  fuelType?: string;
+  area?: Area;
   year?: number;
-  serviceStatus: 'OPERATIONAL' | 'MAINTENANCE' | 'INACTIVE';
+  serviceStatus: EquipmentServiceStatus;
   contracts?: EquipmentContract[];
   description?: string;
   createdAt: number;
   updatedAt: number;
+  serviceHistory: ServiceHistory[];
+  areaHistory: AreaHistory[];
+}
+
+export interface UpdateEquipmentInput {
+  equipmentCode?: string;
+  plateOrSerialNo?: string;
+  equipmentType?: string;
+  defaultOperator?: string;
+  area?: string; // area ID is optional for update
+  year?: number;
+  serviceStatus?: EquipmentServiceStatus;
+  description?: string;
 }
 
 interface CreateEquipmentInput {
@@ -35,41 +91,81 @@ interface CreateEquipmentInput {
   plateOrSerialNo: string;
   equipmentType: string;
   defaultOperator?: string;
-  area?: string;
-  fuelType?: string;
+  area: string; // area ID is required
   year?: number;
-  serviceStatus: 'OPERATIONAL' | 'MAINTENANCE' | 'INACTIVE';
-  contracts?: EquipmentContract[];
+  serviceStatus: EquipmentServiceStatus;
   description?: string;
 }
 
-interface UpdateEquipmentInput {
-  equipmentCode?: string;
-  plateOrSerialNo?: string;
-  equipmentType?: string;
-  defaultOperator?: string;
-  area?: string;
-  fuelType?: string;
-  year?: number;
-  serviceStatus?: 'OPERATIONAL' | 'MAINTENANCE' | 'INACTIVE';
-  contracts?: EquipmentContract[];
-  description?: string;
+interface EquipmentResponse {
+  equipments: Array<{
+    id: string;
+    equipmentCode: string;
+    plateOrSerialNo: string;
+    equipmentType: string;
+    defaultOperator?: string;
+    area?: {
+      id: string;
+      name: string;
+      location?: {
+        type: string;
+        coordinates: number[];
+      };
+    };
+    year?: number;
+    serviceStatus: EquipmentServiceStatus;
+    description?: string;
+    createdAt: number;
+    updatedAt: number;
+  }>;
+}
+
+interface SingleEquipmentResponse {
+  equipment: {
+    id: string;
+    equipmentCode: string;
+    plateOrSerialNo: string;
+    equipmentType: string;
+    defaultOperator?: string;
+    area?: {
+      id: string;
+      name: string;
+      location?: {
+        type: string;
+        coordinates: number[];
+      };
+    };
+    year?: number;
+    serviceStatus: EquipmentServiceStatus;
+    contracts?: EquipmentContract[];
+    description?: string;
+    createdAt: number;
+    updatedAt: number;
+  };
 }
 
 // GraphQL queries and mutations
 const GET_ALL_EQUIPMENT = `
-  query GetAllEquipment {
+  query GetEquipments {
     equipments {
       id
       equipmentCode
       plateOrSerialNo
       equipmentType
-      serviceStatus
-      contracts {
-        contractId
-        rentalRate
+      defaultOperator
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
+        }
       }
+      year
+      serviceStatus
+      description
       createdAt
+      updatedAt
     }
   }
 `;
@@ -82,8 +178,14 @@ const GET_EQUIPMENT_BY_ID = `
       plateOrSerialNo
       equipmentType
       defaultOperator
-      area
-      fuelType
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
+        }
+      }
       year
       serviceStatus
       contracts {
@@ -106,43 +208,59 @@ const GET_EQUIPMENT_BY_ID = `
   }
 `;
 
-const GET_EQUIPMENT_BY_STATUS = `
-  query GetEquipmentByStatus($status: String!) {
-    equipmentsByStatus(status: $status) {
+const GET_EQUIPMENT_BY_AREA = `
+  query GetEquipmentsByArea($areaId: ID!) {
+    equipmentsByArea(areaId: $areaId) {
       id
       equipmentCode
       plateOrSerialNo
       equipmentType
-      serviceStatus
-      contracts {
-        contractId
-        rentalRate
+      defaultOperator
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
+        }
       }
+      year
+      serviceStatus
+      description
     }
   }
 `;
 
 const CREATE_EQUIPMENT = `
-  mutation CreateEquipment($input: EquipmentInput!) {
+  mutation CreateEquipment(
+    $equipmentCode: String!
+    $plateOrSerialNo: String
+    $equipmentType: String!
+    $defaultOperator: String
+    $area: ID!
+    $year: Int
+    $serviceStatus: String
+    $description: String
+  ) {
     createEquipment(
-      equipmentCode: $input.equipmentCode
-      plateOrSerialNo: $input.plateOrSerialNo
-      equipmentType: $input.equipmentType
-      defaultOperator: $input.defaultOperator
-      area: $input.area
-      fuelType: $input.fuelType
-      year: $input.year
-      serviceStatus: $input.serviceStatus
-      contracts: $input.contracts
-      description: $input.description
+      equipmentCode: $equipmentCode
+      plateOrSerialNo: $plateOrSerialNo
+      equipmentType: $equipmentType
+      defaultOperator: $defaultOperator
+      area: $area
+      year: $year
+      serviceStatus: $serviceStatus
+      description: $description
     ) {
       id
       equipmentCode
       plateOrSerialNo
       equipmentType
       defaultOperator
-      area
-      fuelType
+      area {
+        id
+        name
+      }
       year
       serviceStatus
       description
@@ -153,26 +271,37 @@ const CREATE_EQUIPMENT = `
 `;
 
 const UPDATE_EQUIPMENT = `
-  mutation UpdateEquipment($id: ID!, $input: EquipmentUpdateInput!) {
+  mutation UpdateEquipment(
+    $id: ID!
+    $equipmentCode: String
+    $plateOrSerialNo: String
+    $equipmentType: String
+    $defaultOperator: String
+    $area: ID
+    $year: Int
+    $serviceStatus: String
+    $description: String
+  ) {
     updateEquipment(
       id: $id
-      equipmentCode: $input.equipmentCode
-      plateOrSerialNo: $input.plateOrSerialNo
-      equipmentType: $input.equipmentType
-      defaultOperator: $input.defaultOperator
-      area: $input.area
-      fuelType: $input.fuelType
-      year: $input.year
-      serviceStatus: $input.serviceStatus
-      description: $input.description
+      equipmentCode: $equipmentCode
+      plateOrSerialNo: $plateOrSerialNo
+      equipmentType: $equipmentType
+      defaultOperator: $defaultOperator
+      area: $area
+      year: $year
+      serviceStatus: $serviceStatus
+      description: $description
     ) {
       id
       equipmentCode
       plateOrSerialNo
       equipmentType
       defaultOperator
-      area
-      fuelType
+      area {
+        id
+        name
+      }
       year
       serviceStatus
       description
@@ -187,7 +316,6 @@ const DELETE_EQUIPMENT = `
   }
 `;
 
-// Add new GraphQL mutations for contract management in equipment
 const ADD_CONTRACT_TO_EQUIPMENT = `
   mutation AddContractToEquipment($equipmentId: ID!, $contract: EquipmentContractInput!) {
     addContractToEquipment(
@@ -239,7 +367,6 @@ const REMOVE_CONTRACT_FROM_EQUIPMENT = `
   }
 `;
 
-// Add query to get equipment by contract
 const GET_EQUIPMENT_BY_CONTRACT = `
   query GetEquipmentByContract($contractId: ID!) {
     equipments {
@@ -255,15 +382,90 @@ const GET_EQUIPMENT_BY_CONTRACT = `
   }
 `;
 
+const GET_EQUIPMENT_AREA_HISTORY = `
+  query GetEquipmentAreaHistory($equipmentId: ID!) {
+    getEquipmentAreaHistory(equipmentId: $equipmentId) {
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
+        }
+      }
+      remarks
+      updatedBy {
+        id
+        username
+        fullName
+      }
+      updatedAt
+    }
+  }
+`;
+
+const GET_EQUIPMENT_SERVICE_HISTORY = `
+  query GetEquipmentServiceHistory($equipmentId: ID!) {
+    getEquipmentServiceHistory(equipmentId: $equipmentId) {
+      status
+      remarks
+      updatedBy {
+        username
+        fullName
+      }
+      updatedAt
+    }
+  }
+`;
+
+const GET_AREAS = `
+  query GetAreas {
+    areas {
+      id
+      name
+      location {
+        type
+        coordinates
+      }
+    }
+  }
+`;
+
+// Fungsi helper untuk menangani error area null
+const handleEquipmentResponse = (data: EquipmentResponse | null): Equipment[] => {
+  if (!data || !data.equipments) return [];
+  
+  return data.equipments.map((equipment) => ({
+    ...equipment,
+    area: equipment.area || { id: '', name: 'Unassigned' },
+    serviceHistory: [],
+    areaHistory: []
+  }));
+};
+
+// Fungsi helper untuk menangani error area null untuk single equipment
+const handleSingleEquipmentResponse = (data: SingleEquipmentResponse | null): Equipment => {
+  if (!data || !data.equipment) {
+    throw new Error('Equipment not found');
+  }
+  
+  return {
+    ...data.equipment,
+    area: data.equipment.area || { id: '', name: 'Unassigned' },
+    serviceHistory: [],
+    areaHistory: []
+  };
+};
+
 // Service functions
 export const getEquipments = async (token: string): Promise<Equipment[]> => {
   try {
-    const response = await graphQLClient.request<{ equipments: Equipment[] }>(
+    const response = await graphQLClient.request<EquipmentResponse>(
       GET_ALL_EQUIPMENT,
       {},
       { Authorization: `Bearer ${token}` }
     );
-    return response.equipments;
+    return handleEquipmentResponse(response);
   } catch (error) {
     console.error('Error fetching equipment list:', error);
     throw error;
@@ -272,28 +474,28 @@ export const getEquipments = async (token: string): Promise<Equipment[]> => {
 
 export const getEquipmentById = async (id: string, token: string): Promise<Equipment> => {
   try {
-    const response = await graphQLClient.request<{ equipment: Equipment }>(
+    const response = await graphQLClient.request<SingleEquipmentResponse>(
       GET_EQUIPMENT_BY_ID,
       { id },
       { Authorization: `Bearer ${token}` }
     );
-    return response.equipment;
+    return handleSingleEquipmentResponse(response);
   } catch (error) {
     console.error('Error fetching equipment details:', error);
     throw error;
   }
 };
 
-export const getEquipmentsByStatus = async (status: string, token: string): Promise<Equipment[]> => {
+export const getEquipmentsByArea = async (areaId: string, token: string): Promise<Equipment[]> => {
   try {
-    const response = await graphQLClient.request<{ equipmentsByStatus: Equipment[] }>(
-      GET_EQUIPMENT_BY_STATUS,
-      { status },
+    const response = await graphQLClient.request<{ equipmentsByArea: Equipment[] }>(
+      GET_EQUIPMENT_BY_AREA,
+      { areaId },
       { Authorization: `Bearer ${token}` }
     );
-    return response.equipmentsByStatus;
+    return response.equipmentsByArea;
   } catch (error) {
-    console.error('Error fetching equipment by status:', error);
+    console.error('Error fetching equipment by area:', error);
     throw error;
   }
 };
@@ -305,7 +507,16 @@ export const createEquipment = async (
   try {
     const response = await graphQLClient.request<{ createEquipment: Equipment }>(
       CREATE_EQUIPMENT,
-      { input },
+      { 
+        equipmentCode: input.equipmentCode,
+        plateOrSerialNo: input.plateOrSerialNo,
+        equipmentType: input.equipmentType,
+        defaultOperator: input.defaultOperator,
+        area: input.area,
+        year: input.year,
+        serviceStatus: input.serviceStatus,
+        description: input.description
+      },
       { Authorization: `Bearer ${token}` }
     );
     return response.createEquipment;
@@ -323,7 +534,17 @@ export const updateEquipment = async (
   try {
     const response = await graphQLClient.request<{ updateEquipment: Equipment }>(
       UPDATE_EQUIPMENT,
-      { id, input },
+      { 
+        id,
+        equipmentCode: input.equipmentCode,
+        plateOrSerialNo: input.plateOrSerialNo,
+        equipmentType: input.equipmentType,
+        defaultOperator: input.defaultOperator,
+        area: input.area,
+        year: input.year,
+        serviceStatus: input.serviceStatus,
+        description: input.description
+      },
       { Authorization: `Bearer ${token}` }
     );
     return response.updateEquipment;
@@ -412,6 +633,153 @@ export const getEquipmentsByContract = async (contractId: string, token: string)
     return response.equipments;
   } catch (error) {
     console.error('Error fetching equipment by contract:', error);
+    throw error;
+  }
+};
+
+interface UpdateEquipmentServiceStatusInput {
+  equipmentId: string;
+  serviceStatus: EquipmentServiceStatus;
+  remarks?: string;
+}
+
+interface UpdateEquipmentAreaInput {
+  equipmentId: string;
+  areaId: string;
+  remarks?: string;
+}
+
+interface UpdateEquipmentServiceStatusResponse {
+  updateEquipmentServiceStatus: Equipment;
+}
+
+interface UpdateEquipmentAreaResponse {
+  updateEquipmentArea: Equipment;
+}
+
+const UPDATE_EQUIPMENT_SERVICE_STATUS = `
+  mutation UpdateEquipmentServiceStatus(
+    $equipmentId: ID!
+    $serviceStatus: EquipmentServiceStatus!
+    $remarks: String
+  ) {
+    updateEquipmentServiceStatus(
+      equipmentId: $equipmentId
+      serviceStatus: $serviceStatus
+      remarks: $remarks
+    ) {
+      id
+      equipmentCode
+      serviceStatus
+      serviceHistory {
+        status
+        remarks
+        updatedAt
+        updatedBy {
+          username
+        }
+      }
+    }
+  }
+`;
+
+const UPDATE_EQUIPMENT_AREA = `
+  mutation UpdateEquipmentArea($equipmentId: ID!, $areaId: ID!, $remarks: String) {
+    updateEquipmentArea(
+      equipmentId: $equipmentId,
+      areaId: $areaId,
+      remarks: $remarks
+    ) {
+      id
+      equipmentCode
+      area {
+        id
+        name
+      }
+      areaHistory {
+        areaId
+        remarks
+        updatedAt
+        updatedBy {
+          username
+        }
+      }
+    }
+  }
+`;
+
+export const updateEquipmentServiceStatus = async (
+  input: UpdateEquipmentServiceStatusInput,
+  token: string
+): Promise<Equipment> => {
+  try {
+    const response = await graphQLClient.request<UpdateEquipmentServiceStatusResponse>(
+      UPDATE_EQUIPMENT_SERVICE_STATUS,
+      input,
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.updateEquipmentServiceStatus;
+  } catch (error) {
+    console.error('Error updating equipment service status:', error);
+    throw error;
+  }
+};
+
+export const updateEquipmentArea = async (
+  input: UpdateEquipmentAreaInput,
+  token: string
+): Promise<Equipment> => {
+  try {
+    const response = await graphQLClient.request<UpdateEquipmentAreaResponse>(
+      UPDATE_EQUIPMENT_AREA,
+      input,
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.updateEquipmentArea;
+  } catch (error) {
+    console.error('Error updating equipment area:', error);
+    throw error;
+  }
+};
+
+export const getEquipmentAreaHistory = async (equipmentId: string, token: string): Promise<AreaHistory[]> => {
+  try {
+    const response = await graphQLClient.request<{ getEquipmentAreaHistory: AreaHistory[] }>(
+      GET_EQUIPMENT_AREA_HISTORY,
+      { equipmentId },
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.getEquipmentAreaHistory;
+  } catch (error) {
+    console.error('Error fetching area history:', error);
+    throw error;
+  }
+};
+
+export const getEquipmentServiceHistory = async (equipmentId: string, token: string): Promise<ServiceHistory[]> => {
+  try {
+    const response = await graphQLClient.request<{ getEquipmentServiceHistory: ServiceHistory[] }>(
+      GET_EQUIPMENT_SERVICE_HISTORY,
+      { equipmentId },
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.getEquipmentServiceHistory;
+  } catch (error) {
+    console.error('Error fetching service history:', error);
+    throw error;
+  }
+};
+
+export const getAreas = async (token: string): Promise<Area[]> => {
+  try {
+    const response = await graphQLClient.request<{ areas: Area[] }>(
+      GET_AREAS,
+      {},
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.areas || [];
+  } catch (error) {
+    console.error('Error fetching areas:', error);
     throw error;
   }
 };

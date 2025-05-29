@@ -53,9 +53,7 @@ interface UpdateAreaResponse {
 }
 
 interface DeleteAreaResponse {
-  data: {
-    deleteArea: boolean;
-  };
+  deleteArea: boolean;
 }
 
 const GET_AREAS = `
@@ -213,7 +211,7 @@ export const deleteArea = async (input: DeleteAreaInput, token: string): Promise
     const response = await graphQLClient.request<DeleteAreaResponse>(DELETE_AREA, input, {
       Authorization: `Bearer ${token}`
     });
-    return response.data.deleteArea;
+    return response.deleteArea;
   } catch (error) {
     console.error('Error deleting area:', error);
     throw error;
