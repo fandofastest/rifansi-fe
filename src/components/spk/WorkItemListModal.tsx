@@ -53,7 +53,7 @@ export const WorkItemListModal: React.FC<WorkItemListModalProps> = ({
               <div key={index} className="p-4 border rounded-lg border-gray-200 dark:border-white/[0.1] bg-white dark:bg-gray-900">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h5 className="font-medium text-gray-800 dark:text-white/90">{item.workItem.name}</h5>
+                    <h5 className="font-medium text-gray-800 dark:text-white/90">{item.workItem?.name}</h5>
                     <p className="text-sm text-gray-600 dark:text-gray-300">{item.description}</p>
                   </div>
                   <div className="text-right text-gray-800 dark:text-white/90">

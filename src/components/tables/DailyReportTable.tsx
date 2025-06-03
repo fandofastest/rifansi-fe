@@ -185,13 +185,13 @@ export function DailyReportTable() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {report.spkDetail.projectName}
+                      {report.spkDetail?.projectName}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       {report.userDetail.fullName}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {report.spkDetail.location.name}
+                      {/* {report.spkDetail.location.name} */}
                     </td>
                     <td className="px-4 py-3 text-start">
                       {getStatusBadge(report.status)}
