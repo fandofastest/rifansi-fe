@@ -11,37 +11,86 @@ import Badge from "../ui/badge/Badge";
 import { getUsers, deleteUser } from "@/services/user";
 import type { User } from "@/services/user";
 import Button from "../ui/button/Button";
-import { PencilIcon, TrashBinIcon } from "@/icons";
+import { PencilIcon, TrashBinIcon, LocationIcon } from "@/icons";
 import { useAuth } from "@/context/AuthContext";
 import AddUserModal from "@/components/users/AddUserModal";
 import EditUserModal from "@/components/users/EditUserModal";
+import SelectAreaModal from "@/components/users/SelectAreaModal";
 import { Modal } from "../ui/modal";
 import { useModalContext } from "@/context/ModalContext";
+import Input from "../ui/input/Input";
+import { getAreas } from "@/services/area";
+import type { Area } from "@/services/area";
+import Select from "../ui/select/Select";
 
 export default function UserTable() {
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [userToUpdateArea, setUserToUpdateArea] = useState<User | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [selectedAreaId, setSelectedAreaId] = useState<string>("");
   const { token } = useAuth();
   const { isOpen, closeModal } = useModalContext();
 
   useEffect(() => {
     if (token) {
       fetchUsers();
+      fetchAreas();
     }
   }, [token]);
+
+  useEffect(() => {
+    filterUsers();
+  }, [searchTerm, users, selectedAreaId]);
+
+  const fetchAreas = async () => {
+    if (!token) return;
+    try {
+      const data = await getAreas(token);
+      setAreas(data);
+    } catch (error) {
+      console.error('Error fetching areas:', error);
+    }
+  };
 
   const fetchUsers = async () => {
     if (!token) return;
     try {
       const data = await getUsers(token);
       setUsers(data);
+      setFilteredUsers(data);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterUsers = () => {
+    let filtered = users;
+
+    // Filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(user => 
+        user.username.toLowerCase().includes(searchLower) ||
+        user.fullName.toLowerCase().includes(searchLower) ||
+        user.email.toLowerCase().includes(searchLower) ||
+        user.role?.roleName.toLowerCase().includes(searchLower) ||
+        user.area?.name.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filter by selected area
+    if (selectedAreaId) {
+      filtered = filtered.filter(user => user.area?.id === selectedAreaId);
+    }
+
+    setFilteredUsers(filtered);
   };
 
   const handleDelete = async (user: User) => {
@@ -50,6 +99,10 @@ export default function UserTable() {
 
   const handleEdit = (user: User) => {
     setUserToEdit(user);
+  };
+
+  const handleUpdateArea = (user: User) => {
+    setUserToUpdateArea(user);
   };
 
   const confirmDelete = async () => {
@@ -73,6 +126,35 @@ export default function UserTable() {
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="p-4 border-b border-gray-200 dark:border-white/[0.05]">
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex-1 w-full md:w-auto flex gap-4">
+            <Input
+              type="text"
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
+            <Select
+              value={selectedAreaId}
+              onChange={(e) => setSelectedAreaId(e.target.value)}
+              className="w-[200px]"
+            >
+              <option value="">All Areas</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex gap-4 items-center">
+            <AddUserModal isOpen={isOpen} onClose={closeModal} onSuccess={fetchUsers} />
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-full overflow-x-auto">
         <div className="min-w-[1102px]">
           <Table>
@@ -82,10 +164,7 @@ export default function UserTable() {
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  <div className="flex items-center justify-between">
-                    <span>Username</span>
-                    <AddUserModal isOpen={isOpen} onClose={closeModal} onSuccess={fetchUsers} />
-                  </div>
+                  Username
                 </TableCell>
                 <TableCell
                   isHeader
@@ -109,6 +188,12 @@ export default function UserTable() {
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
+                  Area
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Phone
                 </TableCell>
                 <TableCell
@@ -121,7 +206,7 @@ export default function UserTable() {
             </TableHeader>
 
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="px-5 py-4 sm:px-6 text-start">
                     <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
@@ -150,10 +235,26 @@ export default function UserTable() {
                     </Badge>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    {user.area ? (
+                      <Badge size="sm" color="info">
+                        {user.area.name}
+                      </Badge>
+                    ) : (
+                      "No Area"
+                    )}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     {user.phone}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-start">
                     <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleUpdateArea(user)}
+                      >
+                        <LocationIcon className="h-4 w-4" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -176,7 +277,6 @@ export default function UserTable() {
           </Table>
         </div>
       </div>
-      <AddUserModal isOpen={isOpen} onClose={closeModal} onSuccess={fetchUsers} />
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -217,6 +317,15 @@ export default function UserTable() {
         onClose={() => setUserToEdit(null)}
         onSuccess={fetchUsers}
         user={userToEdit}
+      />
+
+      {/* Select Area Modal */}
+      <SelectAreaModal
+        isOpen={!!userToUpdateArea}
+        onClose={() => setUserToUpdateArea(null)}
+        onSuccess={fetchUsers}
+        userId={userToUpdateArea?.id || ''}
+        currentAreaId={userToUpdateArea?.area?.id}
       />
     </div>
   );

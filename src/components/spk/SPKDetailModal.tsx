@@ -1,22 +1,13 @@
 import React from "react";
 import { Modal } from "@/components/ui/modal";
 import { SPK } from "@/services/spk";
+import { formatDateIndonesia } from "@/utils/date";
 
 interface SPKDetailModalProps {
   spk: SPK;
   onClose: () => void;
   onEdit?: () => void;
 }
-
-const formatDate = (dateString?: string | number) => {
-  if (!dateString) return '-';
-  const date = typeof dateString === 'number' ? new Date(dateString) : new Date(dateString);
-  return date.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-};
 
 const formatCurrency = (amount?: number) => {
   if (!amount) return '-';
@@ -92,11 +83,15 @@ export const SPKDetailModal: React.FC<SPKDetailModalProps> = ({ spk, onClose }) 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
             <div>
               <span className="block text-xs text-gray-500 dark:text-gray-300">Tanggal Mulai</span>
-              <span className="block font-medium text-gray-900 dark:text-white/90">{formatDate(spk.startDate)}</span>
+              <span className="block font-medium text-gray-900 dark:text-white/90">
+                {spk.startDate ? formatDateIndonesia(Number(spk.startDate)) : '-'}
+              </span>
             </div>
             <div>
               <span className="block text-xs text-gray-500 dark:text-gray-300">Tanggal Selesai</span>
-              <span className="block font-medium text-gray-900 dark:text-white/90">{formatDate(spk.endDate)}</span>
+              <span className="block font-medium text-gray-900 dark:text-white/90">
+                {spk.endDate ? formatDateIndonesia(Number(spk.endDate)) : '-'}
+              </span>
             </div>
             <div className="md:col-span-2">
               <span className="block text-xs text-gray-500 dark:text-gray-300">Anggaran</span>

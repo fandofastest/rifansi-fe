@@ -5,8 +5,9 @@ import Button from "../ui/button/Button";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import { updateUser, getSupervisors, Supervisor } from "@/services/user";
-import { createApproverSetting, getApproverByUser } from "@/services/approver";
 import type { User } from "@/services/user";
+import { getAreas, Area } from "@/services/area";
+import { createApproverSetting, getApproverByUser } from "@/services/approver";
 import { useAuth } from "@/context/AuthContext";
 import { getPersonnelRoles, PersonnelRole } from "@/services/personnelRole";
 
@@ -24,6 +25,7 @@ interface UpdateUserFormData {
   fullName?: string;
   email?: string;
   role?: string;
+  area?: string;
   phone?: string;
   approverId?: string;
 }
@@ -35,6 +37,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
     username: '',
     fullName: '',
     role: '',
+    area: '',
     email: '',
     phone: '',
     password: '',
@@ -44,19 +47,22 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState<PersonnelRole[]>([]);
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (token && user) {
         try {
-          const [rolesData, supervisorsData, approverData] = await Promise.all([
+          const [rolesData, supervisorsData, approverData, areasData] = await Promise.all([
             getPersonnelRoles(token),
             getSupervisors(token),
-            getApproverByUser(user.id, token)
+            getApproverByUser(user.id, token),
+            getAreas(token)
           ]);
           
           setRoles(rolesData);
           setSupervisors(supervisorsData);
+          setAreas(areasData);
           
           if (approverData && approverData.role.roleCode === 'SUPERVISOR') {
             setFormData(prev => ({
@@ -82,10 +88,11 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
         username: user.username,
         fullName: user.fullName,
         role: user.role?.roleCode || '',
+        area: user.area?.id || '',
         email: user.email,
         phone: user.phone || '',
         password: '',
-        approverId: user.approverId || '',
+        approverId: '',
       });
     }
   }, [user]);
@@ -211,6 +218,27 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
               onChange={handleChange}
               placeholder="Enter phone number"
             />
+          </div>
+
+          <div>
+            <Label>Area</Label>
+            <select
+              name="area"
+              value={formData.area}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-white/90"
+            >
+              <option value="">Select Area</option>
+              {areas.map(area => (
+                <option 
+                  key={area.id} 
+                  value={area.id}
+                  className="dark:bg-gray-800 dark:text-white/90"
+                >
+                  {area.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

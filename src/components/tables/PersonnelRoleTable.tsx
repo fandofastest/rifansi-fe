@@ -37,11 +37,13 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
     roleCode: string;
     roleName: string;
     description: string;
+    isPersonel: boolean;
   }>({
     id: '',
     roleCode: '',
     roleName: '',
     description: '',
+    isPersonel: false,
   });
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -124,6 +126,7 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
         roleCode: roleData.roleCode,
         roleName: roleData.roleName,
         description: roleData.description || '',
+        isPersonel: roleData.isPersonel || false,
       });
       setEditModalOpen(true);
     } catch (error) {
@@ -133,12 +136,12 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
   };
 
   const handleEditChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string | boolean } }
   ) => {
     const { name, value } = e.target;
     setEditFormData({
       ...editFormData,
-      [name]: value,
+      [name]: value
     });
   };
 
@@ -215,6 +218,9 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
                 Description
               </th>
               <th scope="col" className="px-6 py-3">
+                Personnel Role
+              </th>
+              <th scope="col" className="px-6 py-3">
                 Actions
               </th>
             </tr>
@@ -231,6 +237,17 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
                   </td>
                   <td className="px-6 py-4">{role.roleName}</td>
                   <td className="px-6 py-4">{role.description}</td>
+                  <td className="px-6 py-4">
+                    {role.isPersonel ? (
+                      <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full dark:bg-green-900 dark:text-green-300">
+                        Yes
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-full dark:bg-gray-800 dark:text-gray-300">
+                        No
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
                       <button
@@ -313,6 +330,23 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
                 </p>
               </div>
 
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Personnel Role
+                </h3>
+                <p className="mt-1">
+                  {selectedRole.isPersonel ? (
+                    <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full dark:bg-green-900 dark:text-green-300">
+                      Yes
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-full dark:bg-gray-800 dark:text-gray-300">
+                      No
+                    </span>
+                  )}
+                </p>
+              </div>
+
               <div className="md:col-span-2">
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   Description
@@ -320,6 +354,54 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
                 <p className="mt-1 text-gray-900 dark:text-white">
                   {selectedRole.description || "No description provided"}
                 </p>
+              </div>
+
+              {selectedRole.salaryComponent && (
+                <div className="md:col-span-2">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Salary Components
+                  </h3>
+                  <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Basic Salary</p>
+                      <p className="text-base font-medium text-gray-900 dark:text-white">
+                        Rp {selectedRole.salaryComponent.gajiPokok.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Fixed Allowance</p>
+                      <p className="text-base font-medium text-gray-900 dark:text-white">
+                        Rp {selectedRole.salaryComponent.tunjanganTetap.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Variable Allowance</p>
+                      <p className="text-base font-medium text-gray-900 dark:text-white">
+                        Rp {selectedRole.salaryComponent.tunjanganTidakTetap.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="md:col-span-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Additional Information
+                </h3>
+                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Created At</p>
+                    <p className="text-base text-gray-900 dark:text-white">
+                      {new Date(selectedRole.createdAt || '').toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Last Updated</p>
+                    <p className="text-base text-gray-900 dark:text-white">
+                      {new Date(selectedRole.updatedAt || '').toLocaleString()}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -409,6 +491,27 @@ export default function PersonnelRoleTable({ refresh }: PersonnelRoleTableProps)
                 placeholder="Enter role description"
                 rows={4}
               />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="isPersonel"
+                  checked={editFormData.isPersonel}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleEditChange({
+                    target: {
+                      name: 'isPersonel',
+                      value: e.target.checked
+                    }
+                  })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                  Personnel Role
+                </span>
+              </label>
             </div>
           </div>
 

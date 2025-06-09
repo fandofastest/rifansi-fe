@@ -6,6 +6,8 @@ export interface FuelPrice {
   pricePerLiter: number;
   effectiveDate: string;
   description?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // --- Response Types ---
@@ -31,13 +33,15 @@ interface DeleteFuelPriceResponse {
 // Get all fuel prices
 export const getFuelPrices = async (token: string): Promise<FuelPrice[]> => {
   const query = `
-    query GetFuelPrices {
+    query {
       fuelPrices {
         id
         fuelType
         pricePerLiter
         effectiveDate
         description
+        createdAt
+        updatedAt
       }
     }
   `;
@@ -55,6 +59,8 @@ export const getFuelPrice = async (id: string, token: string): Promise<FuelPrice
         pricePerLiter
         effectiveDate
         description
+        createdAt
+        updatedAt
       }
     }
   `;
@@ -72,6 +78,8 @@ export const getCurrentFuelPrice = async (fuelType: string, token: string): Prom
         pricePerLiter
         effectiveDate
         description
+        createdAt
+        updatedAt
       }
     }
   `;
@@ -90,12 +98,19 @@ export interface CreateFuelPriceInput {
 export const createFuelPrice = async (input: CreateFuelPriceInput, token: string): Promise<FuelPrice> => {
   const mutation = `
     mutation CreateFuelPrice($fuelType: String!, $pricePerLiter: Float!, $effectiveDate: String!, $description: String) {
-      createFuelPrice(fuelType: $fuelType, pricePerLiter: $pricePerLiter, effectiveDate: $effectiveDate, description: $description) {
+      createFuelPrice(input: {
+        fuelType: $fuelType
+        pricePerLiter: $pricePerLiter
+        effectiveDate: $effectiveDate
+        description: $description
+      }) {
         id
         fuelType
         pricePerLiter
         effectiveDate
         description
+        createdAt
+        updatedAt
       }
     }
   `;
@@ -115,12 +130,20 @@ export interface UpdateFuelPriceInput {
 export const updateFuelPrice = async (input: UpdateFuelPriceInput, token: string): Promise<FuelPrice> => {
   const mutation = `
     mutation UpdateFuelPrice($id: ID!, $fuelType: String, $pricePerLiter: Float, $effectiveDate: String, $description: String) {
-      updateFuelPrice(id: $id, fuelType: $fuelType, pricePerLiter: $pricePerLiter, effectiveDate: $effectiveDate, description: $description) {
+      updateFuelPrice(
+        id: $id
+        fuelType: $fuelType
+        pricePerLiter: $pricePerLiter
+        effectiveDate: $effectiveDate
+        description: $description
+      ) {
         id
         fuelType
         pricePerLiter
         effectiveDate
         description
+        createdAt
+        updatedAt
       }
     }
   `;

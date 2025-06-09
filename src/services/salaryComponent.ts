@@ -7,10 +7,23 @@ export interface SalaryComponent {
   tunjanganTidakTetap: number;
   transport: number;
   pulsa: number;
+  bpjsKT: number;
+  bpjsJP: number;
+  bpjsKES: number;
+  uangCuti: number;
+  thr: number;
+  santunan: number;
+  hariPerBulan: number;
+  biayaTetapHarian: number;
+  upahLemburHarian: number;
   personnelRole: {
     id: string;
     roleName: string;
     roleCode: string;
+    description: string;
+    isPersonel: boolean;
+    createdAt: string;
+    updatedAt: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -34,6 +47,7 @@ export interface SalaryComponentDetails {
   hariPerBulan: number;
   subTotalPenghasilanTetap: number;
   biayaMPTetapHarian: number;
+  biayaTetapHarian: number;
   upahLemburHarian: number;
   biayaManpowerHarian: number;
 }
@@ -122,16 +136,29 @@ const GET_SALARY_COMPONENTS = `
   query GetSalaryComponents {
     salaryComponents {
       id
+      personnelRole {
+        id
+        roleCode
+        roleName
+        description
+        isPersonel
+        createdAt
+        updatedAt
+      }
       gajiPokok
       tunjanganTetap
       tunjanganTidakTetap
       transport
       pulsa
-      personnelRole {
-        id
-        roleName
-        roleCode
-      }
+      bpjsKT
+      bpjsJP
+      bpjsKES
+      uangCuti
+      thr
+      santunan
+      hariPerBulan
+      biayaTetapHarian
+      upahLemburHarian
       createdAt
       updatedAt
     }
@@ -142,16 +169,29 @@ const GET_SALARY_COMPONENT = `
   query GetSalaryComponent($id: ID!) {
     salaryComponent(id: $id) {
       id
+      personnelRole {
+        id
+        roleCode
+        roleName
+        description
+        isPersonel
+        createdAt
+        updatedAt
+      }
       gajiPokok
       tunjanganTetap
       tunjanganTidakTetap
       transport
       pulsa
-      personnelRole {
-        id
-        roleName
-        roleCode
-      }
+      bpjsKT
+      bpjsJP
+      bpjsKES
+      uangCuti
+      thr
+      santunan
+      hariPerBulan
+      biayaTetapHarian
+      upahLemburHarian
       createdAt
       updatedAt
     }
@@ -202,16 +242,29 @@ const GET_SALARY_COMPONENT_BY_PERSONNEL_ROLE = `
   query GetSalaryComponentByPersonnelRole($personnelRoleId: ID!) {
     salaryComponentByPersonnelRole(personnelRoleId: $personnelRoleId) {
       id
+      personnelRole {
+        id
+        roleCode
+        roleName
+        description
+        isPersonel
+        createdAt
+        updatedAt
+      }
       gajiPokok
       tunjanganTetap
       tunjanganTidakTetap
       transport
       pulsa
-      personnelRole {
-        id
-        roleName
-        roleCode
-      }
+      bpjsKT
+      bpjsJP
+      bpjsKES
+      uangCuti
+      thr
+      santunan
+      hariPerBulan
+      biayaTetapHarian
+      upahLemburHarian
       createdAt
       updatedAt
     }

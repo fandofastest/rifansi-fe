@@ -17,7 +17,7 @@ interface AddFuelPriceModalProps {
 const AddFuelPriceModal: React.FC<AddFuelPriceModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
-    fuelType: "",
+    fuelType: "Solar",
     pricePerLiter: "",
     effectiveDate: "",
     description: "",
@@ -35,7 +35,7 @@ const AddFuelPriceModal: React.FC<AddFuelPriceModalProps> = ({ isOpen, onClose, 
     setError(null);
     try {
       await createFuelPrice({
-        fuelType: formData.fuelType,
+        fuelType: "Solar",
         pricePerLiter: parseFloat(formData.pricePerLiter),
         effectiveDate: formData.effectiveDate,
         description: formData.description || undefined,
@@ -58,10 +58,9 @@ const AddFuelPriceModal: React.FC<AddFuelPriceModalProps> = ({ isOpen, onClose, 
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Type</label>
           <Input
             type="text"
-            value={formData.fuelType}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, fuelType: e.target.value })}
-            required
-            placeholder="Enter fuel type"
+            value="Solar"
+            disabled
+            className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
           />
         </div>
         <div>

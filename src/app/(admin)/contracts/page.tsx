@@ -3,17 +3,38 @@
 import React from "react";
 import { ModalProvider } from "@/context/ModalContext";
 import { ContractTable } from "@/components/tables/ContractTable";
-
-
+import { AddContractModal } from "@/components/contract/AddContractModal";
+import Button from "@/components/ui/button/Button";
+import { PlusIcon } from "@/icons";
+import { useModalContext } from "@/context/ModalContext";
 
 const ContractsPage = () => {
+  const { isOpen, openModal, closeModal } = useModalContext();
+
+  const handleContractSuccess = () => {
+    // Refresh the contract table data
+    // You might want to implement a refetch function in ContractTable
+    window.location.reload();
+  };
+
   return (
     <ModalProvider>
       <div className="page-content page-content-wrapper">
         <div className="page-header-container">
-          <div className="page-header-wrapper">
+          <div className="page-header-wrapper flex items-center justify-between">
             <div className="page-header-left-content">
-              {/* Judul diputuskan hanya ada di dalam component tabel */}
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Contracts</h1>
+            </div>
+            <div className="page-header-right-content">
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={openModal}
+                className="flex items-center gap-2"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Contract
+              </Button>
             </div>
           </div>
         </div>
@@ -24,6 +45,13 @@ const ContractsPage = () => {
             </div>
           </div>
         </div>
+
+        {isOpen && (
+          <AddContractModal 
+            onClose={closeModal} 
+            onSuccess={handleContractSuccess}
+          />
+        )}
       </div>
     </ModalProvider>
   );

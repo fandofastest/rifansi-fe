@@ -1,18 +1,31 @@
 import { graphQLClient } from '@/lib/graphql';
-import { Role } from '@/types/user';
+
+interface Location {
+  type: string;
+  coordinates: number[];
+}
+
+export interface Area {
+  id: string;
+  name: string;
+  location: Location;
+}
+
+interface Role {
+  id: string;
+  roleCode: string;
+  roleName: string;
+}
 
 export interface User {
   id: string;
   username: string;
   fullName: string;
   role?: Role | null;
+  area?: Area | null;
   email: string;
   phone?: string;
   isActive: boolean;
-  lastLogin?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  approverId?: string;
 }
 
 interface RegisterInput {
@@ -20,6 +33,7 @@ interface RegisterInput {
   password: string;
   fullName: string;
   role: string;
+  area?: string;
   email: string;
   phone?: string;
 }
@@ -31,6 +45,7 @@ interface UpdateUserInput {
   fullName?: string;
   email?: string;
   role?: string;
+  area?: string;
   phone?: string;
 }
 
@@ -71,26 +86,22 @@ const GET_USERS = `
       id
       username
       fullName
-      email
-      phone
-      isActive
-      lastLogin
       role {
         id
         roleCode
         roleName
-        description
-        salaryComponent {
-          gajiPokok
-          tunjanganTetap
-          tunjanganTidakTetap
-          transport
-          biayaTetapHarian
-          upahLemburHarian
+      }
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
         }
       }
-      createdAt
-      updatedAt
+      email
+      phone
+      isActive
     }
   }
 `;
@@ -101,26 +112,22 @@ const GET_USER = `
       id
       username
       fullName
-      email
-      phone
-      isActive
-      lastLogin
       role {
         id
         roleCode
         roleName
-        description
-        salaryComponent {
-          gajiPokok
-          tunjanganTetap
-          tunjanganTidakTetap
-          transport
-          biayaTetapHarian
-          upahLemburHarian
+      }
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
         }
       }
-      createdAt
-      updatedAt
+      email
+      phone
+      isActive
     }
   }
 `;
@@ -131,37 +138,34 @@ const GET_ME = `
       id
       username
       fullName
-      email
-      phone
-      isActive
-      lastLogin
       role {
         id
         roleCode
         roleName
-        description
-        salaryComponent {
-          gajiPokok
-          tunjanganTetap
-          tunjanganTidakTetap
-          transport
-          biayaTetapHarian
-          upahLemburHarian
+      }
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
         }
       }
-      createdAt
-      updatedAt
+      email
+      phone
+      isActive
     }
   }
 `;
 
 const REGISTER_USER = `
-  mutation RegisterUser($username: String!, $password: String!, $fullName: String!, $role: String!, $email: String!, $phone: String) {
+  mutation RegisterUser($username: String!, $password: String!, $fullName: String!, $role: String!, $area: String, $email: String!, $phone: String) {
     register(
       username: $username
       password: $password
       fullName: $fullName
       role: $role
+      area: $area
       email: $email
       phone: $phone
     ) {
@@ -170,59 +174,58 @@ const REGISTER_USER = `
         id
         username
         fullName
-        email
-        phone
         role {
           id
           roleCode
           roleName
-          description
-          salaryComponent {
-            gajiPokok
-            tunjanganTetap
-            tunjanganTidakTetap
-            transport
-            biayaTetapHarian
-            upahLemburHarian
+        }
+        area {
+          id
+          name
+          location {
+            type
+            coordinates
           }
         }
-        createdAt
+        email
+        phone
+        isActive
       }
     }
   }
 `;
 
 const UPDATE_USER = `
-  mutation UpdateUser($id: ID!, $username: String, $password: String, $fullName: String, $role: String, $email: String, $phone: String) {
+  mutation UpdateUser($id: ID!, $username: String, $password: String, $fullName: String, $role: String, $area: String, $email: String, $phone: String) {
     updateUser(
       id: $id
       username: $username
       password: $password
       fullName: $fullName
       role: $role
+      area: $area
       email: $email
       phone: $phone
     ) {
       id
       username
       fullName
-      email
-      phone
       role {
         id
         roleCode
         roleName
-        description
-        salaryComponent {
-          gajiPokok
-          tunjanganTetap
-          tunjanganTidakTetap
-          transport
-          biayaTetapHarian
-          upahLemburHarian
+      }
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
         }
       }
-      updatedAt
+      email
+      phone
+      isActive
     }
   }
 `;
@@ -232,6 +235,28 @@ const DELETE_USER = `
     deleteUser(id: $id)
   }
 `;
+
+const UPDATE_USER_AREA = `
+  mutation UpdateUserArea($userId: ID!, $areaId: ID!) {
+    updateUserArea(userId: $userId, areaId: $areaId) {
+      id
+      username
+      fullName
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
+        }
+      }
+    }
+  }
+`;
+
+interface UpdateUserAreaResponse {
+  updateUserArea: User;
+}
 
 export const getUsers = async (token: string): Promise<User[]> => {
   try {
@@ -304,6 +329,20 @@ export const deleteUser = async (input: DeleteUserInput, token: string): Promise
     return response.deleteUser;
   } catch (error) {
     console.error('Error deleting user:', error);
+    throw error;
+  }
+};
+
+export const updateUserArea = async (userId: string, areaId: string, token: string): Promise<User> => {
+  try {
+    const response = await graphQLClient.request<UpdateUserAreaResponse>(
+      UPDATE_USER_AREA,
+      { userId, areaId },
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.updateUserArea;
+  } catch (error) {
+    console.error('Error updating user area:', error);
     throw error;
   }
 };

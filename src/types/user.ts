@@ -5,16 +5,16 @@ export interface SalaryComponentInfo {
   tunjanganTetap: number;
   tunjanganTidakTetap: number;
   transport: number;
-  biayaTetapHarian: number;
-  upahLemburHarian: number;
+  biayaTetapHarian: number | null;
+  upahLemburHarian: number | null;
 }
 
 export interface Role {
-  id: string;
+  id: string | 'default';
   roleCode: string;
   roleName: string;
   description?: string;
-  salaryComponent?: SalaryComponentInfo;
+  salaryComponent?: SalaryComponentInfo | null;
 }
 
 export interface User {

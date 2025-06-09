@@ -14,7 +14,7 @@ const indonesianMonths = [
 ];
 
 export function formatDateIndonesia(dateString: string | number): string {
-  const date = new Date(typeof dateString === 'string' ? parseInt(dateString) : dateString);
+  const date = new Date(dateString);
   
   if (isNaN(date.getTime())) {
     return '-';
@@ -28,7 +28,7 @@ export function formatDateIndonesia(dateString: string | number): string {
 }
 
 export function formatDateTimeIndonesia(dateString: string | number): string {
-  const date = new Date(typeof dateString === 'string' ? parseInt(dateString) : dateString);
+  const date = new Date(dateString);
   
   if (isNaN(date.getTime())) {
     return '-';

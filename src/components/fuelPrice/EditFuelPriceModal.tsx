@@ -20,7 +20,7 @@ const EditFuelPriceModal: React.FC<EditFuelPriceModalProps> = ({ isOpen, onClose
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    fuelType: fuelPrice?.fuelType || "",
+    fuelType: "Solar",
     pricePerLiter: fuelPrice?.pricePerLiter?.toString() || "",
     effectiveDate: fuelPrice?.effectiveDate || "",
     description: fuelPrice?.description || "",
@@ -29,7 +29,7 @@ const EditFuelPriceModal: React.FC<EditFuelPriceModalProps> = ({ isOpen, onClose
   useEffect(() => {
     if (fuelPrice) {
       setFormData({
-        fuelType: fuelPrice.fuelType || "",
+        fuelType: "Solar",
         pricePerLiter: fuelPrice.pricePerLiter?.toString() || "",
         effectiveDate: fuelPrice.effectiveDate || "",
         description: fuelPrice.description || "",
@@ -48,7 +48,7 @@ const EditFuelPriceModal: React.FC<EditFuelPriceModalProps> = ({ isOpen, onClose
     try {
       await updateFuelPrice({
         id: fuelPrice.id,
-        fuelType: formData.fuelType,
+        fuelType: "Solar",
         pricePerLiter: parseFloat(formData.pricePerLiter),
         effectiveDate: formData.effectiveDate,
         description: formData.description || undefined,
@@ -71,10 +71,9 @@ const EditFuelPriceModal: React.FC<EditFuelPriceModalProps> = ({ isOpen, onClose
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Type</label>
           <Input
             type="text"
-            value={formData.fuelType}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, fuelType: e.target.value })}
-            required
-            placeholder="Enter fuel type"
+            value="Solar"
+            disabled
+            className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
           />
         </div>
         <div>

@@ -5,6 +5,17 @@ export interface PersonnelRole {
   roleCode: string;
   roleName: string;
   description?: string;
+  isPersonel?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  salaryComponent?: SalaryComponent;
+}
+
+interface SalaryComponent {
+  id: string;
+  gajiPokok: number;
+  tunjanganTetap: number;
+  tunjanganTidakTetap: number;
 }
 
 interface GetPersonnelRolesResponse {
@@ -19,6 +30,7 @@ interface CreatePersonnelRoleInput {
   roleCode: string;
   roleName: string;
   description?: string;
+  isPersonel?: boolean;
 }
 
 interface UpdatePersonnelRoleInput {
@@ -26,6 +38,7 @@ interface UpdatePersonnelRoleInput {
   roleCode?: string;
   roleName?: string;
   description?: string;
+  isPersonel?: boolean;
 }
 
 interface DeletePersonnelRoleInput {
@@ -74,6 +87,15 @@ const GET_PERSONNEL_ROLES = `
       roleCode
       roleName
       description
+      isPersonel
+      createdAt
+      updatedAt
+      salaryComponent {
+        id
+        gajiPokok
+        tunjanganTetap
+        tunjanganTidakTetap
+      }
     }
   }
 `;
@@ -85,37 +107,54 @@ const GET_PERSONNEL_ROLE = `
       roleCode
       roleName
       description
+      isPersonel
+      createdAt
+      updatedAt
+      salaryComponent {
+        id
+        gajiPokok
+        tunjanganTetap
+        tunjanganTidakTetap
+      }
     }
   }
 `;
 
 const CREATE_PERSONNEL_ROLE = `
-  mutation CreatePersonnelRole($roleCode: String!, $roleName: String!, $description: String) {
+  mutation CreatePersonnelRole($roleCode: String!, $roleName: String!, $description: String, $isPersonel: Boolean) {
     createPersonnelRole(
       roleCode: $roleCode
       roleName: $roleName
       description: $description
+      isPersonel: $isPersonel
     ) {
       id
       roleCode
       roleName
       description
+      isPersonel
+      createdAt
+      updatedAt
     }
   }
 `;
 
 const UPDATE_PERSONNEL_ROLE = `
-  mutation UpdatePersonnelRole($id: ID!, $roleCode: String, $roleName: String, $description: String) {
+  mutation UpdatePersonnelRole($id: ID!, $roleCode: String, $roleName: String, $description: String, $isPersonel: Boolean) {
     updatePersonnelRole(
       id: $id
       roleCode: $roleCode
       roleName: $roleName
       description: $description
+      isPersonel: $isPersonel
     ) {
       id
       roleCode
       roleName
       description
+      isPersonel
+      createdAt
+      updatedAt
     }
   }
 `;
