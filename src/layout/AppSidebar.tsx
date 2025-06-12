@@ -65,8 +65,11 @@ const navItems: NavItem[] = [
   },
   {
     icon: <TruckIcon />,
-    name: "Status Alat",
-    path: "/equipment-status",
+    name: "Alat",
+    subItems: [
+      { name: "Status Alat", path: "/equipment-status" },
+      { name: "Laporan Kerusakan Alat", path: "/equipment-status/repair-reports" },
+    ],
   },
   {
     icon: <PlugInIcon />,

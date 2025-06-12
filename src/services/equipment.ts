@@ -783,3 +783,183 @@ export const getAreas = async (token: string): Promise<Area[]> => {
     throw error;
   }
 };
+
+// Interface for repair reports
+export interface RepairReport {
+  id: string;
+  reportNumber: string;
+  reportDate: string;
+  equipment: {
+    equipmentCode: string;
+    equipmentType: string;
+    plateOrSerialNo: string;
+  };
+  reportedBy: {
+    fullName: string;
+    role: {
+      roleName: string;
+    };
+  };
+  location?: {
+    name: string;
+  } | null;
+  problemDescription: string;
+  damageLevel: string;
+  priority: string;
+  status: string;
+  estimatedCost?: number | null;
+  actualCost?: number | null;
+  createdAt: string;
+  reportImages?: string[];
+}
+
+// Query for all repair reports
+const GET_PENDING_REPAIR_REPORTS = `
+  query GetAllReportsSimple {
+    equipmentRepairReports {
+      id
+      reportNumber
+      reportDate
+      equipment {
+        equipmentCode
+        equipmentType
+        plateOrSerialNo
+      }
+      reportedBy {
+        fullName
+        role {
+          roleName
+        }
+      }
+      location {
+        name
+      }
+      problemDescription
+      damageLevel
+      priority
+      status
+      estimatedCost
+      actualCost
+      createdAt
+      reportImages
+    }
+  }
+`;
+
+export const getPendingRepairReports = async (token: string): Promise<RepairReport[]> => {
+  try {
+    const response = await graphQLClient.request<{ equipmentRepairReports: RepairReport[] }>(
+      GET_PENDING_REPAIR_REPORTS,
+      {},
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.equipmentRepairReports;
+  } catch (error) {
+    console.error('Error fetching repair reports:', error);
+    throw error;
+  }
+};
+
+// Interface for review repair report
+export interface ReviewRepairReportInput {
+  status: 'APPROVED' | 'REJECTED';
+  reviewNotes: string;
+  assignedTechnician?: string;
+  estimatedCost?: number;
+  priority?: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+export interface ReviewRepairReportResponse {
+  id: string;
+  reportNumber: string;
+  status: string;
+  equipment: {
+    id: string;
+    equipmentCode: string;
+    equipmentType: string;
+    serviceStatus: string;
+  };
+  reportedBy: {
+    fullName: string;
+  };
+  reviewedBy: {
+    id: string;
+    fullName: string;
+    role: {
+      roleName: string;
+    };
+  };
+  reviewDate: string;
+  reviewNotes: string;
+  assignedTechnician?: string;
+  estimatedCost?: number;
+  priority: string;
+  statusHistory: {
+    status: string;
+    changedBy: {
+      fullName: string;
+    };
+    changedAt: string;
+    notes: string;
+  }[];
+  updatedAt: string;
+}
+
+// Mutation for reviewing repair report
+const REVIEW_REPAIR_REPORT = `
+  mutation ApproveRepairReport($id: ID!, $input: ReviewEquipmentRepairReportInput!) {
+    reviewEquipmentRepairReport(id: $id, input: $input) {
+      id
+      reportNumber
+      status
+      equipment {
+        id
+        equipmentCode
+        equipmentType
+        serviceStatus
+      }
+      reportedBy {
+        fullName
+      }
+      reviewedBy {
+        id
+        fullName
+        role {
+          roleName
+        }
+      }
+      reviewDate
+      reviewNotes
+      assignedTechnician
+      estimatedCost
+      priority
+      statusHistory {
+        status
+        changedBy {
+          fullName
+        }
+        changedAt
+        notes
+      }
+      updatedAt
+    }
+  }
+`;
+
+export const reviewRepairReport = async (
+  id: string,
+  input: ReviewRepairReportInput,
+  token: string
+): Promise<ReviewRepairReportResponse> => {
+  try {
+    const response = await graphQLClient.request<{ reviewEquipmentRepairReport: ReviewRepairReportResponse }>(
+      REVIEW_REPAIR_REPORT,
+      { id, input },
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.reviewEquipmentRepairReport;
+  } catch (error) {
+    console.error('Error reviewing repair report:', error);
+    throw error;
+  }
+};
