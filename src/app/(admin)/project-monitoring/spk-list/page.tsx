@@ -44,12 +44,12 @@ export default function ProjectMonitoringSPKListPage() {
           <h2 className="text-title-md2 font-semibold text-black dark:text-white">
             Daftar SPK
           </h2>
-          <button
+          {/* <button
             className="px-4 py-2 rounded bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold shadow"
             onClick={() => setItemsModalOpen(true)}
           >
             Items
-          </button>
+          </button> */}
         </div>
         <SPKTableReport />
         <AllItemsModal 
