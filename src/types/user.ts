@@ -17,11 +17,21 @@ export interface Role {
   salaryComponent?: SalaryComponentInfo | null;
 }
 
+export interface Area {
+  id: string;
+  name: string;
+  location: {
+    type: string;
+    coordinates: number[];
+  };
+}
+
 export interface User {
   id: string;
   username: string;
   fullName: string;
   role?: Role | null;
+  area?: Area | null;
   email: string;
   phone?: string;
   isActive: boolean;

@@ -50,8 +50,13 @@ const navItems: NavItem[] = [
   },
   {
     icon: <DocumentTextIcon />,
-    name: "Laporan Harian",
+    name: "Approval Laporan Harian",
     path: "/daily-reports/approval",
+  },
+  {
+    icon: <DocumentTextIcon />,
+    name: "Laporan Harian",
+    path: "/daily-reports",
   },
   {
     icon: <PieChartIcon />,

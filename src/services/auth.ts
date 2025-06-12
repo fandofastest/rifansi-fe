@@ -38,24 +38,15 @@ const GET_CURRENT_USER = `
       id
       username
       fullName
-      role {
+      email
+      area {
         id
-        roleCode
-        roleName
-        description
-        salaryComponent {
-          gajiPokok
-          tunjanganTetap
-          tunjanganTidakTetap
-          transport
-          biayaTetapHarian
-          upahLemburHarian
+        name
+        location {
+          type
+          coordinates
         }
       }
-      email
-      phone
-      isActive
-      lastLogin
     }
   }
 `;

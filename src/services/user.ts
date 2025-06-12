@@ -159,37 +159,40 @@ const GET_ME = `
 `;
 
 const REGISTER_USER = `
-  mutation RegisterUser($username: String!, $password: String!, $fullName: String!, $role: String!, $area: String, $email: String!, $phone: String) {
+  mutation Register(
+    $username: String!
+    $password: String!
+    $fullName: String!
+    $role: String!
+    $email: String!
+    $phone: String
+    $area: ID
+  ) {
     register(
       username: $username
       password: $password
       fullName: $fullName
       role: $role
-      area: $area
       email: $email
       phone: $phone
+      area: $area
     ) {
       token
       user {
         id
         username
         fullName
+        email
+        phone
+        area {
+          id
+          name
+        }
         role {
           id
           roleCode
           roleName
         }
-        area {
-          id
-          name
-          location {
-            type
-            coordinates
-          }
-        }
-        email
-        phone
-        isActive
       }
     }
   }

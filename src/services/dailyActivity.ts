@@ -476,4 +476,117 @@ export const deleteDailyActivity = async (id: string, token: string): Promise<De
     console.error('Error deleting daily activity:', error);
     throw error;
   }
+};
+
+// Interface for GetLaporanByArea response
+export interface LaporanByArea {
+  id: string;
+  date: string;
+  area: {
+    id: string;
+    name: string;
+    location: {
+      type: string;
+      coordinates: number[];
+    };
+  };
+  status: string;
+  weather: string;
+  workStartTime: string;
+  workEndTime: string;
+  isApproved: boolean;
+  approvedBy: {
+    id: string;
+    fullName: string;
+  } | null;
+  progressPercentage: number;
+  spkDetail: {
+    id: string;
+    spkNo: string;
+    title: string;
+    projectName: string;
+  };
+  userDetail: {
+    id: string;
+    fullName: string;
+  };
+  activityDetails: {
+    id: string;
+    workItem: {
+      name: string;
+    };
+    actualQuantity: {
+      nr: number;
+      r: number;
+    };
+  }[];
+  createdAt: string;
+}
+
+interface GetLaporanByAreaResponse {
+  getLaporanByArea: LaporanByArea[];
+}
+
+const GET_LAPORAN_BY_AREA = `
+  query GetLaporanByArea($areaId: ID!) {
+    getLaporanByArea(areaId: $areaId) {
+      id
+      date
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
+        }
+      }
+      status
+      weather
+      workStartTime
+      workEndTime
+      isApproved
+      approvedBy {
+        id
+        fullName
+      }
+      progressPercentage
+      spkDetail {
+        id
+        spkNo
+        title
+        projectName
+      }
+      userDetail {
+        id
+        fullName
+      }
+      activityDetails {
+        id
+        workItem {
+          name
+        }
+        actualQuantity {
+          nr
+          r
+        }
+      }
+      createdAt
+    }
+  }
+`;
+
+export const getLaporanByArea = async (areaId: string, token: string): Promise<LaporanByArea[]> => {
+  try {
+    const response = await graphQLClient.request<GetLaporanByAreaResponse>(
+      GET_LAPORAN_BY_AREA,
+      { areaId },
+      {
+        Authorization: `Bearer ${token}`
+      }
+    );
+    return response.getLaporanByArea;
+  } catch (error) {
+    console.error('Error fetching laporan by area:', error);
+    throw error;
+  }
 }; 

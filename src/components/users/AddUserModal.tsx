@@ -17,7 +17,7 @@ interface AddUserFormData {
   role: string;
   area?: string;
   email: string;
-  phone: string;
+  phone?: string;
   approverId?: string;
 }
 
