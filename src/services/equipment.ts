@@ -15,6 +15,7 @@ export interface EquipmentContract {
   contractId: string;
   equipmentId: number;
   rentalRate: number;
+  rentalRatePerDay: number;
   contract?: {
     id: string;
     contractNo: string;
@@ -192,6 +193,7 @@ const GET_EQUIPMENT_BY_ID = `
         contractId
         equipmentId
         rentalRate
+        rentalRatePerDay
         contract {
           id
           contractNo
@@ -329,6 +331,7 @@ const ADD_CONTRACT_TO_EQUIPMENT = `
         contractId
         equipmentId
         rentalRate
+        rentalRatePerDay
       }
     }
   }
@@ -346,6 +349,7 @@ const UPDATE_EQUIPMENT_CONTRACT = `
       contracts {
         contractId
         rentalRate
+        rentalRatePerDay
       }
     }
   }
@@ -362,6 +366,7 @@ const REMOVE_CONTRACT_FROM_EQUIPMENT = `
       contracts {
         contractId
         rentalRate
+        rentalRatePerDay
       }
     }
   }
@@ -377,6 +382,7 @@ const GET_EQUIPMENT_BY_CONTRACT = `
       contracts(contractId: $contractId) {
         contractId
         rentalRate
+        rentalRatePerDay
       }
     }
   }
@@ -570,7 +576,7 @@ export const deleteEquipment = async (id: string, token: string): Promise<boolea
 
 export const addContractToEquipment = async (
   equipmentId: string, 
-  contract: { contractId: string; equipmentId: number; rentalRate: number },
+  contract: { contractId: string; equipmentId: number; rentalRate: number; rentalRatePerDay: number },
   token: string
 ): Promise<Equipment> => {
   try {

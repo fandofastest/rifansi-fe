@@ -185,6 +185,7 @@ export interface CostBreakdownItem {
     equipmentType: string;
     description: string;
   };
+  rentalRatePerDay?: number;
   fuelUsed?: number;
   fuelPrice?: number;
   description?: string;
@@ -637,6 +638,7 @@ const GET_SPK_DETAILS_WITH_PROGRESS = `
               }
               workingHours
               hourlyRate
+              rentalRatePerDay
               fuelUsed
               fuelPrice
               cost

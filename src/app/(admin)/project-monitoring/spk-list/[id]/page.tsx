@@ -217,8 +217,7 @@ function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean
   if (title === 'Equipment') {
     fields = [
       { key: 'equipment', label: 'Equipment', isObj: true },
-      { key: 'workingHours', label: 'Working Hours' },
-      { key: 'hourlyRate', label: 'Hourly Rate' },
+      { key: 'rentalRatePerDay', label: 'Rental Rate Per Day' },
       { key: 'fuelUsed', label: 'Fuel Used' },
       { key: 'fuelPrice', label: 'Fuel Price' },
     ];
@@ -287,7 +286,19 @@ function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean
     });
     totalCost = allCosts.reduce((acc, item) => acc + (item.cost || 0), 0);
   } else {
-    totalCost = items.reduce((acc, item) => acc + (item.cost || 0), 0);
+    // For equipment, calculate total cost including rentalRatePerDay
+    if (title === 'Equipment') {
+      totalCost = items.reduce((acc, item) => {
+        let equipmentCost = item.cost || 0;
+        // Add rentalRatePerDay to the cost if it exists
+        if (item.rentalRatePerDay) {
+          equipmentCost += item.rentalRatePerDay;
+        }
+        return acc + equipmentCost;
+      }, 0);
+    } else {
+      totalCost = items.reduce((acc, item) => acc + (item.cost || 0), 0);
+    }
   }
   const labaRugi = totalWorkItems - totalCost;
   return (
@@ -326,7 +337,12 @@ function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean
                             ))
                           : <td key={f.key as string} className="p-2 text-black dark:text-white">{typeof item[f.key] !== 'object' ? String(item[f.key] ?? '') : ''}</td>
                       ))}
-                      <td className="p-2 text-center text-black dark:text-white">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.cost)}</td>
+                      <td className="p-2 text-center text-black dark:text-white">
+                        {title === 'Equipment' 
+                          ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format((item.cost || 0) + (item.rentalRatePerDay || 0))
+                          : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.cost)
+                        }
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -455,8 +471,14 @@ export default function SPKDetailPage() {
           }, acc);
         }, { nr: 0, r: 0 });
 
-        const equipment = activities.reduce((acc, activity) => 
-          acc + (activity.costs?.equipment?.totalCost || 0), 0);
+        const equipment = activities.reduce((acc, activity) => {
+          // Calculate equipment cost including rentalRatePerDay
+          const equipmentItems = activity.costs?.equipment?.items || [];
+          const equipmentCost = equipmentItems.reduce((itemAcc, item) => {
+            return itemAcc + (item.cost || 0) + (item.rentalRatePerDay || 0);
+          }, 0);
+          return acc + equipmentCost;
+        }, 0);
         
         const manpower = activities.reduce((acc, activity) => 
           acc + (activity.costs?.manpower?.totalCost || 0), 0);
