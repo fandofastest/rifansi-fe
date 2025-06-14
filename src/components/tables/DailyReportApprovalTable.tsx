@@ -10,39 +10,33 @@ import {
   DailyActivity, 
   getDailyActivityWithDetails, 
   getDailyActivityByArea, 
-  approveDailyReport, 
-  deleteDailyActivity 
+  approveDailyReport 
 } from "@/services/dailyActivity";
 import { getAreas, Area } from "@/services/area";
-import { EyeIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { DailyReportDetailModal } from "@/components/tables/DailyReportDetailModal";
+import { EyeIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { DailyReportDetailModal } from "./DailyReportDetailModal";
 import { Modal } from "@/components/ui/modal";
 import Select from "@/components/ui/select/Select";
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
 
-export function DailyReportTable() {
+export function DailyReportApprovalTable() {
   const { token, user } = useAuth();
   const [reports, setReports] = useState<DailyActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<DailyActivity | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [reportToAction, setReportToAction] = useState<DailyActivity | null>(null);
   const [remarks, setRemarks] = useState("");
-  const [reportToDelete, setReportToDelete] = useState<DailyActivity | null>(null);
-
+  
   // Area selection states
   const [areas, setAreas] = useState<Area[]>([]);
   const [selectedAreaId, setSelectedAreaId] = useState<string>("");
   const [loadingAreas, setLoadingAreas] = useState(false);
 
-  // Cek apakah user adalah admin atau superadmin
-  const isAdmin = user?.role?.roleCode && (user?.role?.roleCode === "ADMIN" || user?.role?.roleCode === "SUPERADMIN");
-  
   // Check if user can see all reports (PMT or SUPERADMIN)
   const canSeeAllReports = user?.role?.roleCode === "PMT" || user?.role?.roleCode === "SUPERADMIN";
 
@@ -93,7 +87,9 @@ export function DailyReportTable() {
           return;
         }
         
-        setReports(data);
+        // Filter only reports that need approval (status: Submitted)
+        const pendingReports = data.filter(report => report.status === "Submitted");
+        setReports(pendingReports);
         setError(null);
       } catch (err) {
         console.error('Error fetching reports:', err);
@@ -106,14 +102,51 @@ export function DailyReportTable() {
     fetchReports();
   }, [token, user, canSeeAllReports, selectedAreaId]);
 
-  const handleApprove = async (report: DailyActivity) => {
+  const handleViewDetail = (report: DailyActivity) => {
+    setSelectedReport(report);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleApprove = (report: DailyActivity) => {
     setReportToAction(report);
     setIsApproveModalOpen(true);
   };
 
-  const handleReject = async (report: DailyActivity) => {
+  const handleReject = (report: DailyActivity) => {
     setReportToAction(report);
     setIsRejectModalOpen(true);
+  };
+
+  const confirmApprove = async () => {
+    if (!token || !reportToAction) return;
+    
+    try {
+      await approveDailyReport(reportToAction.id, "Approved", remarks, token);
+      // Refresh data after approval
+      await refreshData();
+      setIsApproveModalOpen(false);
+      setReportToAction(null);
+      setRemarks("");
+    } catch (err) {
+      console.error('Error approving report:', err);
+      setError("Gagal menyetujui laporan");
+    }
+  };
+
+  const confirmReject = async () => {
+    if (!token || !reportToAction || !remarks.trim()) return;
+    
+    try {
+      await approveDailyReport(reportToAction.id, "Rejected", remarks, token);
+      // Refresh data after rejection
+      await refreshData();
+      setIsRejectModalOpen(false);
+      setReportToAction(null);
+      setRemarks("");
+    } catch (err) {
+      console.error('Error rejecting report:', err);
+      setError("Gagal menolak laporan");
+    }
   };
 
   const refreshData = async () => {
@@ -137,71 +170,16 @@ export function DailyReportTable() {
         return;
       }
       
-      setReports(data);
+      const pendingReports = data.filter(report => report.status === "Submitted");
+      setReports(pendingReports);
     } catch (err) {
       console.error('Error refreshing data:', err);
     }
   };
 
-  const confirmApprove = async () => {
-    if (!token || !reportToAction) return;
-    try {
-      await approveDailyReport(reportToAction.id, "Approved", remarks, token);
-      await refreshData();
-      setIsApproveModalOpen(false);
-      setReportToAction(null);
-      setRemarks("");
-    } catch (err) {
-      console.error('Error approving report:', err);
-      setError("Gagal menyetujui laporan");
-    }
-  };
-
-  const confirmReject = async () => {
-    if (!token || !reportToAction) return;
-    try {
-      await approveDailyReport(reportToAction.id, "Rejected", remarks, token);
-      await refreshData();
-      setIsRejectModalOpen(false);
-      setReportToAction(null);
-      setRemarks("");
-    } catch (err) {
-      console.error('Error rejecting report:', err);
-      setError("Gagal menolak laporan");
-    }
-  };
-
-  const handleViewDetail = (report: DailyActivity) => {
-    setSelectedReport(report);
-    setIsDetailModalOpen(true);
-  };
-
-  const handleDelete = async (report: DailyActivity) => {
-    setReportToDelete(report);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!token || !reportToDelete) return;
-    try {
-      const result = await deleteDailyActivity(reportToDelete.id, token);
-      if (result.success) {
-        // Refresh data setelah delete
-        await refreshData();
-        setIsDeleteModalOpen(false);
-        setReportToDelete(null);
-      } else {
-        setError(result.message || "Gagal menghapus laporan");
-      }
-    } catch (err) {
-      console.error('Error deleting report:', err);
-      setError("Gagal menghapus laporan");
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-      Submitted: { label: "Menunggu", variant: "warning" },
+      Submitted: { label: "Menunggu Persetujuan", variant: "warning" },
       Approved: { label: "Disetujui", variant: "success" },
       Rejected: { label: "Ditolak", variant: "destructive" },
     };
@@ -224,7 +202,7 @@ export function DailyReportTable() {
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div className="flex-1">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                Daftar Laporan Harian
+                Laporan Menunggu Persetujuan
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {canSeeAllReports 
@@ -260,12 +238,13 @@ export function DailyReportTable() {
                 </div>
               )}
               
-              <Badge variant="outline" className="text-xs whitespace-nowrap">
+              <Badge variant="warning" className="text-xs whitespace-nowrap">
                 {reports.length} Laporan
               </Badge>
             </div>
           </div>
         </div>
+
         <div className="max-w-full overflow-x-auto">
           <div className="min-w-[1400px]">
             <table className="w-full table-auto">
@@ -275,10 +254,10 @@ export function DailyReportTable() {
                     Tanggal
                   </th>
                   <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                    Nama Proyek
+                    Proyek
                   </th>
                   <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                    Diajukan Oleh
+                    Pelapor
                   </th>
                   <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                     Area
@@ -298,111 +277,108 @@ export function DailyReportTable() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {reports.map((report) => (
-                  <tr key={report.id}>
-                    <td className="px-5 py-4 sm:px-6 text-start">
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {(() => {
-                          try {
-                            if (!report.date) return '-';
-                            // Convert timestamp to date
-                            const timestamp = parseInt(report.date);
-                            if (isNaN(timestamp)) return '-';
-                            const date = new Date(timestamp);
-                            if (isNaN(date.getTime())) return '-';
-                            return format(date, "dd MMMM yyyy", { locale: id });
-                          } catch (error) {
-                            console.error('Error formatting date:', report.date, error);
-                            return '-';
-                          }
-                        })()}
-                      </span>
+                {reports.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-5 py-8 text-center text-gray-500 dark:text-gray-400">
+                      Tidak ada laporan yang menunggu persetujuan
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {report.spkDetail?.projectName}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {report.userDetail.fullName}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <div>
-                        <div className="font-medium">{report.area?.name || '-'}</div>
-                        <div className="text-xs text-gray-400">
-                          {report.area?.location?.coordinates?.join(', ') || '-'}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-start">
-                      {getStatusBadge(report.status)}
-                    </td>
-                    <td className="px-4 py-3 text-start">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${Math.min(report.progressPercentage || 0, 100)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {(report.progressPercentage || 0).toFixed(1)}%
+                  </tr>
+                ) : (
+                  reports.map((report) => (
+                    <tr key={report.id}>
+                      <td className="px-5 py-4 sm:px-6 text-start">
+                        <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                          {(() => {
+                            try {
+                              if (!report.date) return '-';
+                              const timestamp = parseInt(report.date);
+                              if (isNaN(timestamp)) return '-';
+                              const date = new Date(timestamp);
+                              if (isNaN(date.getTime())) return '-';
+                              return format(date, "dd MMMM yyyy", { locale: id });
+                            } catch (error) {
+                              console.error('Error formatting date:', report.date, error);
+                              return '-';
+                            }
+                          })()}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-start">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${Math.min(report.budgetUsage || 0, 100)}%` }}
-                          ></div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                        <div>
+                          <div className="font-medium">{report.spkDetail?.projectName}</div>
+                          <div className="text-xs text-gray-400">{report.spkDetail?.spkNo}</div>
                         </div>
-                        <span className="text-xs text-gray-500">
-                          {(report.budgetUsage || 0).toFixed(1)}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-start">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewDetail(report)}
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </Button>
-                        {report.status === "Submitted" && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleApprove(report)}
-                            >
-                              Setujui
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              className="bg-error-500 hover:bg-error-600"
-                              onClick={() => handleReject(report)}
-                            >
-                              Tolak
-                            </Button>
-                          </>
-                        )}
-                        {isAdmin && (
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                        {report.userDetail.fullName}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                        <div>
+                          <div className="font-medium">{report.area?.name}</div>
+                          <div className="text-xs text-gray-400">
+                            {report.area?.location?.coordinates?.join(', ')}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-start">
+                        {getStatusBadge(report.status)}
+                      </td>
+                      <td className="px-4 py-3 text-start">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                              style={{ width: `${Math.min(report.progressPercentage || 0, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {(report.progressPercentage || 0).toFixed(1)}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-start">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                            <div 
+                              className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                              style={{ width: `${Math.min(report.budgetUsage || 0, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {(report.budgetUsage || 0).toFixed(1)}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-start">
+                        <div className="flex items-center gap-2">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-error-500 hover:text-error-600"
-                            onClick={() => handleDelete(report)}
+                            onClick={() => handleViewDetail(report)}
                           >
-                            <TrashIcon className="h-4 w-4" />
+                            <EyeIcon className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 hover:text-green-700 hover:border-green-300"
+                            onClick={() => handleApprove(report)}
+                          >
+                            <CheckIcon className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700 hover:border-red-300"
+                            onClick={() => handleReject(report)}
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -420,45 +396,6 @@ export function DailyReportTable() {
         onApprove={handleApprove}
         onReject={handleReject}
       />
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setReportToDelete(null);
-        }}
-        className="max-w-md p-5 bg-white text-gray-900 dark:bg-gray-900 dark:text-white"
-      >
-        <div className="space-y-4">
-          <h4 className="text-lg font-medium text-gray-800 dark:text-white">
-            Konfirmasi Hapus
-          </h4>
-          <p className="text-gray-600 dark:text-gray-300">
-            Apakah Anda yakin ingin menghapus laporan harian ini? Tindakan ini tidak dapat dibatalkan.
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setIsDeleteModalOpen(false);
-                setReportToDelete(null);
-              }}
-            >
-              Batal
-            </Button>
-            <Button
-              size="sm"
-              variant="primary"
-              className="bg-error-500 hover:bg-error-600"
-              onClick={confirmDelete}
-            >
-              Hapus
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       {/* Approve Confirmation Modal */}
       <Modal
@@ -478,14 +415,23 @@ export function DailyReportTable() {
             <p className="text-gray-600 dark:text-gray-300">
               Apakah Anda yakin ingin menyetujui laporan harian ini?
             </p>
+            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <strong>Proyek:</strong> {reportToAction?.spkDetail?.projectName}
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <strong>Pelapor:</strong> {reportToAction?.userDetail.fullName}
+              </p>
+            </div>
             <textarea
-              className="w-full p-2 border rounded"
-              placeholder="Tambahkan catatan (opsional)"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Tambahkan catatan persetujuan (opsional)"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
+              rows={3}
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-3">
             <Button
               size="sm"
               variant="outline"
@@ -500,6 +446,7 @@ export function DailyReportTable() {
             <Button
               size="sm"
               variant="outline"
+              className="bg-green-600 text-white hover:bg-green-700 border-green-600"
               onClick={confirmApprove}
             >
               Setujui
@@ -526,15 +473,24 @@ export function DailyReportTable() {
             <p className="text-gray-600 dark:text-gray-300">
               Apakah Anda yakin ingin menolak laporan harian ini?
             </p>
+            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <strong>Proyek:</strong> {reportToAction?.spkDetail?.projectName}
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <strong>Pelapor:</strong> {reportToAction?.userDetail.fullName}
+              </p>
+            </div>
             <textarea
-              className="w-full p-2 border rounded"
-              placeholder="Tambahkan alasan penolakan"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Alasan penolakan (wajib diisi)"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
+              rows={3}
               required
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-3">
             <Button
               size="sm"
               variant="outline"
@@ -549,7 +505,7 @@ export function DailyReportTable() {
             <Button
               size="sm"
               variant="primary"
-              className="bg-error-500 hover:bg-error-600"
+              className="bg-red-600 hover:bg-red-700"
               onClick={confirmReject}
               disabled={!remarks.trim()}
             >

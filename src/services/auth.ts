@@ -38,7 +38,24 @@ const GET_CURRENT_USER = `
       id
       username
       fullName
+      role {
+        id
+        roleCode
+        roleName
+        description
+        salaryComponent {
+          gajiPokok
+          tunjanganTetap
+          tunjanganTidakTetap
+          transport
+          biayaTetapHarian
+          upahLemburHarian
+        }
+      }
       email
+      phone
+      isActive
+      lastLogin
       area {
         id
         name

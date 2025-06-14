@@ -224,14 +224,14 @@ export default function UserTable() {
                       size="sm"
                       color={
                         !user.role ? "info" :
-                        user.role.roleCode === "ADMIN" || user.role.roleCode === "SUPERADMIN"
+                        user?.role?.roleCode === "ADMIN" || user?.role?.roleCode === "SUPERADMIN"
                           ? "success"
-                          : user.role.roleCode === "MANAGER" || user.role.roleCode === "SUPERVISOR"
+                          : user?.role?.roleCode === "MANAGER" || user?.role?.roleCode === "SUPERVISOR"
                           ? "warning"
                           : "info"
                       }
                     >
-                      {user.role ? user.role.roleName : "No Role"}
+                      {user?.role ? user?.role?.roleName : "No Role"}
                     </Badge>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">

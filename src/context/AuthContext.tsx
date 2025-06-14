@@ -64,11 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setAuthToken(storedToken);
             // Fetch user data
             const userData = await getCurrentUser(storedToken);
-            // Ensure we handle user with missing role data
-            setUser({
-              ...userData,
-              role: userData.role || null
-            });
+            setUser(userData);
           } catch (error) {
             console.error('Error fetching user data:', error);
             handleLogout();
@@ -104,13 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw new Error('Invalid or expired token');
         }
         
-        // Ensure we handle user with missing role data
-        const userData = {
-          ...response.user,
-          role: response.user.role || null
-        };
-        
-        setUser(userData);
+        setUser(response.user);
         setToken(response.token);
         setAuthToken(response.token);
         router.push('/');

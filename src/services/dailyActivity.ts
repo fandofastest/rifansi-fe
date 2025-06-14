@@ -1,30 +1,111 @@
 import { graphQLClient } from "@/lib/graphql";
 
 export interface Location {
+  type: string;
+  coordinates: number[];
+}
+
+export interface Area {
   id: string;
   name: string;
+  location: Location;
+}
+
+export interface Role {
+  id: string;
+  roleCode: string;
+  roleName: string;
+  description: string;
 }
 
 export interface UserDetail {
   id: string;
   username: string;
   fullName: string;
+  email: string;
+  phone: string;
+  role: Role;
+  area: Area;
+  lastLogin: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export interface SubCategory {
+  id: string;
+  name: string;
+}
+
+export interface WorkItemDetail {
+  id: string;
+  name: string;
+  description: string;
+  unit: Unit;
+  category: Category;
+  subCategory: SubCategory;
+}
+
+export interface SPKWorkItem {
+  workItemId: string;
+  boqVolume: {
+    nr: number;
+    r: number;
+  };
+  amount: number;
+  rates: Rates;
+  description: string;
+  workItem: WorkItemDetail;
+}
+
+export interface SPKLocation {
+  id: string;
+  name: string;
 }
 
 export interface SPKDetail {
   id: string;
   spkNo: string;
+  wapNo: string;
   title: string;
   projectName: string;
-  location: Location;
+  contractor: string;
+  budget: number;
+  startDate: string;
+  endDate: string;
+  workDescription: string;
+  date: string;
+  location: SPKLocation;
+  workItems: SPKWorkItem[];
+}
+
+export interface Unit {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface Rates {
+  nr: {
+    rate: number;
+    description: string;
+  };
+  r: {
+    rate: number;
+    description: string;
+  };
 }
 
 export interface WorkItem {
   id: string;
   name: string;
-  unit: {
-    name: string;
-  };
+  description: string;
+  unit: Unit;
+  rates: Rates;
+  category: Category;
+  subCategory: SubCategory;
 }
 
 export interface ActivityDetail {
@@ -42,23 +123,30 @@ export interface Equipment {
   id: string;
   equipmentCode: string;
   equipmentType: string;
+  plateOrSerialNo: string;
+  defaultOperator: string;
+  year: number;
+  serviceStatus: string;
 }
 
 export interface EquipmentLog {
   id: string;
+  equipment: Equipment;
   fuelIn: number;
   fuelRemaining: number;
   workingHour: number;
-  hourlyRate: number;
+  rentalRatePerDay: number;
   fuelPrice: number;
   isBrokenReported: boolean;
   remarks: string;
-  equipment: Equipment;
 }
 
 export interface PersonnelRole {
   id: string;
+  roleCode: string;
   roleName: string;
+  description: string;
+  isPersonel: boolean;
 }
 
 export interface ManpowerLog {
@@ -73,37 +161,49 @@ export interface ManpowerLog {
 export interface Material {
   id: string;
   name: string;
+  description: string;
+  unitRate: number;
+  unit: Unit;
 }
 
 export interface MaterialUsageLog {
   id: string;
+  material: Material;
   quantity: number;
   unitRate: number;
   remarks: string;
-  material: Material;
 }
 
 export interface OtherCost {
   id: string;
   costType: string;
-  amount: number;
   description: string;
-  receiptNumber: string;
+  amount: number;
   remarks: string;
 }
 
 export interface DailyActivity {
   id: string;
   date: string;
-  location: string;
-  weather: string;
+  area: Area;
+  weather: string | null;
   status: string;
   workStartTime: string;
   workEndTime: string;
   startImages: string[];
   finishImages: string[];
   closingRemarks: string;
+  isApproved: boolean;
+  approvedBy: {
+    id: string;
+    username: string;
+    fullName: string;
+    email: string;
+  } | null;
+  approvedAt: string | null;
+  rejectionReason: string | null;
   progressPercentage: number;
+  budgetUsage: number;
   activityDetails: ActivityDetail[];
   equipmentLogs: EquipmentLog[];
   manpowerLogs: ManpowerLog[];
@@ -115,16 +215,36 @@ export interface DailyActivity {
   updatedAt: string;
 }
 
-interface GetDailyActivitiesResponse {
-  dailyActivitiesWithDetailsByUser: DailyActivity[];
+// Get Daily Activity with Details (All data)
+interface GetDailyActivityWithDetailsResponse {
+  getDailyActivityWithDetails: DailyActivity[];
 }
 
-const GET_DAILY_ACTIVITIES = `
-  query GetDailyActivitiesWithDetailsByUser($userId: ID!) {
-    dailyActivitiesWithDetailsByUser(userId: $userId) {
+const GET_DAILY_ACTIVITY_WITH_DETAILS = `
+  query GetDailyActivityWithDetails(
+    $areaId: ID
+    $userId: ID
+    $activityId: ID
+    $startDate: String
+    $endDate: String
+  ) {
+    getDailyActivityWithDetails(
+      areaId: $areaId
+      userId: $userId
+      activityId: $activityId
+      startDate: $startDate
+      endDate: $endDate
+    ) {
       id
       date
-      location
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
+        }
+      }
       weather
       status
       workStartTime
@@ -132,116 +252,17 @@ const GET_DAILY_ACTIVITIES = `
       startImages
       finishImages
       closingRemarks
-      progressPercentage
-      activityDetails {
-        id
-        actualQuantity {
-          nr
-          r
-        }
-        status
-        remarks
-        workItem {
-          id
-          name
-          unit {
-            name
-          }
-        }
-      }
-      equipmentLogs {
-        id
-        fuelIn
-        fuelRemaining
-        workingHour
-        isBrokenReported
-        remarks
-        equipment {
-          id
-          equipmentCode
-          equipmentType
-        }
-      }
-      manpowerLogs {
-        id
-        role
-        personCount
-        hourlyRate
-        workingHours
-        personnelRole {
-          id
-          roleName
-        }
-      }
-      materialUsageLogs {
-        id
-        quantity
-        unitRate
-        remarks
-        material {
-          id
-          name
-        }
-      }
-      otherCosts {
-        id
-        costType
-        amount
-        description
-        receiptNumber
-        remarks
-      }
-      spkDetail {
-        id
-        spkNo
-        title
-        projectName
-        location {
-          id
-          name
-        }
-      }
-      userDetail {
+      isApproved
+      approvedBy {
         id
         username
         fullName
+        email
       }
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-export const getDailyActivitiesByUser = async (userId: string, token: string): Promise<DailyActivity[]> => {
-  try {
-    const response = await graphQLClient.request<GetDailyActivitiesResponse>(GET_DAILY_ACTIVITIES, { userId }, {
-      Authorization: `Bearer ${token}`
-    });
-    return response.dailyActivitiesWithDetailsByUser;
-  } catch (error) {
-    console.error('Error fetching daily activities:', error);
-    throw error;
-  }
-};
-
-interface GetDailyActivitiesByApproverResponse {
-  dailyActivitiesWithDetailsByApprover: DailyActivity[];
-}
-
-const GET_DAILY_ACTIVITIES_BY_APPROVER = `
-  query GetDailyActivitiesWithDetailsByApprover($approverId: ID!) {
-    dailyActivitiesWithDetailsByApprover(approverId: $approverId) {
-      id
-      date
-      location
-      weather
-      status
-      workStartTime
-      workEndTime
-      startImages
-      finishImages
-      closingRemarks
+      approvedAt
+      rejectionReason
       progressPercentage
+      budgetUsage
       activityDetails {
         id
         actualQuantity {
@@ -253,6 +274,7 @@ const GET_DAILY_ACTIVITIES_BY_APPROVER = `
         workItem {
           id
           name
+          description
           unit {
             id
             name
@@ -268,22 +290,34 @@ const GET_DAILY_ACTIVITIES_BY_APPROVER = `
               description
             }
           }
+          category {
+            id
+            name
+          }
+          subCategory {
+            id
+            name
+          }
         }
       }
       equipmentLogs {
         id
-        fuelIn
-        fuelRemaining
-        workingHour
-        hourlyRate
-        fuelPrice
-        isBrokenReported
-        remarks
         equipment {
           id
           equipmentCode
           equipmentType
+          plateOrSerialNo
+          defaultOperator
+          year
+          serviceStatus
         }
+        fuelIn
+        fuelRemaining
+        workingHour
+        rentalRatePerDay
+        fuelPrice
+        isBrokenReported
+        remarks
       }
       manpowerLogs {
         id
@@ -293,41 +327,111 @@ const GET_DAILY_ACTIVITIES_BY_APPROVER = `
         workingHours
         personnelRole {
           id
+          roleCode
           roleName
+          description
+          isPersonel
         }
       }
       materialUsageLogs {
         id
-        quantity
-        unitRate
-        remarks
         material {
           id
           name
+          description
+          unitRate
+          unit {
+            id
+            name
+            code
+          }
         }
+        quantity
+        unitRate
+        remarks
       }
       otherCosts {
         id
         costType
-        amount
         description
-        receiptNumber
+        amount
         remarks
       }
       spkDetail {
         id
         spkNo
+        wapNo
         title
         projectName
+        contractor
+        budget
+        startDate
+        endDate
+        workDescription
+        date
         location {
           id
           name
+        }
+        workItems {
+          workItemId
+          boqVolume {
+            nr
+            r
+          }
+          amount
+          rates {
+            nr {
+              rate
+              description
+            }
+            r {
+              rate
+              description
+            }
+          }
+          description
+          workItem {
+            id
+            name
+            description
+            unit {
+              id
+              name
+              code
+            }
+            category {
+              id
+              name
+            }
+            subCategory {
+              id
+              name
+            }
+          }
         }
       }
       userDetail {
         id
         username
         fullName
+        email
+        phone
+        role {
+          id
+          roleCode
+          roleName
+          description
+        }
+        area {
+          id
+          name
+          location {
+            type
+            coordinates
+          }
+        }
+        lastLogin
       }
       createdAt
       updatedAt
@@ -335,22 +439,66 @@ const GET_DAILY_ACTIVITIES_BY_APPROVER = `
   }
 `;
 
-export const getDailyActivitiesByApprover = async (approverId: string, token: string): Promise<DailyActivity[]> => {
+export const getDailyActivityWithDetails = async (
+  token: string,
+  variables?: {
+    areaId?: string;
+    userId?: string;
+    activityId?: string;
+    startDate?: string;
+    endDate?: string;
+  }
+): Promise<DailyActivity[]> => {
   try {
-    const response = await graphQLClient.request<GetDailyActivitiesByApproverResponse>(
-      GET_DAILY_ACTIVITIES_BY_APPROVER, 
-      { approverId }, 
+    const response = await graphQLClient.request<GetDailyActivityWithDetailsResponse>(
+      GET_DAILY_ACTIVITY_WITH_DETAILS,
+      variables || {},
       {
         Authorization: `Bearer ${token}`
       }
     );
-    return response.dailyActivitiesWithDetailsByApprover;
+    return response.getDailyActivityWithDetails;
   } catch (error) {
-    console.error('Error fetching daily activities by approver:', error);
+    console.error('Error fetching daily activity with details:', error);
     throw error;
   }
 };
 
+// Get Daily Activity by Area (now uses the main query with areaId parameter)
+export const getDailyActivityByArea = async (areaId: string, token: string): Promise<DailyActivity[]> => {
+  try {
+    return await getDailyActivityWithDetails(token, { areaId });
+  } catch (error) {
+    console.error('Error fetching daily activity by area:', error);
+    throw error;
+  }
+};
+
+// Get Daily Activity by User (now uses the main query with userId parameter)
+export const getDailyActivityByUser = async (userId: string, token: string): Promise<DailyActivity[]> => {
+  try {
+    return await getDailyActivityWithDetails(token, { userId });
+  } catch (error) {
+    console.error('Error fetching daily activity by user:', error);
+    throw error;
+  }
+};
+
+// Get Daily Activity by Date Range (now uses the main query with date range parameters)
+export const getDailyActivityByDateRange = async (
+  startDate: string,
+  endDate: string,
+  token: string
+): Promise<DailyActivity[]> => {
+  try {
+    return await getDailyActivityWithDetails(token, { startDate, endDate });
+  } catch (error) {
+    console.error('Error fetching daily activity by date range:', error);
+    throw error;
+  }
+};
+
+// Approve Daily Report (keeping this as it might still be needed)
 interface ApprovalHistory {
   status: string;
   remarks: string;
@@ -446,6 +594,7 @@ export const approveDailyReport = async (
   }
 };
 
+// Delete Daily Activity (keeping this as it might still be needed)
 interface DeleteDailyActivityResponse {
   deleteDailyActivityById: {
     success: boolean;
@@ -478,115 +627,3 @@ export const deleteDailyActivity = async (id: string, token: string): Promise<De
   }
 };
 
-// Interface for GetLaporanByArea response
-export interface LaporanByArea {
-  id: string;
-  date: string;
-  area: {
-    id: string;
-    name: string;
-    location: {
-      type: string;
-      coordinates: number[];
-    };
-  };
-  status: string;
-  weather: string;
-  workStartTime: string;
-  workEndTime: string;
-  isApproved: boolean;
-  approvedBy: {
-    id: string;
-    fullName: string;
-  } | null;
-  progressPercentage: number;
-  spkDetail: {
-    id: string;
-    spkNo: string;
-    title: string;
-    projectName: string;
-  };
-  userDetail: {
-    id: string;
-    fullName: string;
-  };
-  activityDetails: {
-    id: string;
-    workItem: {
-      name: string;
-    };
-    actualQuantity: {
-      nr: number;
-      r: number;
-    };
-  }[];
-  createdAt: string;
-}
-
-interface GetLaporanByAreaResponse {
-  getLaporanByArea: LaporanByArea[];
-}
-
-const GET_LAPORAN_BY_AREA = `
-  query GetLaporanByArea($areaId: ID!) {
-    getLaporanByArea(areaId: $areaId) {
-      id
-      date
-      area {
-        id
-        name
-        location {
-          type
-          coordinates
-        }
-      }
-      status
-      weather
-      workStartTime
-      workEndTime
-      isApproved
-      approvedBy {
-        id
-        fullName
-      }
-      progressPercentage
-      spkDetail {
-        id
-        spkNo
-        title
-        projectName
-      }
-      userDetail {
-        id
-        fullName
-      }
-      activityDetails {
-        id
-        workItem {
-          name
-        }
-        actualQuantity {
-          nr
-          r
-        }
-      }
-      createdAt
-    }
-  }
-`;
-
-export const getLaporanByArea = async (areaId: string, token: string): Promise<LaporanByArea[]> => {
-  try {
-    const response = await graphQLClient.request<GetLaporanByAreaResponse>(
-      GET_LAPORAN_BY_AREA,
-      { areaId },
-      {
-        Authorization: `Bearer ${token}`
-      }
-    );
-    return response.getLaporanByArea;
-  } catch (error) {
-    console.error('Error fetching laporan by area:', error);
-    throw error;
-  }
-}; 

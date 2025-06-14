@@ -4,7 +4,7 @@ import Badge from "../ui/badge/Badge";
 import { ArrowUpIcon, DocumentTextIcon, TaskIcon, CalenderIcon } from "@/icons";
 import { getSPKs } from "@/services/spk";
 import { getWorkItems } from "@/services/workItem";
-import { getDailyActivitiesByUser } from "@/services/dailyActivity";
+import { getDailyActivityByUser } from "@/services/dailyActivity";
 import { useAuth } from "@/context/AuthContext";
 
 export const EcommerceMetrics = () => {
@@ -23,7 +23,7 @@ export const EcommerceMetrics = () => {
         const [spks, workItems, dailyActivities] = await Promise.all([
           getSPKs(token),
           getWorkItems(token),
-          getDailyActivitiesByUser(user.id, token)
+          getDailyActivityByUser(user.id, token)
         ]);
         
         setSpkCount(spks.length);

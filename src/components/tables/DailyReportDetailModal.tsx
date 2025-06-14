@@ -57,10 +57,31 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
     const workItem = detail.workItem as unknown as { rates?: { nr?: { rate: number }; r?: { rate: number } } };
     return sum + ((detail.actualQuantity.nr || 0) * (workItem.rates?.nr?.rate || 0) + (detail.actualQuantity.r || 0) * (workItem.rates?.r?.rate || 0));
   }, 0);
-  const totalTenagaKerja = report.manpowerLogs.reduce((sum, log) => sum + (log.personCount * log.hourlyRate), 0);
-  const totalMaterial = report.materialUsageLogs.reduce((sum, log) => sum + (log.quantity * log.unitRate), 0);
-  const totalBiayaLain = report.otherCosts.reduce((sum, cost) => sum + cost.amount, 0);
-  const totalCostSelainAktivitas = totalTenagaKerja + totalMaterial + totalBiayaLain;
+  
+  // Hitung equipment cost
+  const totalEquipment = report.equipmentLogs.reduce((sum, log) => 
+    sum + ((log.rentalRatePerDay || 0) + (log.fuelIn * (log.fuelPrice || 0))), 0
+  );
+  
+  // Hitung manpower cost (personCount * hourlyRate * workingHours)
+  const totalTenagaKerja = report.manpowerLogs.reduce((sum, log) => 
+    sum + ((log.personCount || 0) * (log.hourlyRate || 0) * (log.workingHours || 0)), 0
+  );
+  
+  // Hitung material cost
+  const totalMaterial = report.materialUsageLogs.reduce((sum, log) => 
+    sum + (log.quantity * log.unitRate), 0
+  );
+  
+  // Hitung other costs
+  const totalBiayaLain = report.otherCosts.reduce((sum, cost) => 
+    sum + cost.amount, 0
+  );
+  
+  // Total semua biaya selain aktivitas (equipment + manpower + material + other)
+  const totalCostSelainAktivitas = totalEquipment + totalTenagaKerja + totalMaterial + totalBiayaLain;
+  
+  // Laba/Rugi
   const labaRugi = totalNilaiAktivitas - totalCostSelainAktivitas;
 
   // Cek apakah ada NR atau R di seluruh aktivitas
@@ -133,12 +154,87 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
               <p className="font-medium">{report.spkDetail.projectName}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Lokasi</p>
-              <p className="font-medium">{report.spkDetail.location.name}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Area</p>
+              <p className="font-medium">{report.area?.name || '-'}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Diajukan Oleh</p>
               <p className="font-medium">{report.userDetail.fullName}</p>
+            </div>
+          </div>
+
+          {/* Rejection Reason Section */}
+          {report.status === "Rejected" && report.rejectionReason && (
+            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="w-6 h-6 bg-red-100 dark:bg-red-800 rounded-full flex items-center justify-center">
+                    <span className="text-red-600 dark:text-red-400 text-sm font-semibold">!</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h5 className="font-medium text-red-800 dark:text-red-200 mb-2">Alasan Penolakan</h5>
+                  <p className="text-red-700 dark:text-red-300 text-sm leading-relaxed">
+                    {report.rejectionReason}
+                  </p>
+                  {report.approvedBy && (
+                    <p className="text-red-600 dark:text-red-400 text-xs mt-2">
+                      Ditolak oleh: {report.approvedBy.fullName} pada {report.approvedAt ? format(new Date(parseInt(report.approvedAt)), "dd MMMM yyyy HH:mm", { locale: id }) : '-'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Approval Info Section */}
+          {report.status === "Approved" && report.approvedBy && (
+            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
+                    <span className="text-green-600 dark:text-green-400 text-sm font-semibold">✓</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h5 className="font-medium text-green-800 dark:text-green-200 mb-2">Laporan Disetujui</h5>
+                  <p className="text-green-600 dark:text-green-400 text-xs">
+                    Disetujui oleh: {report.approvedBy.fullName} pada {report.approvedAt ? format(new Date(parseInt(report.approvedAt)), "dd MMMM yyyy HH:mm", { locale: id }) : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Progress & Budget Section */}
+          <div className="mt-4 grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Progress Pekerjaan</p>
+              <div className="flex items-center gap-3 mt-2">
+                <div className="flex-1 bg-gray-200 rounded-full h-3 dark:bg-gray-700">
+                  <div 
+                    className="bg-blue-600 h-3 rounded-full transition-all duration-300" 
+                    style={{ width: `${Math.min(report.progressPercentage || 0, 100)}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm font-medium">
+                  {(report.progressPercentage || 0).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Penggunaan Budget</p>
+              <div className="flex items-center gap-3 mt-2">
+                <div className="flex-1 bg-gray-200 rounded-full h-3 dark:bg-gray-700">
+                  <div 
+                    className="bg-green-600 h-3 rounded-full transition-all duration-300" 
+                    style={{ width: `${Math.min(report.budgetUsage || 0, 100)}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm font-medium">
+                  {(report.budgetUsage || 0).toFixed(1)}%
+                </span>
+              </div>
             </div>
           </div>
 
@@ -215,6 +311,70 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
             </div>
           </div>
 
+          {/* Breakdown Biaya Detail */}
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <h5 className="mb-3 font-medium text-gray-800 dark:text-gray-200">Breakdown Biaya</h5>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Equipment</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">
+                  {totalEquipment.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Tenaga Kerja</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">
+                  {totalTenagaKerja.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Material</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">
+                  {totalMaterial.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Biaya Lainnya</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">
+                  {totalBiayaLain.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+              <div className="flex justify-between items-center">
+                <p className="font-medium text-gray-800 dark:text-gray-200">Total Semua Biaya:</p>
+                <p className="font-bold text-lg text-gray-900 dark:text-white">
+                  {totalCostSelainAktivitas.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Budget Detail */}
+          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <h5 className="mb-3 font-medium text-blue-800 dark:text-blue-200">Detail Budget Proyek</h5>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-blue-600 dark:text-blue-400">Total Budget</p>
+                <p className="font-semibold text-blue-800 dark:text-blue-200">
+                  {report.spkDetail.budget.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-blue-600 dark:text-blue-400">Budget Terpakai</p>
+                <p className="font-semibold text-blue-800 dark:text-blue-200">
+                  {((report.spkDetail.budget * (report.budgetUsage || 0)) / 100).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-blue-600 dark:text-blue-400">Sisa Budget</p>
+                <p className="font-semibold text-blue-800 dark:text-blue-200">
+                  {(report.spkDetail.budget - ((report.spkDetail.budget * (report.budgetUsage || 0)) / 100)).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Accordion Sections */}
           <div className="mt-4 space-y-2">
             <AccordionSection id="aktivitas" title="Rincian Aktivitas">
@@ -223,6 +383,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                   <thead>
                     <tr className="border-b-2 border-gray-300 dark:border-white/20">
                       <th className="px-2 py-2 text-left w-48">Item</th>
+                      <th className="px-2 py-2 text-left w-32">Kategori</th>
                       <th className="px-2 py-2 text-left w-24">Status</th>
                       {hasNR && <th className="px-2 py-2 text-right w-20">Jumlah NR</th>}
                       {hasR && <th className="px-2 py-2 text-right w-20">Jumlah R</th>}
@@ -240,7 +401,20 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                       const totalNilai = nilaiNR + nilaiR;
                       return (
                         <tr key={detail.id} className="border-b border-gray-100 dark:border-white/10">
-                          <td className="px-2 py-2 text-left">{detail.workItem.name}</td>
+                          <td className="px-2 py-2 text-left">
+                            <div>
+                              <div className="font-medium">{detail.workItem.name}</div>
+                              {detail.workItem.description && (
+                                <div className="text-xs text-gray-500 mt-1">{detail.workItem.description}</div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-2 py-2 text-left">
+                            <div className="text-xs">
+                              <div>{detail.workItem.category?.name || '-'}</div>
+                              <div className="text-gray-500">{detail.workItem.subCategory?.name || '-'}</div>
+                            </div>
+                          </td>
                           <td className="px-2 py-2 text-left">{detail.status}</td>
                           {hasNR && <td className="px-2 py-2 text-right">{detail.actualQuantity.nr}</td>}
                           {hasR && <td className="px-2 py-2 text-right">{detail.actualQuantity.r}</td>}
@@ -254,7 +428,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-gray-300 dark:border-white/20">
-                      <td colSpan={2 + (hasNR ? 1 : 0) + (hasR ? 1 : 0) + 1 + (hasNR ? 1 : 0) + (hasR ? 1 : 0)} className="px-2 py-2 font-semibold text-right">Total Nilai Aktivitas</td>
+                      <td colSpan={3 + (hasNR ? 1 : 0) + (hasR ? 1 : 0) + 1 + (hasNR ? 1 : 0) + (hasR ? 1 : 0)} className="px-2 py-2 font-semibold text-right">Total Nilai Aktivitas</td>
                       <td className="px-2 py-2 font-bold text-right">
                         {totalNilaiAktivitas.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
                       </td>
@@ -278,7 +452,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                           <th className="px-2 py-2 text-left w-24">BBM Masuk</th>
                           <th className="px-2 py-2 text-left w-24">BBM Sisa</th>
                           <th className="px-2 py-2 text-left w-24">Jam Kerja</th>
-                          <th className="px-2 py-2 text-left w-24">Upah/Jam</th>
+                          <th className="px-2 py-2 text-left w-24">Tarif/Hari</th>
                           <th className="px-2 py-2 text-left w-24">Harga BBM</th>
                           <th className="px-2 py-2 text-left w-24">Subtotal</th>
                           <th className="px-2 py-2 text-left w-24">Rusak?</th>
@@ -287,7 +461,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                       </thead>
                       <tbody>
                         {report.equipmentLogs.map((log) => {
-                          const subtotal = (log.workingHour * (log.hourlyRate || 0)) + (log.fuelIn * (log.fuelPrice || 0));
+                          const subtotal = (log.rentalRatePerDay || 0) + (log.fuelIn * (log.fuelPrice || 0));
                           return (
                             <tr key={log.id} className="border-b border-gray-100 dark:border-white/10">
                               <td className="px-2 py-2">{log.equipment.equipmentCode}</td>
@@ -295,7 +469,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                               <td className="px-2 py-2">{log.fuelIn}</td>
                               <td className="px-2 py-2">{log.fuelRemaining}</td>
                               <td className="px-2 py-2">{log.workingHour}</td>
-                              <td className="px-2 py-2">{(log.hourlyRate || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
+                              <td className="px-2 py-2">{(log.rentalRatePerDay || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
                               <td className="px-2 py-2">{(log.fuelPrice || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
                               <td className="px-2 py-2">{subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
                               <td className="px-2 py-2">{log.isBrokenReported ? 'Ya' : 'Tidak'}</td>
@@ -308,7 +482,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                         <tr className="border-t-2 border-gray-300 dark:border-white/20">
                           <td colSpan={7} className="px-2 py-2 font-semibold text-right">Total Equipment</td>
                           <td className="px-2 py-2 font-bold text-right">
-                            {report.equipmentLogs.reduce((sum, log) => sum + ((log.workingHour * (log.hourlyRate || 0)) + (log.fuelIn * (log.fuelPrice || 0))), 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                            {totalEquipment.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
                           </td>
                         </tr>
                       </tfoot>
@@ -349,7 +523,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                         <tr className="border-t-2 border-gray-300 dark:border-white/20">
                           <td colSpan={4} className="px-2 py-2 font-semibold text-right">Total Tenaga Kerja</td>
                           <td className="px-2 py-2 font-bold text-right">
-                            {report.manpowerLogs.reduce((sum, log) => sum + ((log.workingHours || 0) * (log.hourlyRate || 0) * (log.personCount || 0)), 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                            {totalTenagaKerja.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
                           </td>
                         </tr>
                       </tfoot>
@@ -404,9 +578,8 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                       <thead>
                         <tr className="border-b-2 border-gray-300 dark:border-white/20">
                           <th className="px-2 py-2 text-left w-48">Tipe Biaya</th>
+                          <th className="px-2 py-2 text-left w-32">Deskripsi</th>
                           <th className="px-2 py-2 text-left w-24">Jumlah</th>
-                          <th className="px-2 py-2 text-left w-24">Deskripsi</th>
-                          <th className="px-2 py-2 text-left w-24">No. Kwitansi</th>
                           <th className="px-2 py-2 text-left w-24">Catatan</th>
                         </tr>
                       </thead>
@@ -414,16 +587,15 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                         {report.otherCosts.map((cost) => (
                           <tr key={cost.id} className="border-b border-gray-100 dark:border-white/10">
                             <td className="px-2 py-2">{cost.costType}</td>
-                            <td className="px-2 py-2">{cost.amount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
                             <td className="px-2 py-2">{cost.description}</td>
-                            <td className="px-2 py-2">{cost.receiptNumber}</td>
+                            <td className="px-2 py-2">{cost.amount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
                             <td className="px-2 py-2">{cost.remarks || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-gray-300 dark:border-white/20">
-                          <td colSpan={4} className="px-2 py-2 font-semibold text-right">Total Biaya Lainnya</td>
+                          <td colSpan={3} className="px-2 py-2 font-semibold text-right">Total Biaya Lainnya</td>
                           <td className="px-2 py-2 font-bold text-right">
                             {totalBiayaLain.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
                           </td>
@@ -433,6 +605,18 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                   </div>
                 </div>
               )}
+              {/* Grand Total All Costs */}
+              <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-gray-300 dark:border-gray-600">
+                <div className="flex justify-between items-center">
+                  <h5 className="font-bold text-gray-900 dark:text-white text-lg">TOTAL SEMUA BIAYA</h5>
+                  <p className="font-bold text-xl text-gray-900 dark:text-white">
+                    {totalCostSelainAktivitas.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                  </p>
+                </div>
+                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Equipment + Tenaga Kerja + Material + Biaya Lainnya
+                </div>
+              </div>
             </AccordionSection>
           </div>
 

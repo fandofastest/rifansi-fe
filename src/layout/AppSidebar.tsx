@@ -50,13 +50,11 @@ const navItems: NavItem[] = [
   },
   {
     icon: <DocumentTextIcon />,
-    name: "Approval Laporan Harian",
-    path: "/daily-reports/approval",
-  },
-  {
-    icon: <DocumentTextIcon />,
     name: "Laporan Harian",
-    path: "/daily-reports",
+    subItems: [
+      { name: "Daftar Laporan Harian", path: "/daily-reports" },
+      { name: "Approval Laporan", path: "/daily-reports/approval" },
+    ],
   },
   {
     icon: <PieChartIcon />,
