@@ -801,7 +801,7 @@ export const importSPKFromExcel = async (
   formData.append('excelFile', file);
 
   const baseUrl = process.env.NEXT_PUBLIC_UPLOAD_URL || '';
-  const url = baseUrl.replace(/\/$/, '') + '/api/import-spk';
+  const url = baseUrl.replace(/\/$/, '') + '/api/import-auto';
 
   const response = await fetch(url, {
     method: 'POST',
