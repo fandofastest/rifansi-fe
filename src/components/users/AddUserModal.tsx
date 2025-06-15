@@ -4,11 +4,11 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-import { registerUser, getSupervisors, Supervisor } from "@/services/user";
+import { registerUser } from "@/services/user";
 import { getAreas, Area } from "@/services/area";
-import { createApproverSetting } from "@/services/approver";
 import { useAuth } from "@/context/AuthContext";
 import { getPersonnelRoles, PersonnelRole } from "@/services/personnelRole";
+import { toast } from "react-hot-toast";
 
 interface AddUserFormData {
   username: string;
@@ -18,7 +18,6 @@ interface AddUserFormData {
   area?: string;
   email: string;
   phone?: string;
-  approverId?: string;
 }
 
 interface AddUserModalProps {
@@ -37,26 +36,22 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     area: '',
     email: '',
     phone: '',
-    approverId: '',
   });
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [roles, setRoles] = useState<PersonnelRole[]>([]);
-  const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (token) {
         try {
-          const [rolesData, supervisorsData, areasData] = await Promise.all([
+          const [rolesData, areasData] = await Promise.all([
             getPersonnelRoles(token),
-            getSupervisors(token),
             getAreas(token)
           ]);
           
           setRoles(rolesData);
-          setSupervisors(supervisorsData);
           setAreas(areasData);
           
           if (rolesData.length > 0) {
@@ -88,6 +83,13 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     }));
   };
 
+  interface GraphQLError {
+    response?: {
+      errors?: Array<{ message: string }>;
+    };
+    message?: string;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) {
@@ -104,23 +106,18 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     setLoading(true);
 
     try {
-      const response = await registerUser(formData, token);
-      
-      // Jika ada approver yang dipilih, buat approver setting
-      if (formData.approverId) {
-        await createApproverSetting({
-          userId: response.user.id,
-          approverId: formData.approverId
-        }, token);
-      }
-
+      await registerUser(formData, token);
+      toast.success('User created successfully');
       onClose();
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
       console.error('Error creating user:', error);
-      setError('Failed to create user. Please try again.');
+      const graphqlError = error as GraphQLError;
+      const errorMessage = graphqlError.response?.errors?.[0]?.message || 'Failed to create user';
+      setError(errorMessage);
+      toast.error(errorMessage); // Keep toast as backup
     } finally {
       setLoading(false);
     }
@@ -239,27 +236,6 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
               onChange={handleChange}
               placeholder="Enter phone number"
             />
-          </div>
-
-          <div>
-            <Label>Approver</Label>
-            <select
-              name="approverId"
-              value={formData.approverId}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-white/[0.05] dark:bg-gray-800 dark:text-white/90"
-            >
-              <option value="">No Approver</option>
-              {supervisors.map(supervisor => (
-                <option 
-                  key={supervisor.id} 
-                  value={supervisor.id}
-                  className="dark:bg-gray-800 dark:text-white/90"
-                >
-                  {supervisor.fullName}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 
