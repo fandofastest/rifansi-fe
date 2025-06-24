@@ -10,7 +10,8 @@ import {
   DailyActivity, 
   getDailyActivityWithDetails, 
   getDailyActivityByArea, 
-  approveDailyReport 
+  approveDailyReport, 
+  getDailyActivityWithDetailsRange
 } from "@/services/dailyActivity";
 import { getAreas, Area } from "@/services/area";
 import { EyeIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -25,8 +26,7 @@ export function DailyReportApprovalTable() {
   const [reports, setReports] = useState<DailyActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedReport, setSelectedReport] = useState<DailyActivity | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedActivityId, setSelectedActivityId] = useState<string>("");
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [reportToAction, setReportToAction] = useState<DailyActivity | null>(null);
@@ -39,6 +39,18 @@ export function DailyReportApprovalTable() {
 
   // Check if user can see all reports (PMT or SUPERADMIN)
   const canSeeAllReports = user?.role?.roleCode === "PMT" || user?.role?.roleCode === "SUPERADMIN";
+
+  // Date range filter states
+  const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>(() => {
+    // Default: current month
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return {
+      startDate: start.toISOString().slice(0, 10),
+      endDate: end.toISOString().slice(0, 10),
+    };
+  });
 
   // Fetch areas for SUPERADMIN/PMT
   useEffect(() => {
@@ -69,17 +81,17 @@ export function DailyReportApprovalTable() {
         let data: DailyActivity[];
         
         if (canSeeAllReports) {
-          // PMT and SUPERADMIN can choose area
-          if (selectedAreaId) {
-            // Specific area selected
-            data = await getDailyActivityByArea(selectedAreaId, token);
-          } else {
-            // All areas (empty string means all)
-            data = await getDailyActivityWithDetails(token);
-          }
+          data = await getDailyActivityWithDetailsRange(token, {
+            areaId: selectedAreaId || undefined,
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+          });
         } else if (user.area?.id) {
-          // Other users only see reports from their area
-          data = await getDailyActivityByArea(user.area.id, token);
+          data = await getDailyActivityWithDetailsRange(token, {
+            areaId: user.area.id,
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+          });
         } else {
           // User has no area assigned
           setError("Area pengguna tidak ditemukan");
@@ -100,11 +112,10 @@ export function DailyReportApprovalTable() {
     };
 
     fetchReports();
-  }, [token, user, canSeeAllReports, selectedAreaId]);
+  }, [token, user, canSeeAllReports, selectedAreaId, dateRange]);
 
   const handleViewDetail = (report: DailyActivity) => {
-    setSelectedReport(report);
-    setIsDetailModalOpen(true);
+    setSelectedActivityId(report.id);
   };
 
   const handleApprove = (report: DailyActivity) => {
@@ -156,16 +167,17 @@ export function DailyReportApprovalTable() {
       let data: DailyActivity[];
       
       if (canSeeAllReports) {
-        // PMT and SUPERADMIN can choose area
-        if (selectedAreaId) {
-          // Specific area selected
-          data = await getDailyActivityByArea(selectedAreaId, token);
-        } else {
-          // All areas (empty string means all)
-          data = await getDailyActivityWithDetails(token);
-        }
+        data = await getDailyActivityWithDetailsRange(token, {
+          areaId: selectedAreaId || undefined,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+        });
       } else if (user.area?.id) {
-        data = await getDailyActivityByArea(user.area.id, token);
+        data = await getDailyActivityWithDetailsRange(token, {
+          areaId: user.area.id,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+        });
       } else {
         return;
       }
@@ -190,6 +202,14 @@ export function DailyReportApprovalTable() {
         {config.label}
       </Badge>
     );
+  };
+
+  // Helper untuk handle date ISO string atau timestamp
+  const getDateObj = (dateVal: string | number | undefined) => {
+    if (!dateVal) return null;
+    if (typeof dateVal === "number") return new Date(dateVal);
+    if (/^\d+$/.test(dateVal)) return new Date(Number(dateVal));
+    return new Date(dateVal);
   };
 
   if (loading) return <div>Loading...</div>;
@@ -289,17 +309,9 @@ export function DailyReportApprovalTable() {
                       <td className="px-5 py-4 sm:px-6 text-start">
                         <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
                           {(() => {
-                            try {
-                              if (!report.date) return '-';
-                              const timestamp = parseInt(report.date);
-                              if (isNaN(timestamp)) return '-';
-                              const date = new Date(timestamp);
-                              if (isNaN(date.getTime())) return '-';
-                              return format(date, "dd MMMM yyyy", { locale: id });
-                            } catch (error) {
-                              console.error('Error formatting date:', report.date, error);
-                              return '-';
-                            }
+                            const dateObj = getDateObj(report.date);
+                            if (!dateObj || isNaN(dateObj.getTime())) return "-";
+                            return format(dateObj, "dd MMMM yyyy", { locale: id });
                           })()}
                         </span>
                       </td>
@@ -310,13 +322,13 @@ export function DailyReportApprovalTable() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                        {report.userDetail.fullName}
+                        {report.userDetail?.fullName || "-"}
                       </td>
                       <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                         <div>
-                          <div className="font-medium">{report.area?.name}</div>
+                          <div className="font-medium">{report.area?.name || '-'}</div>
                           <div className="text-xs text-gray-400">
-                            {report.area?.location?.coordinates?.join(', ')}
+                            {report.area?.location?.coordinates?.join(', ') || '-'}
                           </div>
                         </div>
                       </td>
@@ -387,12 +399,11 @@ export function DailyReportApprovalTable() {
 
       {/* Detail Modal */}
       <DailyReportDetailModal
-        isOpen={isDetailModalOpen}
+        isOpen={!!selectedActivityId}
         onClose={() => {
-          setIsDetailModalOpen(false);
-          setSelectedReport(null);
+          setSelectedActivityId("");
         }}
-        report={selectedReport}
+        activityId={selectedActivityId}
         onApprove={handleApprove}
         onReject={handleReject}
       />

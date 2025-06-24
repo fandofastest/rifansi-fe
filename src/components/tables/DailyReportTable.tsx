@@ -8,8 +8,7 @@ import { id } from "date-fns/locale";
 import { useAuth } from "@/context/AuthContext";
 import { 
   DailyActivity, 
-  getDailyActivityWithDetails, 
-  getDailyActivityByArea, 
+  getDailyActivityWithDetailsRange, 
   approveDailyReport, 
   deleteDailyActivity 
 } from "@/services/dailyActivity";
@@ -26,8 +25,7 @@ export function DailyReportTable() {
   const [reports, setReports] = useState<DailyActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedReport, setSelectedReport] = useState<DailyActivity | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedActivityId, setSelectedActivityId] = useState<string>("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -40,6 +38,9 @@ export function DailyReportTable() {
   const [areas, setAreas] = useState<Area[]>([]);
   const [selectedAreaId, setSelectedAreaId] = useState<string>("");
   const [loadingAreas, setLoadingAreas] = useState(false);
+
+  // Tambahkan rentang tanggal (default kosong = semua tanggal)
+  const [dateRange, setDateRange] = useState<{startDate?: string; endDate?: string}>({});
 
   // Cek apakah user adalah admin atau superadmin
   const isAdmin = user?.role?.roleCode && (user?.role?.roleCode === "ADMIN" || user?.role?.roleCode === "SUPERADMIN");
@@ -77,16 +78,18 @@ export function DailyReportTable() {
         
         if (canSeeAllReports) {
           // PMT and SUPERADMIN can choose area
-          if (selectedAreaId) {
-            // Specific area selected
-            data = await getDailyActivityByArea(selectedAreaId, token);
-          } else {
-            // All areas (empty string means all)
-            data = await getDailyActivityWithDetails(token);
-          }
+          data = await getDailyActivityWithDetailsRange(token, {
+            areaId: selectedAreaId || undefined,
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+          });
         } else if (user.area?.id) {
           // Other users only see reports from their area
-          data = await getDailyActivityByArea(user.area.id, token);
+          data = await getDailyActivityWithDetailsRange(token, {
+            areaId: user.area.id,
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+          });
         } else {
           // User has no area assigned
           setError("Area pengguna tidak ditemukan");
@@ -105,7 +108,7 @@ export function DailyReportTable() {
     };
 
     fetchReports();
-  }, [token, user, canSeeAllReports, selectedAreaId]);
+  }, [token, user, canSeeAllReports, selectedAreaId, dateRange]);
 
   const handleApprove = async (report: DailyActivity) => {
     setReportToAction(report);
@@ -125,15 +128,17 @@ export function DailyReportTable() {
       
       if (canSeeAllReports) {
         // PMT and SUPERADMIN can choose area
-        if (selectedAreaId) {
-          // Specific area selected
-          data = await getDailyActivityByArea(selectedAreaId, token);
-        } else {
-          // All areas (empty string means all)
-          data = await getDailyActivityWithDetails(token);
-        }
+        data = await getDailyActivityWithDetailsRange(token, {
+          areaId: selectedAreaId || undefined,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+        });
       } else if (user.area?.id) {
-        data = await getDailyActivityByArea(user.area.id, token);
+        data = await getDailyActivityWithDetailsRange(token, {
+          areaId: user.area.id,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+        });
       } else {
         return;
       }
@@ -173,8 +178,7 @@ export function DailyReportTable() {
   };
 
   const handleViewDetail = (report: DailyActivity) => {
-    setSelectedReport(report);
-    setIsDetailModalOpen(true);
+    setSelectedActivityId(report.id);
   };
 
   const handleDelete = async (report: DailyActivity) => {
@@ -216,6 +220,14 @@ export function DailyReportTable() {
         {config.label}
       </Badge>
     );
+  };
+
+  // Helper untuk handle date ISO string atau timestamp
+  const getDateObj = (dateVal: string | number | undefined) => {
+    if (!dateVal) return null;
+    if (typeof dateVal === "number") return new Date(dateVal);
+    if (/^\d+$/.test(dateVal)) return new Date(Number(dateVal));
+    return new Date(dateVal);
   };
 
   if (loading) return <div>Loading...</div>;
@@ -307,18 +319,9 @@ export function DailyReportTable() {
                     <td className="px-5 py-4 sm:px-6 text-start">
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
                         {(() => {
-                          try {
-                            if (!report.date) return '-';
-                            // Convert timestamp to date
-                            const timestamp = parseInt(report.date);
-                            if (isNaN(timestamp)) return '-';
-                            const date = new Date(timestamp);
-                            if (isNaN(date.getTime())) return '-';
-                            return format(date, "dd MMMM yyyy", { locale: id });
-                          } catch (error) {
-                            console.error('Error formatting date:', report.date, error);
-                            return '-';
-                          }
+                          const dateObj = getDateObj(report.date);
+                          if (!dateObj || isNaN(dateObj.getTime())) return "-";
+                          return format(dateObj, "dd MMMM yyyy", { locale: id });
                         })()}
                       </span>
                     </td>
@@ -326,7 +329,7 @@ export function DailyReportTable() {
                       {report.spkDetail?.projectName}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      {report.userDetail.fullName}
+                      {report.userDetail?.fullName || "-"}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       <div>
@@ -415,12 +418,9 @@ export function DailyReportTable() {
 
       {/* Detail Modal */}
       <DailyReportDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => {
-          setIsDetailModalOpen(false);
-          setSelectedReport(null);
-        }}
-        report={selectedReport}
+        isOpen={!!selectedActivityId}
+        onClose={() => setSelectedActivityId("")}
+        activityId={selectedActivityId}
         onApprove={handleApprove}
         onReject={handleReject}
       />

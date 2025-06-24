@@ -627,3 +627,112 @@ export const deleteDailyActivity = async (id: string, token: string): Promise<De
   }
 };
 
+// Fungsi baru: getDailyActivityWithDetailsRange
+const GET_DAILY_ACTIVITY_WITH_DETAILS_RANGE = `
+  query GetDailyActivityWithDetails(
+    $areaId: ID
+    $userId: ID
+    $activityId: ID
+    $startDate: String
+    $endDate: String
+  ) {
+    getDailyActivityWithDetails(
+      areaId: $areaId
+      userId: $userId
+      activityId: $activityId
+      startDate: $startDate
+      endDate: $endDate
+    ) {
+      id
+      date
+      area {
+        id
+        name
+        location {
+          type
+          coordinates
+        }
+      }
+      weather
+      status
+      workStartTime
+      workEndTime
+      startImages
+      finishImages
+      closingRemarks
+      isApproved
+      progressPercentage
+      approvedBy {
+        id
+        username
+        fullName
+        email
+      }
+      approvedAt
+      rejectionReason
+      progressPercentage
+      budgetUsage
+      spkDetail {
+        id
+        spkNo
+        wapNo
+        title
+        projectName
+        contractor
+        budget
+        startDate
+        endDate
+        workDescription
+        date
+      }
+      userDetail {
+        id
+        username
+        fullName
+        email
+        phone
+        role {
+          id
+          roleCode
+          roleName
+          description
+        }
+        area {
+          id
+          name
+          location {
+            type
+            coordinates
+          }
+        }
+        lastLogin
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const getDailyActivityWithDetailsRange = async (
+  token: string,
+  params: {
+    startDate?: string;
+    endDate?: string;
+    areaId?: string;
+    userId?: string;
+    activityId?: string;
+  }
+): Promise<DailyActivity[]> => {
+  try {
+    const response = await graphQLClient.request<{ getDailyActivityWithDetails: DailyActivity[] }>(
+      GET_DAILY_ACTIVITY_WITH_DETAILS_RANGE,
+      params,
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.getDailyActivityWithDetails;
+  } catch (error) {
+    console.error('Error fetching daily activities with range:', error);
+    throw error;
+  }
+};
+

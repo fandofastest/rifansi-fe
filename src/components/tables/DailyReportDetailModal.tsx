@@ -1,16 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 // import { EyeIcon } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { DailyActivity } from "@/services/dailyActivity";
+import { DailyActivity, getDailyActivityWithDetails } from "@/services/dailyActivity";
+import { useAuth } from "@/context/AuthContext";
 import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 
 interface DailyReportDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  report: DailyActivity | null;
+  activityId: string;
   onApprove?: (report: DailyActivity) => void;
   onReject?: (report: DailyActivity) => void;
 }
@@ -18,14 +19,36 @@ interface DailyReportDetailModalProps {
 export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
   isOpen,
   onClose,
-  report,
+  activityId,
   onApprove,
   onReject,
 }) => {
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
+  const [report, setReport] = useState<DailyActivity | null>(null);
+  const { token } = useAuth();
 
+  useEffect(() => {
+    if (!isOpen || !activityId || !token) {
+      setReport(null);
+      return;
+    }
+    setLoading(true);
+    getDailyActivityWithDetails(token, { activityId })
+      .then((data) => setReport(data[0] || null))
+      .finally(() => setLoading(false));
+  }, [isOpen, activityId, token]);
+
+  if (!isOpen) return null;
+  if (loading) return (
+    <Modal isOpen={isOpen} onClose={onClose} className="max-w-5xl p-5 bg-white text-gray-900 dark:bg-gray-900 dark:text-white">
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    </Modal>
+  );
   if (!report) return null;
 
   const allImages = [...(report.startImages || []), ...(report.finishImages || [])];
