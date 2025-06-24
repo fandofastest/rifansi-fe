@@ -34,6 +34,7 @@ export function DailyReportTable() {
   const [reportToAction, setReportToAction] = useState<DailyActivity | null>(null);
   const [remarks, setRemarks] = useState("");
   const [reportToDelete, setReportToDelete] = useState<DailyActivity | null>(null);
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
   // Area selection states
   const [areas, setAreas] = useState<Area[]>([]);
@@ -184,6 +185,7 @@ export function DailyReportTable() {
   const confirmDelete = async () => {
     if (!token || !reportToDelete) return;
     try {
+      setLoadingDelete(true);
       const result = await deleteDailyActivity(reportToDelete.id, token);
       if (result.success) {
         // Refresh data setelah delete
@@ -196,6 +198,8 @@ export function DailyReportTable() {
     } catch (err) {
       console.error('Error deleting report:', err);
       setError("Gagal menghapus laporan");
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
@@ -453,8 +457,13 @@ export function DailyReportTable() {
               variant="primary"
               className="bg-error-500 hover:bg-error-600"
               onClick={confirmDelete}
+              disabled={loadingDelete}
             >
-              Hapus
+              {loadingDelete ? (
+                <span className="flex items-center gap-2"><svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg> Menghapus...</span>
+              ) : (
+                'Hapus'
+              )}
             </Button>
           </div>
         </div>
