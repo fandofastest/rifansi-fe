@@ -54,6 +54,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Daftar Laporan Harian", path: "/daily-reports" },
       { name: "Approval Laporan", path: "/daily-reports/approval" },
+      { name: "Ringkasan Laporan", path: "/daily-reports/summary" },
     ],
   },
   {
