@@ -5,15 +5,55 @@ import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { MoreDotIcon } from "@/icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
+import { getDashboardSummary, MonthlyCapaian } from "@/services/dashboard";
+import { useAuth } from "@/context/AuthContext";
+
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
 export default function MonthlyTarget() {
-  const series = [75.55];
+  const { token } = useAuth();
+  const [monthlyCapaian, setMonthlyCapaian] = useState<MonthlyCapaian[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) return;
+      
+      try {
+        setLoading(true);
+        const data = await getDashboardSummary();
+        setMonthlyCapaian(data.monthlyCapaian);
+      } catch (error) {
+        console.error('Error fetching dashboard summary:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token]);
+
+  // Calculate overall progress from monthly capaian data
+  const calculateProgress = () => {
+    if (monthlyCapaian.length === 0) return 75.55; // Default fallback
+    
+    const totalBudget = monthlyCapaian.reduce((sum, item) => sum + item.totalBudget, 0);
+    const totalSPKActive = monthlyCapaian.reduce((sum, item) => sum + item.totalSPKActive, 0);
+    
+    if (totalBudget === 0) return 0;
+    
+    // Calculate progress based on SPK activity vs budget
+    return Math.min(100, (totalSPKActive / monthlyCapaian.length) * 100);
+  };
+
+  const progress = calculateProgress();
+  const series = [progress];
+
   const options: ApexOptions = {
     colors: ["#465FFF"],
     chart: {
@@ -72,6 +112,15 @@ export default function MonthlyTarget() {
     setIsOpen(false);
   }
 
+  // Get current month data
+  const currentMonth = monthlyCapaian.find(item => {
+    const now = new Date();
+    return item.year === now.getFullYear() && item.month === now.getMonth() + 1;
+  });
+
+  const currentBudget = currentMonth?.totalBudget || 0;
+  const currentSPKActive = currentMonth?.totalSPKActive || 0;
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="px-5 pt-5 bg-white shadow-default rounded-2xl pb-11 dark:bg-gray-900 sm:px-6 sm:pt-6">
@@ -81,7 +130,7 @@ export default function MonthlyTarget() {
               Monthly Target
             </h3>
             <p className="mt-1 font-normal text-gray-500 text-theme-sm dark:text-gray-400">
-              Target you’ve set for each month
+              Target you've set for each month
             </p>
           </div>
           <div className="relative inline-block">
@@ -125,8 +174,7 @@ export default function MonthlyTarget() {
           </span>
         </div>
         <p className="mx-auto mt-10 w-full max-w-[380px] text-center text-sm text-gray-500 sm:text-base">
-          You earn $3287 today, it&apos;s higher than last month. Keep up your
-          good work!
+          {loading ? "Loading..." : `Current month progress: ${progress.toFixed(1)}% with ${currentSPKActive} active SPKs`}
         </p>
       </div>
 
@@ -136,7 +184,7 @@ export default function MonthlyTarget() {
             Target
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            $20K
+            Rp {currentBudget.toLocaleString()}
             <svg
               width="16"
               height="16"
@@ -158,10 +206,10 @@ export default function MonthlyTarget() {
 
         <div>
           <p className="mb-1 text-center text-gray-500 text-theme-xs dark:text-gray-400 sm:text-sm">
-            Revenue
+            Active SPKs
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            $20K
+            {currentSPKActive}
             <svg
               width="16"
               height="16"
@@ -183,10 +231,10 @@ export default function MonthlyTarget() {
 
         <div>
           <p className="mb-1 text-center text-gray-500 text-theme-xs dark:text-gray-400 sm:text-sm">
-            Today
+            Progress
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            $20K
+            {progress.toFixed(1)}%
             <svg
               width="16"
               height="16"

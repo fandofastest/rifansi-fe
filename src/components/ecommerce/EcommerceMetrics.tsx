@@ -2,42 +2,31 @@
 import React, { useEffect, useState } from "react";
 import Badge from "../ui/badge/Badge";
 import { ArrowUpIcon, DocumentTextIcon, TaskIcon, CalenderIcon } from "@/icons";
-import { getSPKs } from "@/services/spk";
-import { getWorkItems } from "@/services/workItem";
-import { getDailyActivityByUser } from "@/services/dailyActivity";
+import { getDashboardSummary, DashboardSummary } from "@/services/dashboard";
 import { useAuth } from "@/context/AuthContext";
 
 export const EcommerceMetrics = () => {
-  const { token, user } = useAuth();
-  const [spkCount, setSpkCount] = useState(0);
-  const [workItemCount, setWorkItemCount] = useState(0);
-  const [reportCount, setReportCount] = useState(0);
+  const { token } = useAuth();
+  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!token || !user?.id) return;
+      if (!token) return;
       
       try {
         setLoading(true);
-        const [spks, workItems, dailyActivities] = await Promise.all([
-          getSPKs(token),
-          getWorkItems(token),
-          getDailyActivityByUser(user.id, token)
-        ]);
-        
-        setSpkCount(spks.length);
-        setWorkItemCount(workItems.length);
-        setReportCount(dailyActivities.length);
+        const data = await getDashboardSummary();
+        setDashboardData(data);
       } catch (error) {
-        console.error('Error fetching metrics:', error);
+        console.error('Error fetching dashboard summary:', error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [token, user?.id]);
+  }, [token]);
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
@@ -53,7 +42,7 @@ export const EcommerceMetrics = () => {
               Total SPK
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {loading ? "..." : spkCount}
+              {loading ? "..." : dashboardData?.totalSPK || 0}
             </h4>
           </div>
           <Badge color="success">
@@ -75,7 +64,7 @@ export const EcommerceMetrics = () => {
               Total Work Item
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {loading ? "..." : workItemCount}
+              {loading ? "..." : dashboardData?.totalWorkItems || 0}
             </h4>
           </div>
 
@@ -95,10 +84,10 @@ export const EcommerceMetrics = () => {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Total Laporan
+              Total Activities
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              {loading ? "..." : reportCount}
+              {loading ? "..." : dashboardData?.totalDailyActivities || 0}
             </h4>
           </div>
 

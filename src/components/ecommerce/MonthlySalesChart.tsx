@@ -3,8 +3,10 @@ import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { MoreDotIcon } from "@/icons";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
+import { getDashboardSummary, MonthlySales } from "@/services/dashboard";
+import { useAuth } from "@/context/AuthContext";
 
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
@@ -12,6 +14,32 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 });
 
 export default function MonthlySalesChart() {
+  const { token } = useAuth();
+  const [monthlySales, setMonthlySales] = useState<MonthlySales[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) return;
+      
+      try {
+        setLoading(true);
+        const data = await getDashboardSummary();
+        setMonthlySales(data.monthlySales);
+      } catch (error) {
+        console.error('Error fetching dashboard summary:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token]);
+
+  // Process monthly sales data for chart
+  const chartData = monthlySales.map(sale => sale.sales);
+  const categories = monthlySales.map(sale => sale.monthName);
+
   const options: ApexOptions = {
     colors: ["#465fff"],
     chart: {
@@ -31,7 +59,9 @@ export default function MonthlySalesChart() {
       },
     },
     dataLabels: {
-      enabled: false,
+      enabled: true,
+      formatter: (val: number) => `Rp ${val.toLocaleString()}`,
+      style: { fontSize: "12px", fontFamily: "Outfit, sans-serif" },
     },
     stroke: {
       show: true,
@@ -39,25 +69,18 @@ export default function MonthlySalesChart() {
       colors: ["transparent"],
     },
     xaxis: {
-      categories: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
+      categories: categories.length > 0 ? categories : [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
       ],
       axisBorder: {
         show: false,
       },
       axisTicks: {
         show: false,
+      },
+      labels: {
+        style: { fontSize: "13px", colors: ["#6B7280"] },
       },
     },
     legend: {
@@ -67,6 +90,10 @@ export default function MonthlySalesChart() {
       fontFamily: "Outfit",
     },
     yaxis: {
+      labels: {
+        style: { fontSize: "12px", colors: ["#6B7280"] },
+        formatter: (val: number) => `Rp ${val.toLocaleString()}`,
+      },
       title: {
         text: undefined,
       },
@@ -81,22 +108,23 @@ export default function MonthlySalesChart() {
     fill: {
       opacity: 1,
     },
-
     tooltip: {
       x: {
         show: false,
       },
       y: {
-        formatter: (val: number) => `${val}`,
+        formatter: (val: number) => `Rp ${val.toLocaleString()}`,
       },
     },
   };
+
   const series = [
     {
       name: "Sales",
-      data: [168, 385, 201, 298, 187, 195, 291, 110, 215, 390, 280, 112],
+      data: chartData.length > 0 ? chartData : [168, 385, 201, 298, 187, 195, 291, 110, 215, 390, 280, 112],
     },
   ];
+
   const [isOpen, setIsOpen] = useState(false);
 
   function toggleDropdown() {
