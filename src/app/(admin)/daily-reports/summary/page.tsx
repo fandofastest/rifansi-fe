@@ -203,8 +203,16 @@ export default function DailyReportSummaryPage() {
       try {
         setLoading(true);
         const data = await getSPKDetailsWithProgress(selectedSPK, token);
-        console.log('SPK Details:', data);
-        setSPKDetails(data);
+        console.log('SPK Details (original):', data);
+        
+        // Filter hanya dailyActivities dengan status "Approved"
+        const filteredData = {
+          ...data,
+          dailyActivities: data.dailyActivities.filter(activity => activity.status === 'Approved')
+        };
+        
+        console.log('SPK Details (filtered - Approved only):', filteredData);
+        setSPKDetails(filteredData);
         setError(null);
       } catch (err) {
         console.error('Error fetching SPK details:', err);

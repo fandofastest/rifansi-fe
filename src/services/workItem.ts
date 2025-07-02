@@ -89,11 +89,22 @@ interface UpdateWorkItemResponse {
   updateWorkItem: {
     id: string;
     name: string;
-    rates: WorkItemRates;
-    unit: {
+    category: {
+      id: string;
+      name: string;
+      code?: string;
+    };
+    subCategory: {
       id: string;
       name: string;
     };
+    unit: {
+      id: string;
+      name: string;
+      code?: string;
+    };
+    rates: WorkItemRates;
+    description: string;
   };
 }
 
@@ -231,20 +242,25 @@ const UPDATE_WORK_ITEM = `
     updateWorkItem(id: $id, input: $input) {
       id
       name
-      rates {
-        nr {
-          rate
-          description
-        }
-        r {
-          rate
-          description
-        }
+      category {
+        id
+        name
+        code
+      }
+      subCategory {
+        id
+        name
       }
       unit {
         id
         name
+        code
       }
+      rates {
+        nr { rate description }
+        r { rate description }
+      }
+      description
     }
   }
 `;

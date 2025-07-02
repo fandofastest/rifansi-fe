@@ -41,7 +41,8 @@ export default function EditWorkItemModal({ isOpen, onClose, onSuccess, workItem
     }
   });
   const [categories, setCategories] = useState<Category[]>([]);
-  const [subCategories, setSubCategories] = useState<Subcategory[]>([]);
+  const [allSubCategories, setAllSubCategories] = useState<Subcategory[]>([]);
+  const [filteredSubCategories, setFilteredSubCategories] = useState<Subcategory[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(false);
   const { token } = useAuth();
@@ -74,6 +75,23 @@ export default function EditWorkItemModal({ isOpen, onClose, onSuccess, workItem
     }
   }, [workItem]);
 
+  // Filter subcategories when category changes
+  useEffect(() => {
+    if (formData.categoryId) {
+      const filtered = allSubCategories.filter(
+        (sub) => sub.categoryId === formData.categoryId
+      );
+      setFilteredSubCategories(filtered);
+      // Jika subCategoryId tidak ada di filtered, reset
+      if (!filtered.some(sub => sub.id === formData.subCategoryId)) {
+        setFormData(prev => ({ ...prev, subCategoryId: "" }));
+      }
+    } else {
+      setFilteredSubCategories([]);
+      setFormData(prev => ({ ...prev, subCategoryId: "" }));
+    }
+  }, [formData.categoryId, allSubCategories]);
+
   const fetchData = async () => {
     if (!token) return;
     try {
@@ -83,7 +101,7 @@ export default function EditWorkItemModal({ isOpen, onClose, onSuccess, workItem
         getUnits(token),
       ]);
       setCategories(categoriesData);
-      setSubCategories(subCategoriesData);
+      setAllSubCategories(subCategoriesData);
       setUnits(unitsData);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -93,17 +111,21 @@ export default function EditWorkItemModal({ isOpen, onClose, onSuccess, workItem
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (name.startsWith('rates.')) {
-      const [type, field] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        rates: {
-          ...prev.rates,
-          [type]: {
-            ...prev.rates[type as 'nr' | 'r'],
-            [field]: field === 'rate' ? (value ? Number(value) : 0) : value
+      const parts = name.split('.');
+      // Memastikan bahwa path yang diproses adalah 'rates.nr.rate' atau 'rates.r.rate'
+      if (parts.length === 3 && (parts[1] === 'nr' || parts[1] === 'r') && parts[2] === 'rate') {
+        const rateType = parts[1] as 'nr' | 'r';
+        setFormData(prev => ({
+          ...prev,
+          rates: {
+            ...prev.rates,
+            [rateType]: {
+              ...prev.rates[rateType],
+              rate: value ? Number(value) : 0
+            }
           }
-        }
-      }));
+        }));
+      }
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -116,14 +138,39 @@ export default function EditWorkItemModal({ isOpen, onClose, onSuccess, workItem
     e.preventDefault();
     if (!token || !workItem) return;
 
+    // Membuat struktur data yang bersih sesuai dengan format API
+    const cleanData = {
+      name: formData.name,
+      categoryId: formData.categoryId,
+      subCategoryId: formData.subCategoryId,
+      unitId: formData.unitId,
+      description: formData.description,
+      rates: {
+        nr: {
+          rate: formData.rates.nr.rate,
+          description: "Non-Remote Rate"
+        },
+        r: {
+          rate: formData.rates.r.rate,
+          description: "Remote Rate"
+        }
+      }
+    };
+
     setLoading(true);
+    console.log('[EditWorkItemModal] Sending updateWorkItem:', {
+      id: workItem.id,
+      cleanData,
+      token,
+    });
     try {
-      await updateWorkItem(workItem.id, formData, token);
+      const response = await updateWorkItem(workItem.id, cleanData, token);
+      console.log('[EditWorkItemModal] updateWorkItem response:', response);
       toast.success("Work item updated successfully");
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("Error updating work item:", error);
+      console.error("[EditWorkItemModal] Error updating work item:", error);
       toast.error("Failed to update work item");
     } finally {
       setLoading(false);
@@ -179,9 +226,10 @@ export default function EditWorkItemModal({ isOpen, onClose, onSuccess, workItem
               onChange={handleChange}
               className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
               required
+              disabled={!formData.categoryId}
             >
               <option value="">Select Sub Category</option>
-              {subCategories.map((subCategory) => (
+              {filteredSubCategories.map((subCategory) => (
                 <option key={subCategory.id} value={subCategory.id}>
                   {subCategory.name}
                 </option>
@@ -228,7 +276,7 @@ export default function EditWorkItemModal({ isOpen, onClose, onSuccess, workItem
               <Input
                 type="number"
                 name="rates.nr.rate"
-                defaultValue={formData.rates.nr.rate}
+                value={formData.rates.nr.rate}
                 onChange={handleChange}
                 placeholder="Enter Non-Remote Rate"
                 required
@@ -242,7 +290,7 @@ export default function EditWorkItemModal({ isOpen, onClose, onSuccess, workItem
               <Input
                 type="number"
                 name="rates.r.rate"
-                defaultValue={formData.rates.r.rate}
+                value={formData.rates.r.rate}
                 onChange={handleChange}
                 placeholder="Enter Remote Rate"
                 required
