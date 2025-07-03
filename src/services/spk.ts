@@ -1,4 +1,4 @@
-import { graphQLClient } from '@/lib/graphql';
+import { graphQLClient, getUploadUrl } from '@/lib/graphql';
 
 export interface Location {
   id: string;
@@ -800,7 +800,8 @@ export const importSPKFromExcel = async (
   const formData = new FormData();
   formData.append('excelFile', file);
 
-  const baseUrl = process.env.NEXT_PUBLIC_UPLOAD_URL || '';
+  // Gunakan fungsi getUploadUrl untuk mendapatkan URL dinamis
+  const baseUrl = getUploadUrl();
   const url = baseUrl.replace(/\/$/, '') + '/api/import-auto';
 
   const response = await fetch(url, {
