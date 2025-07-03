@@ -8,24 +8,40 @@ let authToken = '';
 
 // Buat fungsi untuk mendapatkan URL API dinamis
 export const getApiUrl = () => {
-  // Jika di browser, coba dapatkan dari hostname saat ini
+  // Prioritaskan nilai dari .env jika tersedia
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    console.log('getApiUrl: Menggunakan NEXT_PUBLIC_API_URL dari .env:', process.env.NEXT_PUBLIC_API_URL);
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // Jika tidak ada di .env dan di browser, gunakan hostname
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    console.log('getApiUrl: Menggunakan hostname:', hostname);
     return `http://${hostname}:3000/graphql`;
   }
   
-  // Fallback ke env atau default
-  return process.env.NEXT_PUBLIC_API_URL || FALLBACK_API_URL;
+  // Fallback ke default
+  return FALLBACK_API_URL;
 };
 
 // Buat fungsi untuk mendapatkan URL upload dinamis
 export const getUploadUrl = () => {
+  // Prioritaskan nilai dari .env jika tersedia
+  if (process.env.NEXT_PUBLIC_UPLOAD_URL) {
+    console.log('getUploadUrl: Menggunakan NEXT_PUBLIC_UPLOAD_URL dari .env:', process.env.NEXT_PUBLIC_UPLOAD_URL);
+    return process.env.NEXT_PUBLIC_UPLOAD_URL;
+  }
+  
+  // Jika tidak ada di .env dan di browser, gunakan hostname
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    console.log('getUploadUrl: Menggunakan hostname:', hostname);
     return `http://${hostname}:3000/`;
   }
   
-  return process.env.NEXT_PUBLIC_UPLOAD_URL || 'http://localhost:3000/';
+  // Fallback ke default
+  return 'http://localhost:3000/';
 };
 
 // Buat GraphQL client yang selalu menggunakan URL terbaru

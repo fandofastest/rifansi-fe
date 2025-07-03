@@ -29,19 +29,29 @@ export const ApiUrlProvider = ({ children }: ApiUrlProviderProps) => {
 
   useEffect(() => {
     const determineApiUrl = () => {
-      // Jika ada .env, gunakan itu terlebih dahulu
-      if (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_UPLOAD_URL) {
-        setApiUrl(process.env.NEXT_PUBLIC_API_URL);
-        setUploadUrl(process.env.NEXT_PUBLIC_UPLOAD_URL);
+      // Log untuk debug
+      console.log('Environment variables:', {
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+        NEXT_PUBLIC_UPLOAD_URL: process.env.NEXT_PUBLIC_UPLOAD_URL
+      });
+
+      // Gunakan nilai dari .env jika tersedia
+      const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const envUploadUrl = process.env.NEXT_PUBLIC_UPLOAD_URL;
+
+      if (envApiUrl && envUploadUrl) {
+        console.log('Menggunakan URL dari .env');
+        setApiUrl(envApiUrl);
+        setUploadUrl(envUploadUrl);
         setIsLoading(false);
         return;
       }
 
-      // Gunakan hostname window saat ini dan tambahkan port 3000
+      // Fallback: Gunakan hostname window saat ini dengan port 3000
+      console.log('Fallback: Menggunakan URL dari hostname');
       const host = window.location.hostname;
       const baseUrl = `http://${host}:3000`;
       
-      // Set API URL dan Upload URL berdasarkan baseUrl
       setApiUrl(`${baseUrl}/graphql`);
       setUploadUrl(`${baseUrl}`);
       setIsLoading(false);
