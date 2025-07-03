@@ -5,7 +5,6 @@ import Button from "../ui/button/Button";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import { registerUser } from "@/services/user";
-import { getAreas, Area } from "@/services/area";
 import { useAuth } from "@/context/AuthContext";
 import { getPersonnelRoles, PersonnelRole } from "@/services/personnelRole";
 import { toast } from "react-hot-toast";
@@ -15,7 +14,6 @@ interface AddUserFormData {
   password: string;
   fullName: string;
   role: string;
-  area?: string;
   email: string;
   phone?: string;
 }
@@ -33,26 +31,20 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     password: '',
     fullName: '',
     role: '',
-    area: '',
     email: '',
     phone: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roles, setRoles] = useState<PersonnelRole[]>([]);
-  const [areas, setAreas] = useState<Area[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (token) {
         try {
-          const [rolesData, areasData] = await Promise.all([
-            getPersonnelRoles(token),
-            getAreas(token)
-          ]);
+          const rolesData = await getPersonnelRoles(token);
           
           setRoles(rolesData);
-          setAreas(areasData);
           
           if (rolesData.length > 0) {
             setFormData(prev => ({
@@ -190,27 +182,6 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
                   className="dark:bg-gray-800 dark:text-white/90"
                 >
                   {role.roleName} ({role.roleCode})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <Label>Area</Label>
-            <select
-              name="area"
-              value={formData.area}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-white/[0.05] dark:bg-gray-800 dark:text-white/90"
-            >
-              <option value="">Select Area</option>
-              {areas.map(area => (
-                <option 
-                  key={area.id} 
-                  value={area.id}
-                  className="dark:bg-gray-800 dark:text-white/90"
-                >
-                  {area.name}
                 </option>
               ))}
             </select>

@@ -45,7 +45,6 @@ interface UpdateUserInput {
   fullName?: string;
   email?: string;
   role?: string;
-  area?: string;
   phone?: string;
 }
 
@@ -199,14 +198,13 @@ const REGISTER_USER = `
 `;
 
 const UPDATE_USER = `
-  mutation UpdateUser($id: ID!, $username: String, $password: String, $fullName: String, $role: String, $area: String, $email: String, $phone: String) {
+  mutation UpdateUser($id: ID!, $username: String, $password: String, $fullName: String, $role: String, $email: String, $phone: String) {
     updateUser(
       id: $id
       username: $username
       password: $password
       fullName: $fullName
       role: $role
-      area: $area
       email: $email
       phone: $phone
     ) {
