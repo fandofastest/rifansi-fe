@@ -49,7 +49,7 @@ export default function BackupExportCard() {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/export`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/export`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -805,7 +805,7 @@ export const importSPKFromExcel = async (
 
   // Gunakan fungsi getUploadUrl untuk mendapatkan URL dinamis
   const baseUrl = getUploadUrl();
-  const url = baseUrl.replace(/\/$/, '') + '/api/import-auto';
+  const url = baseUrl.replace(/\/$/, '') + '/import-auto';
 
   const response = await fetch(url, {
     method: 'POST',
