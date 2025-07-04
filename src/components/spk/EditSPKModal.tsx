@@ -42,13 +42,22 @@ export const EditSPKModal: React.FC<EditSPKModalProps> = ({
   const parseDate = (dateStr: string | number | null | undefined): Date | null => {
     if (!dateStr) return null;
     try {
-      const date = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
-      return isValid(date) ? date : null;
-    } catch {
+      // Handle Unix timestamp (milliseconds) directly
+      if (typeof dateStr === 'number') {
+        const date = new Date(dateStr);
+        return isValid(date) ? date : null;
+      } else if (typeof dateStr === 'string') {
+        const date = parseISO(dateStr);
+        return isValid(date) ? date : null;
+      }
+      return null;
+    } catch (error) {
+      console.error('Date parsing error:', error, dateStr);
       return null;
     }
   };
 
+  // Ensure we have valid dates from SPK data
   const initialStartDate = parseDate(spk.startDate);
   const initialEndDate = parseDate(spk.endDate);
   
@@ -71,6 +80,27 @@ export const EditSPKModal: React.FC<EditSPKModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [startDatePicker, setStartDatePicker] = useState<Date | null>(initialStartDate);
   const [endDatePicker, setEndDatePicker] = useState<Date | null>(initialEndDate);
+
+  // Debug to check values
+  useEffect(() => {
+    console.log('SPK dates:', { 
+      rawStartDate: spk.startDate, 
+      rawEndDate: spk.endDate,
+      parsedStartDate: initialStartDate, 
+      parsedEndDate: initialEndDate,
+      startDatePicker, 
+      endDatePicker 
+    });
+    
+    // Ensure endDatePicker is set if initialEndDate exists
+    if (initialEndDate && !endDatePicker) {
+      setEndDatePicker(initialEndDate);
+      setFormData(prev => ({
+        ...prev,
+        endDate: format(initialEndDate, "yyyy-MM-dd")
+      }));
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -279,6 +309,7 @@ export const EditSPKModal: React.FC<EditSPKModalProps> = ({
                 className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm shadow-theme-xs bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
                 placeholderText="Select end date"
                 minDate={startDatePicker || undefined}
+                value={formData.endDate || ''}
               />
             </div>
             <div>

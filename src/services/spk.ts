@@ -494,17 +494,9 @@ const UPDATE_SPK_WORK_ITEM = `
     updateSPKWorkItem(spkId: $spkId, workItemId: $workItemId, input: $input) {
       id
       spkNo
-      workItems {
-        workItemId
-        boqVolume { nr r }
-        amount
-        rates {
-          nr { rate description }
-          r { rate description }
-        }
-        description
-        workItem { id name unit { id name } }
-      }
+      wapNo
+      title
+      projectName
     }
   }
 `;
@@ -665,6 +657,24 @@ const GET_SPK_DETAILS_WITH_PROGRESS = `
   }
 `;
 
+export interface UpdateSPKWorkItemInput {
+  boqVolume: {
+    nr: number;
+    r: number;
+  };
+  rates: {
+    nr: {
+      rate: number;
+      description: string;
+    };
+    r: {
+      rate: number;
+      description: string;
+    };
+  };
+  description?: string;
+}
+
 export const getSPKs = async (
   token: string,
   startDate?: string,
@@ -752,14 +762,7 @@ export const getSPKById = async (id: string, token: string): Promise<SPK> => {
 export const updateSPKWorkItem = async (
   spkId: string,
   workItemId: string,
-  input: {
-    boqVolume: { nr: number; r: number };
-    rates: {
-      nr: { rate: number; description: string };
-      r: { rate: number; description: string };
-    };
-    description: string;
-  },
+  input: UpdateSPKWorkItemInput,
   token: string
 ): Promise<SPK> => {
   try {

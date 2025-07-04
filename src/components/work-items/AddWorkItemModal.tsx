@@ -82,15 +82,16 @@ export default function AddWorkItemModal({ isOpen, onClose, onSuccess }: AddWork
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
     if (name.startsWith('rates.')) {
-      const [ type, field] = name.split('.');
+      const [_, type, field] = name.split('.'); // _ untuk mengabaikan 'rates'
       setFormData(prev => ({
         ...prev,
         rates: {
           ...prev.rates,
           [type]: {
             ...prev.rates[type as 'nr' | 'r'],
-            [field]: field === 'rate' ? (value ? Number(value) : 0) : value
+            [field]: field === 'rate' ? (value === '' ? 0 : Number(value)) : value
           }
         }
       }));
@@ -219,7 +220,7 @@ export default function AddWorkItemModal({ isOpen, onClose, onSuccess }: AddWork
               <Input
                 type="number"
                 name="rates.nr.rate"
-                defaultValue={formData.rates.nr.rate}
+                value={formData.rates.nr.rate}
                 onChange={handleChange}
                 placeholder="Enter Non-Remote Rate"
                 required
@@ -233,7 +234,7 @@ export default function AddWorkItemModal({ isOpen, onClose, onSuccess }: AddWork
               <Input
                 type="number"
                 name="rates.r.rate"
-                defaultValue={formData.rates.r.rate}
+                value={formData.rates.r.rate}
                 onChange={handleChange}
                 placeholder="Enter Remote Rate"
                 required
