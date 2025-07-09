@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
-import { createEquipment, ServiceStatus, Area } from "@/services/equipment";
+import { createEquipment, EquipmentServiceStatus, Area } from "@/services/equipment";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 
@@ -19,7 +19,7 @@ type FormData = {
   defaultOperator: string;
   area: string;
   year: string;
-  serviceStatus: ServiceStatus;
+  serviceStatus: EquipmentServiceStatus;
   description: string;
 };
 
@@ -37,7 +37,7 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
     defaultOperator: "",
     area: "",
     year: new Date().getFullYear().toString(),
-    serviceStatus: "Active",
+    serviceStatus: "ACTIVE",
     description: "",
   });
 
@@ -140,6 +140,16 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
               <option value="CRANE">Crane</option>
               <option value="TRUCK">Truck</option>
               <option value="LOADER">Loader</option>
+              <option value="MOTOR_GRADER">Motor Grader</option>
+              <option value="PRIME_MOVER">Prime Mover</option>
+              <option value="PAD_FOOT_COMPACTOR">Pad Foot Compactor</option>
+              <option value="SMOOTH_DRUM_COMPACTOR">Smooth Drum Compactor</option>
+              <option value="HI_BOY_LOW_BOY">Hi Boy / Low Boy</option>
+              <option value="FOCO_TRUCK_8_TON">Foco Truck 8 Ton</option>
+              <option value="WATER_TRUCK">Water Truck</option>
+              <option value="FUEL_TRUCK">Fuel Truck</option>
+              <option value="MICRO_BUS_16">Micro Bus 16 seat (Elf)</option>
+              <option value="WELDING_MACHINE">Welding Machine</option>
               <option value="OTHER">Other</option>
             </select>
           </div>
@@ -204,9 +214,10 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
               className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs focus:outline-hidden focus:ring-3 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
               required
             >
-              <option value="Active">Active</option>
-              <option value="Maintenance">Maintenance</option>
-              <option value="Decommissioned">Decommissioned</option>
+              <option value="ACTIVE">Active</option>
+              <option value="MAINTENANCE">Maintenance</option>
+              <option value="REPAIR">Repair</option>
+              <option value="INACTIVE">Inactive</option>
             </select>
           </div>
 
