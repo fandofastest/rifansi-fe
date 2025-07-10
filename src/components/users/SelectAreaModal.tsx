@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import { getAreas, Area } from "@/services/area";
-import { updateUserArea } from "@/services/user";
+import { updateUserArea, getUser } from "@/services/user";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 
@@ -27,12 +27,34 @@ export default function SelectAreaModal({
   const [selectedArea, setSelectedArea] = useState<string>(currentAreaId || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [targetUser, setTargetUser] = useState<any>(null);
+
+  // Fetch the target user's details
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!token || !userId) return;
+      try {
+        const userData = await getUser(userId, token);
+        console.log('Target user being edited:', userData);
+        console.log('Target user role:', userData.role);
+        console.log('Target user role code:', userData?.role?.roleCode);
+        setTargetUser(userData);
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+      }
+    };
+    
+    if (isOpen) {
+      fetchUser();
+    }
+  }, [userId, token, isOpen]);
 
   useEffect(() => {
     const fetchAreas = async () => {
       if (!token) return;
       try {
         const areasData = await getAreas(token);
+        console.log('Areas data from API:', areasData);
         setAreas(areasData);
       } catch (error) {
         console.error('Error fetching areas:', error);
@@ -94,15 +116,29 @@ export default function SelectAreaModal({
             className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-white/[0.05] dark:bg-gray-800 dark:text-white/90"
           >
             <option value="">Select Area</option>
-            {areas.map(area => (
-              <option 
-                key={area.id} 
-                value={area.id}
-                className="dark:bg-gray-800 dark:text-white/90"
-              >
-                {area.name}
-              </option>
-            ))}
+            {areas
+              .filter(area => {
+                // Filter out AllArea for PMCOW users
+                console.log('Checking area:', area.name, 'Target user role code:', targetUser?.role?.roleCode);
+                
+                // For PMCOW users, filter out any area with AllArea in the name
+                if (targetUser?.role?.roleCode === "PMCOW" || targetUser?.role?.roleCode === "pmcow") {
+                  if (area.name === "AllArea") {
+                    console.log('Filtering out area:', area.name);
+                    return false;
+                  }
+                }
+                return true;
+              })
+              .map(area => (
+                <option 
+                  key={area.id} 
+                  value={area.id}
+                  className="dark:bg-gray-800 dark:text-white/90"
+                >
+                  {area.name}
+                </option>
+              ))}
           </select>
         </div>
 
