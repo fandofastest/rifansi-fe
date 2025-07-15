@@ -418,9 +418,8 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                   </thead>
                   <tbody>
                     {report.activityDetails.map((detail) => {
-                      const workItem = detail.workItem as unknown as { rates?: { nr?: { rate: number }; r?: { rate: number } } };
-                      const nilaiNR = (detail.actualQuantity.nr || 0) * (workItem.rates?.nr?.rate || 0);
-                      const nilaiR = (detail.actualQuantity.r || 0) * (workItem.rates?.r?.rate || 0);
+                      const nilaiNR = (detail.actualQuantity.nr || 0) * (detail.rates?.nr?.rate || 0);
+                      const nilaiR = (detail.actualQuantity.r || 0) * (detail.rates?.r?.rate || 0);
                       const totalNilai = nilaiNR + nilaiR;
                       return (
                         <tr key={detail.id} className="border-b border-gray-100 dark:border-white/10">
