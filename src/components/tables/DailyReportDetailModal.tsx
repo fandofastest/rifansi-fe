@@ -77,8 +77,8 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
   // Perhitungan total
   const totalAktivitas = report.activityDetails.length;
   const totalNilaiAktivitas = report.activityDetails.reduce((sum, detail) => {
-    const workItem = detail.workItem as unknown as { rates?: { nr?: { rate: number }; r?: { rate: number } } };
-    return sum + ((detail.actualQuantity.nr || 0) * (workItem.rates?.nr?.rate || 0) + (detail.actualQuantity.r || 0) * (workItem.rates?.r?.rate || 0));
+    // Access rates directly from the activityDetail as per the updated structure
+    return sum + ((detail.actualQuantity.nr || 0) * (detail.rates?.nr?.rate || 0) + (detail.actualQuantity.r || 0) * (detail.rates?.r?.rate || 0));
   }, 0);
   
   // Hitung equipment cost

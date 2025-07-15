@@ -116,6 +116,20 @@ export interface ActivityDetail {
   };
   status: string;
   remarks: string;
+  rates: {
+    nr: {
+      rate: number;
+      description: string;
+    };
+    r: {
+      rate: number;
+      description: string;
+    };
+  };
+  boqVolume: {
+    nr: number;
+    r: number;
+  };
   workItem: WorkItem;
 }
 
@@ -222,64 +236,58 @@ interface GetDailyActivityWithDetailsResponse {
 
 const GET_DAILY_ACTIVITY_WITH_DETAILS = `
   query GetDailyActivityWithDetails(
-    $areaId: ID
-    $userId: ID
-    $activityId: ID
-    $startDate: String
-    $endDate: String
-  ) {
-    getDailyActivityWithDetails(
-      areaId: $areaId
-      userId: $userId
-      activityId: $activityId
-      startDate: $startDate
-      endDate: $endDate
+      $areaId: ID
+      $userId: ID
+      $activityId: ID
+      $startDate: String
+      $endDate: String
     ) {
-      id
-      date
-      area {
+      getDailyActivityWithDetails(
+        areaId: $areaId
+        userId: $userId
+        activityId: $activityId
+        startDate: $startDate
+        endDate: $endDate
+        
+        
+      ) {
         id
-        name
-        location {
-          type
-          coordinates
-        }
-      }
-      weather
-      status
-      workStartTime
-      workEndTime
-      startImages
-      finishImages
-      closingRemarks
-      isApproved
-      approvedBy {
-        id
-        username
-        fullName
-        email
-      }
-      approvedAt
-      rejectionReason
-      progressPercentage
-      budgetUsage
-      activityDetails {
-        id
-        actualQuantity {
-          nr
-          r
-        }
-        status
-        remarks
-        workItem {
+        date
+        area {
           id
           name
-          description
-          unit {
-            id
-            name
-            code
+          location {
+            type
+            coordinates
           }
+        }
+        weather
+        status
+        workStartTime
+        workEndTime
+        startImages
+        finishImages
+        closingRemarks
+        isApproved
+        progressPercentage
+        approvedBy {
+          id
+          username
+          fullName
+          email
+        }
+        approvedAt
+        rejectionReason
+        progressPercentage
+        budgetUsage
+        activityDetails {
+          id
+          actualQuantity {
+            nr
+            r
+          }
+          status
+          remarks
           rates {
             nr {
               rate
@@ -290,107 +298,10 @@ const GET_DAILY_ACTIVITY_WITH_DETAILS = `
               description
             }
           }
-          category {
-            id
-            name
-          }
-          subCategory {
-            id
-            name
-          }
-        }
-      }
-      equipmentLogs {
-        id
-        equipment {
-          id
-          equipmentCode
-          equipmentType
-          plateOrSerialNo
-          defaultOperator
-          year
-          serviceStatus
-        }
-        fuelIn
-        fuelRemaining
-        workingHour
-        rentalRatePerDay
-        fuelPrice
-        isBrokenReported
-        remarks
-      }
-      manpowerLogs {
-        id
-        role
-        personCount
-        hourlyRate
-        workingHours
-        personnelRole {
-          id
-          roleCode
-          roleName
-          description
-          isPersonel
-        }
-      }
-      materialUsageLogs {
-        id
-        material {
-          id
-          name
-          description
-          unitRate
-          unit {
-            id
-            name
-            code
-          }
-        }
-        quantity
-        unitRate
-        remarks
-      }
-      otherCosts {
-        id
-        costType
-        description
-        amount
-        remarks
-      }
-      spkDetail {
-        id
-        spkNo
-        wapNo
-        title
-        projectName
-        contractor
-        budget
-        startDate
-        endDate
-        workDescription
-        date
-        location {
-          id
-          name
-        }
-        workItems {
-          workItemId
           boqVolume {
             nr
             r
           }
-          amount
-          rates {
-            nr {
-              rate
-              description
-            }
-            r {
-              rate
-              description
-            }
-          }
-          description
           workItem {
             id
             name
@@ -410,33 +321,144 @@ const GET_DAILY_ACTIVITY_WITH_DETAILS = `
             }
           }
         }
-      }
-      userDetail {
-        id
-        username
-        fullName
-        email
-        phone
-        role {
+        equipmentLogs {
           id
-          roleCode
-          roleName
-          description
+          equipment {
+            id
+            equipmentCode
+            equipmentType
+            plateOrSerialNo
+            defaultOperator
+            year
+            serviceStatus
+          }
+          fuelIn
+          fuelRemaining
+          workingHour
+          hourlyRate
+          rentalRatePerDay
+          fuelPrice
+          isBrokenReported
+          remarks
         }
-        area {
+        manpowerLogs {
           id
-          name
-          location {
-            type
-            coordinates
+          role
+          personCount
+          hourlyRate
+          workingHours
+          personnelRole {
+            id
+            roleCode
+            roleName
+            description
+            isPersonel
           }
         }
-        lastLogin
+        materialUsageLogs {
+          id
+          material {
+            id
+            name
+            description
+            unitRate
+            unit {
+              id
+              name
+              code
+            }
+          }
+          quantity
+          unitRate
+          remarks
+        }
+        otherCosts {
+          id
+          costType
+          description
+          amount
+          remarks
+        }
+        spkDetail {
+          id
+          spkNo
+          wapNo
+          title
+          projectName
+          contractor
+          budget
+          startDate
+          endDate
+          workDescription
+          date
+          location {
+            id
+            name
+          }
+          workItems {
+            workItemId
+            boqVolume {
+              nr
+              r
+            }
+            amount
+            rates {
+              nr {
+                rate
+                description
+              }
+              r {
+                rate
+                description
+              }
+            }
+            description
+            workItem {
+              id
+              name
+              description
+              unit {
+                id
+                name
+                code
+              }
+              category {
+                id
+                name
+              }
+              subCategory {
+                id
+                name
+              }
+            }
+          }
+        }
+        userDetail {
+          id
+          username
+          fullName
+          email
+          phone
+          role {
+            id
+            roleCode
+            roleName
+            description
+          }
+          area {
+            id
+            name
+            location {
+              type
+              coordinates
+            }
+          }
+          lastLogin
+        }
+        createdAt
+        updatedAt
       }
-      createdAt
-      updatedAt
     }
-  }
 `;
 
 export const getDailyActivityWithDetails = async (
@@ -630,73 +652,21 @@ export const deleteDailyActivity = async (id: string, token: string): Promise<De
 // Fungsi baru: getDailyActivityWithDetailsRange
 const GET_DAILY_ACTIVITY_WITH_DETAILS_RANGE = `
   query GetDailyActivityWithDetails(
-    $areaId: ID
-    $userId: ID
-    $activityId: ID
-    $startDate: String
-    $endDate: String
-  ) {
-    getDailyActivityWithDetails(
-      areaId: $areaId
-      userId: $userId
-      activityId: $activityId
-      startDate: $startDate
-      endDate: $endDate
+      $areaId: ID
+      $userId: ID
+      $activityId: ID
+      $startDate: String
+      $endDate: String
     ) {
-      id
-      date
-      area {
+      getDailyActivityWithDetails(
+        areaId: $areaId
+        userId: $userId
+        activityId: $activityId
+        startDate: $startDate
+        endDate: $endDate
+      ) {
         id
-        name
-        location {
-          type
-          coordinates
-        }
-      }
-      weather
-      status
-      workStartTime
-      workEndTime
-      startImages
-      finishImages
-      closingRemarks
-      isApproved
-      progressPercentage
-      approvedBy {
-        id
-        username
-        fullName
-        email
-      }
-      approvedAt
-      rejectionReason
-      progressPercentage
-      budgetUsage
-      spkDetail {
-        id
-        spkNo
-        wapNo
-        title
-        projectName
-        contractor
-        budget
-        startDate
-        endDate
-        workDescription
         date
-      }
-      userDetail {
-        id
-        username
-        fullName
-        email
-        phone
-        role {
-          id
-          roleCode
-          roleName
-          description
-        }
         area {
           id
           name
@@ -705,12 +675,204 @@ const GET_DAILY_ACTIVITY_WITH_DETAILS_RANGE = `
             coordinates
           }
         }
-        lastLogin
+        weather
+        status
+        workStartTime
+        workEndTime
+        startImages
+        finishImages
+        closingRemarks
+        isApproved
+        progressPercentage
+        approvedBy {
+          id
+          username
+          fullName
+          email
+        }
+        approvedAt
+        rejectionReason
+        progressPercentage
+        budgetUsage
+        activityDetails {
+          id
+          actualQuantity {
+            nr
+            r
+          }
+          status
+          remarks
+          rates {
+            nr {
+              rate
+              description
+            }
+            r {
+              rate
+              description
+            }
+          }
+          boqVolume {
+            nr
+            r
+          }
+          workItem {
+            id
+            name
+            description
+            unit {
+              id
+              name
+              code
+            }
+            category {
+              id
+              name
+            }
+            subCategory {
+              id
+              name
+            }
+          }
+        }
+        equipmentLogs {
+          id
+          equipment {
+            id
+            equipmentCode
+            equipmentType
+            plateOrSerialNo
+            defaultOperator
+            year
+            serviceStatus
+          }
+          fuelIn
+          fuelRemaining
+          workingHour
+          hourlyRate
+          rentalRatePerDay
+          fuelPrice
+          isBrokenReported
+          remarks
+        }
+        manpowerLogs {
+          id
+          role
+          personCount
+          hourlyRate
+          workingHours
+          personnelRole {
+            id
+            roleCode
+            roleName
+            description
+            isPersonel
+          }
+        }
+        materialUsageLogs {
+          id
+          material {
+            id
+            name
+            description
+            unitRate
+            unit {
+              id
+              name
+              code
+            }
+          }
+          quantity
+          unitRate
+          remarks
+        }
+        otherCosts {
+          id
+          costType
+          description
+          amount
+          remarks
+        }
+        spkDetail {
+          id
+          spkNo
+          wapNo
+          title
+          projectName
+          contractor
+          budget
+          startDate
+          endDate
+          workDescription
+          date
+          location {
+            id
+            name
+          }
+          workItems {
+            workItemId
+            boqVolume {
+              nr
+              r
+            }
+            amount
+            rates {
+              nr {
+                rate
+                description
+              }
+              r {
+                rate
+                description
+              }
+            }
+            description
+            workItem {
+              id
+              name
+              description
+              unit {
+                id
+                name
+                code
+              }
+              category {
+                id
+                name
+              }
+              subCategory {
+                id
+                name
+              }
+            }
+          }
+        }
+        userDetail {
+          id
+          username
+          fullName
+          email
+          phone
+          role {
+            id
+            roleCode
+            roleName
+            description
+          }
+          area {
+            id
+            name
+            location {
+              type
+              coordinates
+            }
+          }
+          lastLogin
+        }
+        createdAt
+        updatedAt
       }
-      createdAt
-      updatedAt
     }
-  }
 `;
 
 export const getDailyActivityWithDetailsRange = async (
