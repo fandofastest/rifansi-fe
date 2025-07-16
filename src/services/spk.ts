@@ -376,8 +376,8 @@ const CREATE_SPK = `
 `;
 
 const UPDATE_SPK = `
-  mutation UpdateSPK($input: UpdateSPKInput!) {
-    updateSPK(input: $input) {
+  mutation UpdateSPK($id: ID!, $input: UpdateSPKInput!) {
+    updateSPK(id: $id, input: $input) {
       id
       spkNo
       wapNo
@@ -709,7 +709,8 @@ export const createSPK = async (input: CreateSPKInput, token: string): Promise<S
 
 export const updateSPK = async (input: UpdateSPKInput, token: string): Promise<SPK> => {
   try {
-    const response = await graphQLClient.request<UpdateSPKResponse>(UPDATE_SPK, { input }, {
+    const { id, ...inputWithoutId } = input;
+    const response = await graphQLClient.request<UpdateSPKResponse>(UPDATE_SPK, { id, input: inputWithoutId }, {
       Authorization: `Bearer ${token}`
     });
     return response.updateSPK;
