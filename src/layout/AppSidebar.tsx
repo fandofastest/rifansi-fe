@@ -36,6 +36,7 @@ const navItems: NavItem[] = [
       { name: "Manajemen Pengguna", path: "/users" },
       { name: "Manajemen SPK", path: "/spk" },
       { name: "Manajemen Area", path: "/areas" },
+      { name: "Manajemen Borrow Pit", path: "/borrow-pits" },
       { name: "Manajemen Item Kerja", path: "/work-items" },
       { name: "Kategori & Subkategori", path: "/categories" },
       { name: "Manajemen Unit", path: "/units" },
