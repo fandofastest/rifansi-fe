@@ -24,6 +24,7 @@ interface SPKFormData {
   startDate: string;
   endDate: string;
   budget: number;
+  contractNo: string;
 }
 
 export const AddSPKButton: React.FC = () => {
@@ -44,6 +45,7 @@ export const AddSPKButton: React.FC = () => {
     startDate: "",
     endDate: "",
     budget: 0,
+    contractNo: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +121,8 @@ export const AddSPKButton: React.FC = () => {
         location: formData.location || undefined,
         startDate: formData.startDate || undefined,
         endDate: formData.endDate || undefined,
-        budget: formData.budget || undefined
+        budget: formData.budget || undefined,
+        contractNo: formData.contractNo || undefined
       };
 
       await createSPK(input, token);
@@ -268,6 +271,18 @@ export const AddSPKButton: React.FC = () => {
                   className="h-11 w-full rounded-lg border px-4 py-2.5 text-sm shadow-theme-xs bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
                   placeholderText="Select end date"
                   minDate={startDatePicker || undefined}
+                />
+              </div>
+              <div>
+                <label className="mb-2.5 block text-black dark:text-white">
+                  Contract No
+                </label>
+                <Input
+                  type="text"
+                  name="contractNo"
+                  defaultValue={formData.contractNo}
+                  onChange={handleChange}
+                  placeholder="Enter Contract Number"
                 />
               </div>
               <div>

@@ -29,6 +29,7 @@ interface EditSPKFormData {
   startDate: string;
   endDate: string;
   budget: number;
+  contractNo: string;
 }
 
 export const EditSPKModal: React.FC<EditSPKModalProps> = ({
@@ -73,6 +74,7 @@ export const EditSPKModal: React.FC<EditSPKModalProps> = ({
     startDate: initialStartDate ? format(initialStartDate, "yyyy-MM-dd") : "",
     endDate: initialEndDate ? format(initialEndDate, "yyyy-MM-dd") : "",
     budget: spk.budget || 0,
+    contractNo: spk.contractNo || "",
   });
   
   const [areas, setAreas] = useState<Area[]>([]);
@@ -167,7 +169,8 @@ export const EditSPKModal: React.FC<EditSPKModalProps> = ({
         location: formData.location || undefined,
         startDate: formData.startDate || undefined,
         endDate: formData.endDate || undefined,
-        budget: formData.budget || undefined
+        budget: formData.budget || undefined,
+        contractNo: formData.contractNo || undefined
       };
 
       await updateSPK(input, token);
@@ -310,6 +313,18 @@ export const EditSPKModal: React.FC<EditSPKModalProps> = ({
                 placeholderText="Select end date"
                 minDate={startDatePicker || undefined}
                 value={formData.endDate || ''}
+              />
+            </div>
+            <div>
+              <label className="mb-2.5 block text-black dark:text-white">
+                Contract No
+              </label>
+              <Input
+                type="text"
+                name="contractNo"
+                defaultValue={formData.contractNo}
+                onChange={handleChange}
+                placeholder="Enter contract number"
               />
             </div>
             <div>

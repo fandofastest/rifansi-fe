@@ -84,6 +84,9 @@ export const ContractTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
                   Vendor
                   </th>
                   <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                    Total Budget
+                  </th>
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                     Start Date
                   </th>
                   <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
@@ -104,6 +107,9 @@ export const ContractTable: React.FC<{ refresh?: boolean }> = ({ refresh }) => {
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     {contract.vendorName || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    {contract.totalBudget ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(contract.totalBudget) : '-'}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     {contract.startDate ? formatDateIndonesia(contract.startDate) : '-'}

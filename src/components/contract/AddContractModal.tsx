@@ -18,6 +18,7 @@ type FormData = {
   startDate: string;
   endDate: string;
   vendorName: string;
+  totalBudget: string;
 };
 
 export const AddContractModal: React.FC<AddContractModalProps> = ({
@@ -32,6 +33,7 @@ export const AddContractModal: React.FC<AddContractModalProps> = ({
     startDate: "",
     endDate: "",
     vendorName: "",
+    totalBudget: "",
   });
 
   const handleChange = (
@@ -63,6 +65,8 @@ export const AddContractModal: React.FC<AddContractModalProps> = ({
       // If there's a date, convert it to timestamp format if needed
       startDate: formData.startDate ? new Date(formData.startDate).toISOString() : undefined,
       endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
+      // Convert totalBudget from string to number
+      totalBudget: formData.totalBudget ? parseFloat(formData.totalBudget) : undefined,
     };
 
     setLoading(true);
@@ -113,6 +117,19 @@ export const AddContractModal: React.FC<AddContractModalProps> = ({
               defaultValue={formData.vendorName}
               onChange={handleChange}
               placeholder="e.g. PT Supplier Alat Berat"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2.5 block text-gray-800 dark:text-white/90">
+              Total Budget
+            </label>
+            <Input
+              type="number"
+              name="totalBudget"
+              defaultValue={formData.totalBudget}
+              onChange={handleChange}
+              placeholder="e.g. 1000000"
             />
           </div>
 

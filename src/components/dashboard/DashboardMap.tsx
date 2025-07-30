@@ -84,19 +84,32 @@ export default function DashboardMap({
   );
 }
 
-// Custom marker icons based on type
+// Custom marker icons based on type using SVG directly
 function getMarkerIcon(type: string) {
-  const iconUrl = type === 'spk' 
-    ? '/images/marker-icon-blue.png'
-    : '/images/marker-icon-red.png';
-    
-  return new L.Icon({
+  // SVG untuk lokasi SPK (biru)
+  const spkSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
+      <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z" fill="#2563eb" />
+      <circle cx="12" cy="12" r="5" fill="white" />
+    </svg>
+  `;
+
+  // SVG untuk Borrow Pit (merah)
+  const borrowPitSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
+      <path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z" fill="#dc2626" />
+      <path d="M7 12 L12 7 L17 12 L12 17 Z" fill="white" />
+    </svg>
+  `;
+
+  const svgString = type === 'spk' ? spkSvg : borrowPitSvg;
+  const iconUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+
+  return L.icon({
     iconUrl,
-    iconRetinaUrl: iconUrl,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowUrl: '/images/marker-shadow.png',
-    shadowSize: [41, 41],
+    iconSize: [24, 36],
+    iconAnchor: [12, 36],
+    popupAnchor: [0, -36],
+    tooltipAnchor: [16, -28]
   });
 }

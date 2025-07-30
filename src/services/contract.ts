@@ -7,6 +7,7 @@ export interface Contract {
   startDate?: string;
   endDate?: string;
   vendorName?: string;
+  totalBudget?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -17,6 +18,7 @@ interface CreateContractInput {
   startDate?: string;
   endDate?: string;
   vendorName?: string;
+  totalBudget?: number;
 }
 
 interface UpdateContractInput {
@@ -25,17 +27,19 @@ interface UpdateContractInput {
   startDate?: string;
   endDate?: string;
   vendorName?: string;
+  totalBudget?: number;
 }
 
 // GraphQL Queries and Mutations
 const CREATE_CONTRACT = `
-  mutation CreateContract($contractNo: String!, $description: String, $startDate: String, $endDate: String, $vendorName: String) {
+  mutation CreateContract($contractNo: String!, $description: String, $startDate: String, $endDate: String, $vendorName: String, $totalBudget: Float) {
     createContract(
       contractNo: $contractNo
       description: $description
       startDate: $startDate
       endDate: $endDate
       vendorName: $vendorName
+      totalBudget: $totalBudget
     ) {
       id
       contractNo
@@ -43,6 +47,7 @@ const CREATE_CONTRACT = `
       startDate
       endDate
       vendorName
+      totalBudget
       createdAt
       updatedAt
     }
@@ -58,6 +63,7 @@ const GET_ALL_CONTRACTS = `
       startDate
       endDate
       vendorName
+      totalBudget
       createdAt
       updatedAt
     }
@@ -73,6 +79,7 @@ const GET_CONTRACT = `
       startDate
       endDate
       vendorName
+      totalBudget
       createdAt
       updatedAt
     }
@@ -80,7 +87,7 @@ const GET_CONTRACT = `
 `;
 
 const UPDATE_CONTRACT = `
-  mutation UpdateContract($id: ID!, $contractNo: String, $description: String, $startDate: String, $endDate: String, $vendorName: String) {
+  mutation UpdateContract($id: ID!, $contractNo: String, $description: String, $startDate: String, $endDate: String, $vendorName: String, $totalBudget: Float) {
     updateContract(
       id: $id
       contractNo: $contractNo
@@ -88,6 +95,7 @@ const UPDATE_CONTRACT = `
       startDate: $startDate
       endDate: $endDate
       vendorName: $vendorName
+      totalBudget: $totalBudget
     ) {
       id
       contractNo
@@ -95,6 +103,7 @@ const UPDATE_CONTRACT = `
       startDate
       endDate
       vendorName
+      totalBudget
       updatedAt
     }
   }
@@ -119,7 +128,8 @@ export const createContract = async (
         description: input.description,
         startDate: input.startDate,
         endDate: input.endDate,
-        vendorName: input.vendorName
+        vendorName: input.vendorName,
+        totalBudget: input.totalBudget
       },
       { Authorization: `Bearer ${token}` }
     );
@@ -172,7 +182,8 @@ export const updateContract = async (
         description: input.description,
         startDate: input.startDate,
         endDate: input.endDate,
-        vendorName: input.vendorName
+        vendorName: input.vendorName,
+        totalBudget: input.totalBudget
       },
       { Authorization: `Bearer ${token}` }
     );

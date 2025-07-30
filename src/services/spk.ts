@@ -60,6 +60,8 @@ export interface SPK {
   startDate?: number;
   endDate?: number;
   budget?: number;
+  contractNo?: string;
+  status: string;
   workItems: SPKWorkItem[];
   createdAt: number;
   updatedAt: number;
@@ -77,6 +79,7 @@ interface CreateSPKInput {
   startDate?: string;
   endDate?: string;
   budget?: number;
+  contractNo?: string;
 }
 
 interface UpdateSPKInput {
@@ -92,6 +95,8 @@ interface UpdateSPKInput {
   startDate?: string;
   endDate?: string;
   budget?: number;
+  contractNo?: string;
+  status?: string;
 }
 
 interface DeleteSPKInput {
@@ -303,13 +308,19 @@ const GET_SPKS = `
       date
       contractor
       workDescription
+      contractNo
       location {
         id
         name
+        location {
+          type
+          coordinates
+        }
       }
       startDate
       endDate
       budget
+      status
       workItems {
         workItemId
         boqVolume {
@@ -369,6 +380,8 @@ const CREATE_SPK = `
       startDate
       endDate
       budget
+      contractNo
+      status
       createdAt
       updatedAt
     }
@@ -393,6 +406,8 @@ const UPDATE_SPK = `
       startDate
       endDate
       budget
+      contractNo
+      status
       createdAt
       updatedAt
     }
@@ -410,6 +425,7 @@ const ADD_WORK_ITEM_TO_SPK = `
     addWorkItemToSPK(spkId: $spkId, input: $input) {
       id
       spkNo
+      status
       workItems {
         workItemId
         boqVolume {
@@ -459,6 +475,8 @@ const GET_SPK_BY_ID = `
       startDate
       endDate
       budget
+      contractNo
+      status
       workItems {
         workItemId
         boqVolume {
@@ -497,6 +515,7 @@ const UPDATE_SPK_WORK_ITEM = `
       wapNo
       title
       projectName
+      status
     }
   }
 `;
@@ -506,12 +525,38 @@ const REMOVE_WORK_ITEM_FROM_SPK = `
     removeWorkItemFromSPK(spkId: $spkId, workItemId: $workItemId) {
       id
       spkNo
+      status
       workItems {
         workItemId
         boqVolume { nr r }
         amount
         workItem { id name }
       }
+    }
+  }
+`;
+
+const UPDATE_SPK_STATUS = `
+  mutation UpdateSpkStatus($id: ID!, $status: String!) {
+    updateSpkStatus(id: $id, status: $status) {
+      id
+      spkNo
+      status
+      title
+      projectName
+      date
+      contractor
+      workDescription
+      location {
+        id
+        name
+      }
+      startDate
+      endDate
+      budget
+      contractNo
+      createdAt
+      updatedAt
     }
   }
 `;
@@ -534,6 +579,8 @@ const GET_SPK_DETAILS_WITH_PROGRESS = `
       startDate
       endDate
       budget
+      contractNo
+      status
       dailyActivities {
         id
         date
@@ -821,6 +868,24 @@ export const importSPKFromExcel = async (
   }
 
   return response.json();
+};
+
+export const updateSpkStatus = async (
+  id: string,
+  status: string,
+  token: string
+): Promise<SPK> => {
+  try {
+    const response = await graphQLClient.request<{ updateSpkStatus: SPK }>(
+      UPDATE_SPK_STATUS,
+      { id, status },
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.updateSpkStatus;
+  } catch (error) {
+    console.error('Error updating SPK status:', error);
+    throw error;
+  }
 };
 
 export const getSPKDetailsWithProgress = async (

@@ -19,6 +19,7 @@ type FormData = {
   startDate: string;
   endDate: string;
   vendorName: string;
+  totalBudget: string;
 };
 
 export const EditContractModal: React.FC<EditContractModalProps> = ({
@@ -52,6 +53,7 @@ export const EditContractModal: React.FC<EditContractModalProps> = ({
     startDate: contract.startDate ? formatDateForInput(contract.startDate) : "",
     endDate: contract.endDate ? formatDateForInput(contract.endDate) : "",
     vendorName: contract.vendorName || "",
+    totalBudget: contract.totalBudget ? contract.totalBudget.toString() : "",
   });
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export const EditContractModal: React.FC<EditContractModalProps> = ({
       startDate: contract.startDate ? formatDateForInput(contract.startDate) : "",
       endDate: contract.endDate ? formatDateForInput(contract.endDate) : "",
       vendorName: contract.vendorName || "",
+      totalBudget: contract.totalBudget ? contract.totalBudget.toString() : "",
     });
   }, [contract]);
 
@@ -94,6 +97,8 @@ export const EditContractModal: React.FC<EditContractModalProps> = ({
       // If there's a date, convert it to timestamp format if needed
       startDate: formData.startDate ? new Date(formData.startDate).toISOString() : undefined,
       endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
+      // Convert totalBudget from string to number
+      totalBudget: formData.totalBudget ? parseFloat(formData.totalBudget) : undefined,
     };
 
     setLoading(true);
@@ -153,6 +158,19 @@ export const EditContractModal: React.FC<EditContractModalProps> = ({
               defaultValue={formData.vendorName}
               onChange={handleChange}
               placeholder="e.g. PT Supplier Alat Berat"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2.5 block text-gray-800 dark:text-white/90">
+              Total Budget
+            </label>
+            <Input
+              type="number"
+              name="totalBudget"
+              defaultValue={formData.totalBudget}
+              onChange={handleChange}
+              placeholder="e.g. 1000000"
             />
           </div>
 

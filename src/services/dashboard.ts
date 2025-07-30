@@ -150,12 +150,25 @@ export interface EquipmentPerformance {
   utilizationRate: number;
 }
 
+export interface TotalSpkContract {
+  percentage: number;
+  totalBudgetSpk: number;
+  totalBudgetContract: number;
+}
+
+export interface TotalSpkClose {
+  totalSpk: number;
+  totalBudgetSpk: number;
+}
+
 export interface DashboardSummary {
   totalSPK: number;
   totalWorkItems: number;
   totalReports: number;
   totalDailyActivities: number;
   totalRepairReports: number;
+  totalSpkContract: TotalSpkContract;
+  totalspkclose: TotalSpkClose;
   totalCosts: number;
   // New API structure
   monthlyCosts: MonthlyAmount[];
@@ -187,7 +200,15 @@ export const getDashboardSummary = async (): Promise<DashboardSummary> => {
         totalReports
         totalDailyActivities
         totalRepairReports
-        
+        totalSpkContract {
+            percentage
+            totalBudgetSpk
+            totalBudgetContract
+        }
+        totalspkclose {
+            totalSpk
+            totalBudgetSpk
+        }
         # Cost Data
         totalCosts
         monthlyCosts {
@@ -293,4 +314,4 @@ export const getDashboardSummary = async (): Promise<DashboardSummary> => {
 
   const response = await graphQLClient.request<DashboardSummaryResponse>(query);
   return response.dashboardSummary;
-}; 
+};

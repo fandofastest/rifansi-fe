@@ -39,6 +39,10 @@ export const SPKDetailModal: React.FC<SPKDetailModalProps> = ({ spk, onClose }) 
               <span className="block font-medium text-gray-900 dark:text-white/90 break-words">{spk.spkNo}</span>
             </div>
             <div>
+              <span className="block text-xs text-gray-500 dark:text-gray-300">Contract No</span>
+              <span className="block font-medium text-gray-900 dark:text-white/90 break-words">{spk.contractNo || '-'}</span>
+            </div>
+            <div>
               <span className="block text-xs text-gray-500 dark:text-gray-300">WAP No</span>
               <span className="block font-medium text-gray-900 dark:text-white/90 break-words">{spk.wapNo}</span>
             </div>

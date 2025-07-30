@@ -25,6 +25,9 @@ export const SPKTableReport: React.FC = () => {
                   SPK No
                 </th>
                 <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                  Contract No
+                </th>
+                <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                   WAP No
                 </th>
                 <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
@@ -57,6 +60,9 @@ export const SPKTableReport: React.FC = () => {
                     <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
                       {spk.spkNo}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    {spk.contractNo || '-'}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     {spk.wapNo}
