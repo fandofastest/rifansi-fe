@@ -105,7 +105,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard 
           title="Jumlah SPK" 
-          value={dashboardData.spkPerformance?.length || 0} 
+          value={dashboardData.totalSPK || 0} 
           format="number" 
         />
         <MetricCard 
