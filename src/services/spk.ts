@@ -579,8 +579,6 @@ const GET_SPK_DETAILS_WITH_PROGRESS = `
       startDate
       endDate
       budget
-      contractNo
-      status
       dailyActivities {
         id
         date

@@ -33,6 +33,8 @@ export const SPKTable: React.FC = () => {
   const { token } = useAuth();
   const { openModal, closeModal } = useModalContext();
   const [spks, setSPKs] = useState<SPK[]>([]);
+  const [filteredSPKs, setFilteredSPKs] = useState<SPK[]>([]);
+  const [contractNoFilter, setContractNoFilter] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [spkToDelete, setSPKToDelete] = useState<SPK | null>(null);
@@ -86,6 +88,32 @@ export const SPKTable: React.FC = () => {
     fetchSPKs();
     fetchWorkItems();
   }, [token]);
+
+  // Apply filters when SPKs or filter values change
+  useEffect(() => {
+    filterSPKs();
+  }, [spks, contractNoFilter]);
+
+  // Filter SPKs based on filter criteria
+  const filterSPKs = () => {
+    let result = [...spks];
+    
+    // Filter by contract number if specified
+    if (contractNoFilter && contractNoFilter !== "all") {
+      result = result.filter(spk => spk.contractNo === contractNoFilter);
+    }
+    
+    setFilteredSPKs(result);
+  };
+
+  // Get unique contract numbers for the dropdown
+  const getUniqueContractNumbers = () => {
+    const contractNumbers = spks
+      .map(spk => spk.contractNo)
+      .filter((contractNo): contractNo is string => !!contractNo);
+    
+    return Array.from(new Set(contractNumbers)).sort();
+  };
 
   const handleDelete = (spk: SPK) => {
     setSPKToDelete(spk);
@@ -226,6 +254,27 @@ export const SPKTable: React.FC = () => {
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      {/* Filter section */}
+      <div className="p-4 border-b border-gray-200 dark:border-white/[0.05]">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <label htmlFor="contractNoFilter" className="block text-sm font-medium mb-1 text-gray-700 dark:text-white/70">Filter by Contract No</label>
+            <select
+              id="contractNoFilter"
+              value={contractNoFilter}
+              onChange={(e) => setContractNoFilter(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none dark:border-white/10 dark:bg-white/[0.05] dark:text-white"
+            >
+              <option value="all">Semua Kontrak</option>
+              {getUniqueContractNumbers().map((contractNo) => (
+                <option key={contractNo} value={contractNo}>
+                  {contractNo}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
       <div className="max-w-full overflow-x-auto">
         <div className="min-w-[1102px]">
           <table className="w-full table-auto">
@@ -255,7 +304,7 @@ export const SPKTable: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {spks.map((spk) => (
+              {filteredSPKs.map((spk) => (
                 <tr key={spk.id}>
                   <td className="border-b border-[#eee] px-4 py-3 text-black dark:border-strokedark dark:text-white">
                     {spk.spkNo}
