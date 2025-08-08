@@ -48,6 +48,7 @@ export const SPKTable: React.FC = () => {
   const [showWorkItemListModal, setShowWorkItemListModal] = useState(false);
   const [selectedSPK, setSelectedSPK] = useState<SPK | null>(null);
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const fetchSPKs = async () => {
     try {
@@ -108,11 +109,17 @@ export const SPKTable: React.FC = () => {
 
   // Get unique contract numbers for the dropdown
   const getUniqueContractNumbers = () => {
-    const contractNumbers = spks
-      .map(spk => spk.contractNo)
-      .filter((contractNo): contractNo is string => !!contractNo);
-    
+    const contractNumbers = spks.map(spk => spk.contractNo || "")
+      .filter(contractNo => contractNo !== "");
     return Array.from(new Set(contractNumbers)).sort();
+  };
+
+  // Toggle row expansion
+  const toggleRowExpansion = (id: string) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
   const handleDelete = (spk: SPK) => {
@@ -284,18 +291,6 @@ export const SPKTable: React.FC = () => {
                   SPK No
                 </th>
                 <th className="px-4 py-3 font-medium text-black dark:text-white">
-                  Contract No
-                </th>
-                <th className="px-4 py-3 font-medium text-black dark:text-white">
-                  WAP No
-                </th>
-                <th className="px-4 py-3 font-medium text-black dark:text-white">
-                  Project Name
-                </th>
-                <th className="px-4 py-3 font-medium text-black dark:text-white">
-                  Budget
-                </th>
-                <th className="px-4 py-3 font-medium text-black dark:text-white">
                   Status
                 </th>
                 <th className="px-4 py-3 font-medium text-black dark:text-white">
@@ -305,78 +300,116 @@ export const SPKTable: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
               {filteredSPKs.map((spk) => (
-                <tr key={spk.id}>
-                  <td className="border-b border-[#eee] px-4 py-3 text-black dark:border-strokedark dark:text-white">
-                    {spk.spkNo}
-                  </td>
-                  <td className="border-b border-[#eee] px-4 py-3 text-black dark:border-strokedark dark:text-white">
-                    {spk.contractNo || "-"}
-                  </td>
-                  <td className="border-b border-[#eee] px-4 py-3 text-black dark:border-strokedark dark:text-white">
-                    {spk.wapNo || "-"}
-                  </td>
-                  <td className="border-b border-[#eee] px-4 py-3 text-black dark:border-strokedark dark:text-white">
-                    {spk.projectName}
-                  </td>
-                  <td className="border-b border-[#eee] px-4 py-3 text-black dark:border-strokedark dark:text-white">
-                    {spk.budget
-                      ? new Intl.NumberFormat("id-ID", {
-                          style: "currency",
-                          currency: "IDR",
-                        }).format(spk.budget)
-                      : "-"}
-                  </td>
-                  <td className="border-b border-[#eee] px-4 py-3 dark:border-strokedark">
-                    <div className="flex items-center">
-                      <span className={`mr-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(spk.status)}`}>
-                        {spk.status.charAt(0).toUpperCase() + spk.status.slice(1)}
-                      </span>
-                      <select
-                        className="cursor-pointer rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                        onChange={(e) => handleStatusChange(spk, e.target.value)}
-                        value={spk.status}
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="active">Active</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-start">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSPKToView(spk)}
-                      >
-                        <EyeIcon className="fill-current" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(spk)}
-                      >
-                        <PencilIcon className="fill-current" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewWorkItems(spk)}
-                      >
-                        <ListIcon className="fill-current" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(spk)}
-                      >
-                        <TrashBinIcon className="fill-current" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
+                <React.Fragment key={spk.id}>
+                  <tr 
+                    className={`cursor-pointer ${expandedRows[spk.id] ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`} 
+                    onClick={() => toggleRowExpansion(spk.id)}
+                  >
+                    <td className="border-b border-[#eee] px-4 py-3 text-black dark:border-strokedark dark:text-white font-medium">
+                      <div className="flex items-center">
+                        <span className="mr-2">
+                          {expandedRows[spk.id] ? '▼' : '▶'}
+                        </span>
+                        {spk.spkNo}
+                      </div>
+                    </td>
+                    <td className="border-b border-[#eee] px-4 py-3 dark:border-strokedark">
+                      <div className="flex items-center">
+                        <span className={`mr-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(spk.status)}`}>
+                          {spk.status.charAt(0).toUpperCase() + spk.status.slice(1)}
+                        </span>
+                        <select
+                          className="cursor-pointer rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                            e.stopPropagation();
+                            handleStatusChange(spk, e.target.value);
+                          }}
+                          value={spk.status}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        >
+                          <option value="draft">Draft</option>
+                          <option value="active">Active</option>
+                          <option value="completed">Completed</option>
+                          <option value="cancelled">Cancelled</option>
+                          <option value="closed">Closed</option>
+                        </select>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-start">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSPKToView(spk)}
+                        >
+                          <EyeIcon className="fill-current" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(spk)}
+                        >
+                          <PencilIcon className="fill-current" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewWorkItems(spk)}
+                        >
+                          <ListIcon className="fill-current" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(spk)}
+                        >
+                          <TrashBinIcon className="fill-current" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                  {expandedRows[spk.id] && (
+                    <tr className="bg-gray-50 dark:bg-gray-800/30">
+                      <td colSpan={3} className="px-4 py-3">
+                        <div className="p-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Contract No</p>
+                              <p className="text-sm text-black dark:text-white">{spk.contractNo || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">WAP No</p>
+                              <p className="text-sm text-black dark:text-white">{spk.wapNo || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Project Name</p>
+                              <p className="text-sm text-black dark:text-white">{spk.projectName}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Budget</p>
+                              <p className="text-sm text-black dark:text-white">
+                                {spk.budget
+                                  ? new Intl.NumberFormat("id-ID", {
+                                      style: "currency",
+                                      currency: "IDR",
+                                    }).format(spk.budget)
+                                  : "-"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Start Date</p>
+                              <p className="text-sm text-black dark:text-white">{formatDate(spk.startDate?.toString())}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">End Date</p>
+                              <p className="text-sm text-black dark:text-white">{formatDate(spk.endDate?.toString())}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

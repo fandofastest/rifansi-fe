@@ -9,6 +9,7 @@ import type { User } from "@/services/user";
 import { createApproverSetting, getApproverByUser } from "@/services/approver";
 import { useAuth } from "@/context/AuthContext";
 import { getPersonnelRoles, PersonnelRole } from "@/services/personnelRole";
+import { EyeIcon, EyeCloseIcon } from "@/icons";
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState<PersonnelRole[]>([]);
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -236,13 +238,25 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user }: Edit
 
           <div>
             <Label>Password</Label>
-            <Input
-              type="password"
-              name="password"
-              defaultValue={formData.password}
-              onChange={handleChange}
-              placeholder="Enter new password"
-            />
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                defaultValue={formData.password}
+                onChange={handleChange}
+                placeholder="Enter new password"
+              />
+              <button 
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                onClick={() => setShowPassword(prev => !prev)}
+              >
+                {showPassword ? 
+                  <EyeCloseIcon className="w-5 h-5 fill-current" /> : 
+                  <EyeIcon className="w-5 h-5 fill-current" />
+                }
+              </button>
+            </div>
           </div>
         </div>
 

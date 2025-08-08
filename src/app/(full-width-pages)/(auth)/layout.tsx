@@ -21,14 +21,16 @@ export default function AuthLayout({
               {/* <!-- ===== Common Grid Shape Start ===== --> */}
               <GridShape />
               <div className="flex flex-col items-center max-w-xs">
-                <Link href="/" className="block mb-4">
-                  <Image
-                    width={231}
-                    height={48}
-                    src="/images/logo/rifansi-dark.png"
-                    alt="Rifansi Logo"
-                  />
-                </Link>
+                <div className="block mb-4 bg-white p-4 rounded-xl shadow flex items-center justify-center transition-colors">
+  <Link href="/">
+    <Image
+      width={231}
+      height={48}
+      src="/images/logo/rifansi-dark.png"
+      alt="Rifansi Logo"
+    />
+  </Link>
+</div>
                 <p className="text-center text-gray-400 dark:text-white/60">
                   Equipment, Material, and Contract Management System
                 </p>
