@@ -14,6 +14,7 @@ interface SPKData {
   title: string;
   totalProgress?: {
     budgetUtilizationPercentage: number;
+    plannedVsActualCostRatio?: number;
   };
 }
 
@@ -25,7 +26,7 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
   // Extract the relevant data from SPK performance data
   const categories = data.map(spk => spk.spkNo);
   const titles = data.map(spk => spk.title || ''); // Store titles for tooltips
-  const percentages = data.map(spk => spk.totalProgress?.budgetUtilizationPercentage || 0);
+  const percentages = data.map(spk => spk.totalProgress?.plannedVsActualCostRatio || spk.totalProgress?.budgetUtilizationPercentage || 0);
   
   // Create colors array based on percentage values
   const colors = percentages.map(percentage => 
@@ -106,7 +107,7 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
     },
     yaxis: {
       title: {
-        text: "Budget Utilization (%)",
+        text: "Planned vs Actual Cost Ratio (%)",
         style: {
           fontSize: '12px',
         }
