@@ -32,7 +32,7 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
   const colors = percentages.map(percentage => 
     percentage > 90 ? '#ef4444' :  // Red for high (> 90%)
     percentage > 70 ? '#f59e0b' :  // Amber for medium (70-90%)
-    '#465fff'                      // Primary blue for normal (< 70%)
+    '#3b82f6'                      // Lighter blue for normal (< 70%) for better contrast with labels
   );
 
   // Calculate dynamic height based on number of SPKs
@@ -72,8 +72,9 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
       style: {
         fontSize: '12px',
         fontWeight: 'bold',
+        colors: ['#3b82f6'], // Blue text for both light and dark modes
       },
-      offsetY: -20,
+      offsetY: -25, // Position above the bar
     },
     stroke: {
       show: true,

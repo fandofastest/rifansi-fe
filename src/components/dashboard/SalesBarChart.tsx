@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { MonthlyTrend } from '@/services/dashboard';
 import { formatCurrency, getMonthName } from '@/utils/format';
 
@@ -9,15 +9,48 @@ interface SalesBarChartProps {
   showPlan?: boolean;
 }
 
+// Helper function to format currency in compact way using Indonesian format
+function formatCompactCurrency(value: number): string {
+  if (value === 0) return '0';
+  
+  // For values under 1 million (< 1 juta)
+  if (value < 1000000) {
+    return new Intl.NumberFormat('id-ID', {
+      maximumFractionDigits: 2
+    }).format(value / 1000) + ' rb';
+  }
+  
+  // For values between 1 million and 1 billion (1 juta - 1 miliar)
+  if (value < 1000000000) {
+    return new Intl.NumberFormat('id-ID', {
+      maximumFractionDigits: 2
+    }).format(value / 1000000) + ' Jt';
+  }
+  
+  // For values in billions (miliar)
+  return new Intl.NumberFormat('id-ID', {
+    maximumFractionDigits: 2
+  }).format(value / 1000000000) + ' M';
+}
+
 export default function SalesBarChart({ monthlyTrend, showPlan = false }: SalesBarChartProps) {
+  // State to track which bar is being hovered and mouse position
+  const [hoveredBar, setHoveredBar] = useState<string | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  
+  // Function to update mouse position
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePosition({
+      x: e.clientX,
+      y: e.clientY
+    });
+  };
   // Sort monthly trend data by year and month
   const sortedData = [...monthlyTrend].sort((a, b) => {
+    // Sort by year first, then by month
     if (a.year !== b.year) return a.year - b.year;
     return a.month - b.month;
-  }).map(item => ({
-    ...item,
-    monthName: getMonthName(item.month)
-  }));
+  });
 
   // Maximum value for chart scaling
   // Use a safe default if data is empty or values are invalid
@@ -46,12 +79,12 @@ export default function SalesBarChart({ monthlyTrend, showPlan = false }: SalesB
       <div style={{ height: chartHeight + 50 }}>
         {/* Chart Axis and Grid */}
         <div className="relative h-full">
-          {/* Y-axis labels */}
+          {/* Y-axis labels with compact format */}
           <div className="absolute left-0 top-0 bottom-30 flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400">
-            <div>IDR {formatCurrency(maxValue).replace('Rp', '')}</div>
-            <div>IDR {formatCurrency(maxValue * 0.75).replace('Rp', '')}</div>
-            <div>IDR {formatCurrency(maxValue * 0.5).replace('Rp', '')}</div>
-            <div>IDR {formatCurrency(maxValue * 0.25).replace('Rp', '')}</div>
+            <div>IDR {formatCompactCurrency(maxValue)}</div>
+            <div>IDR {formatCompactCurrency(maxValue * 0.75)}</div>
+            <div>IDR {formatCompactCurrency(maxValue * 0.5)}</div>
+            <div>IDR {formatCompactCurrency(maxValue * 0.25)}</div>
             <div>IDR 0</div>
           </div>
           
@@ -69,7 +102,13 @@ export default function SalesBarChart({ monthlyTrend, showPlan = false }: SalesB
             <div className="flex items-end space-x-3 pb-10">
               {sortedData.map((item) => (
                 <div key={`${item.year}-${item.month}-${item.category || 'default'}`} className="flex flex-col items-center">
-                  <div className="relative" style={{ height: scaleValue(item.totalSales), width: barWidth }}>
+                  <div 
+                    className="relative" 
+                    style={{ height: scaleValue(item.totalSales), width: barWidth }}
+                    onMouseEnter={() => setHoveredBar(`${item.year}-${item.month}`)} 
+                    onMouseLeave={() => setHoveredBar(null)}
+                    onMouseMove={handleMouseMove}
+                  >
                     <div 
                       className="absolute bottom-0 w-full h-full rounded-t-sm"
                       style={{ 
@@ -87,9 +126,30 @@ export default function SalesBarChart({ monthlyTrend, showPlan = false }: SalesB
                     )}
                     
                     {/* Value label */}
-                    <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs text-gray-500 dark:text-gray-400">
-                      {item.totalSales ? formatCurrency(item.totalSales).replace('Rp', '') : '0'}
+                    <div 
+                      className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs text-gray-500 dark:text-gray-400 cursor-help tooltip"
+                      data-tooltip={item.totalSales ? formatCurrency(item.totalSales) : 'Rp 0'}
+                      style={{ whiteSpace: 'nowrap' }} // Pastikan tidak ada baris baru
+                    >
+                      {item.totalSales ? formatCompactCurrency(item.totalSales) : '0'}
                     </div>
+                    
+                    {/* Detailed tooltip - positioned directly below the cursor */}
+                    {hoveredBar === `${item.year}-${item.month}` && (
+                      <div className="fixed z-50 bg-white dark:bg-gray-800 shadow-lg rounded p-2 pointer-events-none" 
+                           style={{ 
+                             width: '160px', 
+                             left: mousePosition.x - 80, /* Center the tooltip under cursor */
+                             top: mousePosition.y + 20 /* Position just below cursor */
+                           }}>
+                        <div className="font-medium text-sm">{getMonthName(item.month)} {item.year}</div>
+                        <div className="text-xs mt-1">{item.category || 'Sales'}</div>
+                        <div className="text-xs font-semibold mt-1">{formatCurrency(item.totalSales || 0)}</div>
+                        {item.spkCount > 0 && (
+                          <div className="text-xs mt-1">SPK Count: {item.spkCount}</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   {/* X-axis label */}
