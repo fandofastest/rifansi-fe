@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { getDashboardSummary, DashboardSummary } from "@/services/dashboard";
+import { formatCurrency, getMonthName } from "@/utils/format";
 import { Map } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import dynamic from 'next/dynamic';
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { formatCurrency } from "@/utils/format";
 
 // Helper function to calculate cost percentages
 function calculateCostPercentage(cost: number, total: number): number {
@@ -77,6 +77,14 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         const data = await getDashboardSummary();
+        console.log('Dashboard data:', data);
+        console.log('Monthly costs:', data.monthlyCosts);
+        // Log the type and exact values for debugging
+        if (data.monthlyCosts && data.monthlyCosts.length > 0) {
+          data.monthlyCosts.forEach((item: any) => {
+            console.log(`Month: ${item.month} (${typeof item.month}), Value: ${item.amount}`);
+          });
+        }
         setDashboardData(data);
       } catch (err) {
         setError('Failed to fetch dashboard data');
@@ -110,7 +118,7 @@ export default function Dashboard() {
         />
         <MetricCard 
           title="Total Budget SPK" 
-          value={dashboardData.spkPerformance?.reduce((sum, spk) => sum + (spk.budget || 0), 0)} 
+          value={dashboardData.spkPerformance?.reduce((sum: number, spk: any) => sum + (spk.budget || 0), 0)} 
           format="currency" 
         />
         <MetricCard 
@@ -140,8 +148,8 @@ export default function Dashboard() {
             <CardHeader>
               <h3 className="text-lg font-semibold dark:text-white">SPK Progress</h3>
             </CardHeader>
-            <CardBody>
-              <div className="h-[400px] overflow-x-auto">
+            <CardBody >
+              <div className="h-full">
                 {dashboardData?.spkPerformance && dashboardData.spkPerformance.length > 0 ? (
                   <SPKProgressChart data={dashboardData.spkPerformance} />
                 ) : (
@@ -173,20 +181,23 @@ export default function Dashboard() {
                 <div className="dashboard-chart">
                   <SalesBarChart 
                     monthlyTrend={
-                    // Create array with all 12 months
-                    Array.from({length: 12}, (_, i) => i + 1).map(month => {
-                      // Find data for this month if it exists
-                      const monthData = dashboardData.monthlyCosts?.find(item => item.month === month);
-                      // Use current year or first year from data
-                      const year = monthData?.year || (dashboardData.monthlyCosts?.[0]?.year || new Date().getFullYear());
-                      
+                    // Only include months with values > 0
+                    (dashboardData.monthlySales || []).filter((item: any) => item.amount > 0).map((item: any) => {
+                      const monthNum = Number(item.month);
                       return {
-                        year,
-                        month,
-                        monthName: `${month}/${year}`,
-                        totalSales: monthData?.amount || 0,
+                        year: item.year,
+                        month: monthNum,
+                        // Explicitly set monthName with year that won't be overridden
+                        monthName: `${getMonthName(monthNum)}\n${item.year}`,
+                        totalSales: item.amount || 0,
+                        category: 'Sales',
                         spkCount: 0
                       };
+                    })
+                    .sort((a, b) => {
+                      // Sort by year first, then by month
+                      if (a.year !== b.year) return a.year - b.year;
+                      return a.month - b.month;
                     })
                   } />
                 </div>
@@ -202,22 +213,25 @@ export default function Dashboard() {
                 <div className="dashboard-chart">
                   <SalesBarChart 
                     monthlyTrend={
-                      // Create array with all 12 months
-                      Array.from({length: 12}, (_, i) => i + 1).map(month => {
-                        // Find data for this month if it exists
-                        const monthData = dashboardData.monthlyCosts?.find(item => item.month === month);
-                        // Use current year or first year from data
-                        const year = monthData?.year || (dashboardData.monthlyCosts?.[0]?.year || new Date().getFullYear());
-                        
-                        return {
-                          year,
-                          month,
-                          monthName: `${month}/${year}`,
-                          totalSales: monthData?.amount || 0,
-                          spkCount: 0,
-                          category: 'Costs'
-                        };
-                      })
+                      // Create array with all 12 months and sort them explicitly
+                       // Only include months with values > 0
+                       (dashboardData.monthlyCosts || []).filter((item: any) => item.amount > 0).map((item: any) => {
+                          const monthNum = Number(item.month);
+                          return {
+                            year: item.year,
+                            month: monthNum,
+                            // Explicitly set monthName with year that won't be overridden
+                            monthName: `${getMonthName(monthNum)}\n${item.year}`,
+                            totalSales: item.amount || 0,
+                            category: 'Costs',
+                            spkCount: 0
+                          };
+                        })
+                        .sort((a, b) => {
+                          // Sort by year first, then by month
+                          if (a.year !== b.year) return a.year - b.year;
+                          return a.month - b.month;
+                        })
                     } 
                     showPlan={false} 
                   />

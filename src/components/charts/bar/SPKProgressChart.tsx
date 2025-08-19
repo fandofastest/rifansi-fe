@@ -14,6 +14,7 @@ interface SPKData {
   title: string;
   totalProgress?: {
     budgetUtilizationPercentage: number;
+    plannedVsActualCostRatio?: number;
   };
 }
 
@@ -25,13 +26,13 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
   // Extract the relevant data from SPK performance data
   const categories = data.map(spk => spk.spkNo);
   const titles = data.map(spk => spk.title || ''); // Store titles for tooltips
-  const percentages = data.map(spk => spk.totalProgress?.budgetUtilizationPercentage || 0);
+  const percentages = data.map(spk => spk.totalProgress?.plannedVsActualCostRatio || spk.totalProgress?.budgetUtilizationPercentage || 0);
   
   // Create colors array based on percentage values
   const colors = percentages.map(percentage => 
     percentage > 90 ? '#ef4444' :  // Red for high (> 90%)
     percentage > 70 ? '#f59e0b' :  // Amber for medium (70-90%)
-    '#465fff'                      // Primary blue for normal (< 70%)
+    '#3b82f6'                      // Lighter blue for normal (< 70%) for better contrast with labels
   );
 
   // Calculate dynamic height based on number of SPKs
@@ -71,8 +72,9 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
       style: {
         fontSize: '12px',
         fontWeight: 'bold',
+        colors: ['#3b82f6'], // Blue text for both light and dark modes
       },
-      offsetY: -20,
+      offsetY: -25, // Position above the bar
     },
     stroke: {
       show: true,
@@ -106,7 +108,7 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
     },
     yaxis: {
       title: {
-        text: "Budget Utilization (%)",
+        text: "Planned vs Actual Cost Ratio (%)",
         style: {
           fontSize: '12px',
         }

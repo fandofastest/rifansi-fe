@@ -209,6 +209,14 @@ export const getDashboardSummary = async (): Promise<DashboardSummary> => {
             totalSpk
             totalBudgetSpk
         }
+        # Sales Data
+        totalSales
+        monthlySales {
+          month
+          year
+          amount
+        }
+        
         # Cost Data
         totalCosts
         monthlyCosts {
