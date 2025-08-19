@@ -196,13 +196,18 @@ export default function DailyReportSummaryPage() {
     fetchSPKList();
   }, [token]);
 
-  // Fetch SPK details when selected
+  // Fetch SPK details when selected or date range changes
   useEffect(() => {
     const fetchSPKDetails = async () => {
       if (!token || !selectedSPK) return;
       try {
         setLoading(true);
-        const data = await getSPKDetailsWithProgress(selectedSPK, token);
+        const data = await getSPKDetailsWithProgress(
+          selectedSPK,
+          token,
+          dateRange.startDate,
+          dateRange.endDate
+        );
         console.log('SPK Details (original):', data);
         
         // Filter hanya dailyActivities dengan status "Approved"
@@ -223,7 +228,7 @@ export default function DailyReportSummaryPage() {
     };
 
     fetchSPKDetails();
-  }, [token, selectedSPK]);
+  }, [token, selectedSPK, dateRange.startDate, dateRange.endDate]);
 
   // Generate chart data from SPK details
   useEffect(() => {

@@ -562,8 +562,8 @@ const UPDATE_SPK_STATUS = `
 `;
 
 const GET_SPK_DETAILS_WITH_PROGRESS = `
-  query GetSPKDetailsWithProgressBySpkId($spkId: ID!) {
-    spkDetailsWithProgress(spkId: $spkId) {
+  query GetSPKDetailsWithProgressBySpkId($spkId: ID!, $startDate: String, $endDate: String) {
+    spkDetailsWithProgress(spkId: $spkId, startDate: $startDate, endDate: $endDate) {
       id
       spkNo
       wapNo
@@ -886,19 +886,25 @@ export const updateSpkStatus = async (
   }
 };
 
-export const getSPKDetailsWithProgress = async (
-  spkId: string,
-  token: string
-): Promise<SPKDetailWithProgress> => {
-  try {
-    const response = await graphQLClient.request<{ spkDetailsWithProgress: SPKDetailWithProgress }>(
-      GET_SPK_DETAILS_WITH_PROGRESS,
-      { spkId },
-      { Authorization: `Bearer ${token}` }
-    );
-    return response.spkDetailsWithProgress;
-  } catch (error) {
-    console.error('Error fetching SPK details with progress:', error);
-    throw error;
-  }
-}; 
+  export const getSPKDetailsWithProgress = async (
+    spkId: string,
+    token: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<SPKDetailWithProgress> => {
+    try {
+      const variables: { spkId: string; startDate?: string; endDate?: string } = { spkId };
+      if (startDate) variables.startDate = startDate;
+      if (endDate) variables.endDate = endDate;
+
+      const response = await graphQLClient.request<{ spkDetailsWithProgress: SPKDetailWithProgress }>(
+        GET_SPK_DETAILS_WITH_PROGRESS,
+        variables,
+        { Authorization: `Bearer ${token}` }
+      );
+      return response.spkDetailsWithProgress;
+    } catch (error) {
+      console.error('Error fetching SPK details with progress:', error);
+      throw error;
+    }
+  }; 
