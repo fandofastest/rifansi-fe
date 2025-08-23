@@ -7,6 +7,7 @@ import { Map } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import dynamic from 'next/dynamic';
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
 
 // Helper function to calculate cost percentages
 function calculateCostPercentage(cost: number, total: number): number {
@@ -98,9 +99,14 @@ export default function Dashboard() {
   }, []);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-[60vh]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-    </div>;
+    return (
+      <Modal isOpen={true} onClose={() => {}} showCloseButton={false} className="w-auto max-w-md mx-auto">
+        <div className="p-8 min-w-[280px] flex flex-col items-center justify-center text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-3"></div>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Memuat data dashboard...</p>
+        </div>
+      </Modal>
+    );
   }
 
   if (error || !dashboardData) {
