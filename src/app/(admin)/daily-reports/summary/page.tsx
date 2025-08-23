@@ -542,6 +542,7 @@ export default function DailyReportSummaryPage() {
   const totalBudget = spkDetails?.totalProgress?.totalBudget ?? spkDetails?.budget ?? 0;
   const totalSpent = spkDetails?.totalProgress?.totalSpent ?? chartData.budgetData.reduce((sum, val) => sum + val, 0);
   const avgProgress = spkDetails?.totalProgress?.percentage || 0;
+  const totalSales = (avgProgress / 100) * totalBudget;
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -606,7 +607,7 @@ export default function DailyReportSummaryPage() {
         {selectedSPK && spkDetails && (
           <>
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
               <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
                 <div className="flex items-center justify-between">
                   <div>
@@ -645,7 +646,7 @@ export default function DailyReportSummaryPage() {
               <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Terpakai</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Cost</p>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                       {new Intl.NumberFormat('id-ID', { 
                         style: 'currency', 
@@ -658,6 +659,27 @@ export default function DailyReportSummaryPage() {
                   <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
                     <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</p>
+                    <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                      {new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(totalSales)}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
+                    <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h4l3 10 4-18 3 8h4" />
                     </svg>
                   </div>
                 </div>
