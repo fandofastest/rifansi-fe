@@ -6,7 +6,10 @@ import { getSPKDetailsWithProgress, SPKDetailWithProgress, DailyActivityWorkItem
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 import { id } from "date-fns/locale";
 import { useParams } from "next/navigation";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 
+// ...
+// Types needed locally
 type PeriodType = 'daily' | 'weekly' | 'monthly';
 
 interface MatrixData {
@@ -15,14 +18,8 @@ interface MatrixData {
     total: number;
     completed: number;
     value: number;
-    dailyProgress: {
-      nr: number;
-      r: number;
-    };
-    dailyCost: {
-      nr: number;
-      r: number;
-    };
+    dailyProgress: { nr: number; r: number };
+    dailyCost: { nr: number; r: number };
   };
   equipment: number;
   manpower: number;
@@ -30,188 +27,77 @@ interface MatrixData {
   total: number;
 }
 
-// Tambahkan komponen modal sederhana
-type WorkItemDetailsModalProps = {
+// Minimal tooltip component
+function InfoTooltip({ text }: { text: string }) {
+  return (
+    <span
+      className="ml-1 inline-flex items-center justify-center align-middle text-xs text-gray-400 dark:text-gray-500"
+      title={text}
+      aria-label={text}
+    >
+      ⓘ
+    </span>
+  );
+}
+
+// Minimal Work Item details modal to avoid runtime errors
+function WorkItemDetailsModal({
+  open,
+  onClose,
+  workItems,
+  date,
+}: {
   open: boolean;
   onClose: () => void;
   workItems: DailyActivityWorkItem[];
   date: string;
-  spkData: SPKDetailWithProgress;
-};
-function WorkItemDetailsModal({ open, onClose, workItems, date, spkData }: WorkItemDetailsModalProps) {
+}) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 px-[10vw]">
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg w-auto p-6 relative">
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg max-w-3xl w-full p-6 relative max-h-[90vh] flex flex-col">
         <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">Detail Work Items ({date})</h3>
-        {workItems.length === 0 ? (
-          <p className="text-gray-600 dark:text-gray-300">Tidak ada work item pada periode ini.</p>
-        ) : (
-          <div>
-            <table className="w-auto text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg bg-gray-50 dark:bg-gray-800">
-              <thead>
-                <tr className="bg-gray-100 dark:bg-gray-700">
-                  <th className="p-2 text-left text-black dark:text-white w-[200px]">Nama
-                    <InfoTooltip text="Nama work item yang dikerjakan" />
-                  </th>
-                  <th className="p-2 text-center text-black dark:text-white">BOQ
-                    <InfoTooltip text="Bill of Quantity - Volume pekerjaan yang harus dikerjakan (NR = Non Reimburse, R = Reimburse)" />
-                  </th>
-                  <th className="p-2 text-center text-black dark:text-white">Target Harian
-                    <InfoTooltip text="Target volume pekerjaan yang harus diselesaikan per hari" />
-                  </th>
-                  <th className="p-2 text-center text-black dark:text-white">Actual
-                    <InfoTooltip text="Volume pekerjaan yang berhasil diselesaikan pada hari ini" />
-                  </th>
-                  <th className="p-2 text-center text-black dark:text-white">Capaian (%)
-                    <InfoTooltip text="Persentase capaian fisik harian = (Actual / Target Harian) x 100%" />
-                  </th>
-                  <th className="p-2 text-center text-black dark:text-white">Target Biaya Harian
-                    <InfoTooltip text="Target biaya yang harus dikeluarkan per hari = (Target Harian NR x Rate NR) + (Target Harian R x Rate R)" />
-                  </th>
-                  <th className="p-2 text-center text-black dark:text-white">Biaya
-                    <InfoTooltip text="Total biaya aktual = (Actual NR x Rate NR) + (Actual R x Rate R)" />
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  // Hitung target biaya harian
-                  const totalHariKerja = (spkData.startDate && spkData.endDate)
-                    ? Math.max(1, Math.ceil((new Date(spkData.endDate).getTime() - new Date(spkData.startDate).getTime()) / (1000 * 60 * 60 * 24)))
-                    : 1;
-                  return workItems.filter(item => (item.actualQuantity?.nr || 0) !== 0 || (item.actualQuantity?.r || 0) !== 0).map((item, idx) => {
-                    // BOQ tampilkan hanya yang tidak 0
-                    const hasNR = item.boqVolume?.nr && item.boqVolume.nr > 0;
-                    const hasR = item.boqVolume?.r && item.boqVolume.r > 0;
-                    let boqDisplay = '';
-                    if (hasNR && hasR) {
-                      boqDisplay = `${item.boqVolume.nr.toLocaleString('id-ID')} (NR), ${item.boqVolume.r.toLocaleString('id-ID')} (R)`;
-                    } else if (hasNR) {
-                      boqDisplay = `${item.boqVolume.nr.toLocaleString('id-ID')} (NR)`;
-                    } else if (hasR) {
-                      boqDisplay = `${item.boqVolume.r.toLocaleString('id-ID')} (R)`;
-                    }
-                    // Target harian = (boq nr + boq r) / total hari kerja
-                    const totalBOQ = (item.boqVolume?.nr || 0) + (item.boqVolume?.r || 0);
-                    const targetHarian = totalBOQ > 0 ? totalBOQ / totalHariKerja : 0;
-                    // Target harian NR dan R
-                    const targetHarianNR = (item.boqVolume?.nr || 0) / totalHariKerja;
-                    const targetHarianR = (item.boqVolume?.r || 0) / totalHariKerja;
-                    // Target biaya harian = targetHarianNR * harga NR + targetHarianR * harga R
-                    const targetBiayaHarianItem = (targetHarianNR * (item.rates?.nr?.rate || 0)) + (targetHarianR * (item.rates?.r?.rate || 0));
-                    const actual = (item.actualQuantity?.r && item.actualQuantity.r !== 0)
-                      ? item.actualQuantity.r
-                      : (item.actualQuantity?.nr && item.actualQuantity.nr !== 0)
-                        ? item.actualQuantity.nr
-                        : '';
-                    // Capaian fisik harian = (actual / target harian) * 100
-                    const capaianFisik = targetHarian > 0 && actual !== '' ? (Number(actual) / targetHarian * 100).toFixed(2) : '';
-                    return (
-                      <tr key={`${item.id}-${idx}`} className="border-t border-gray-100 dark:border-white/[0.04]">
-                        <td className="p-2 text-black dark:text-white">{item.name}</td>
-                        <td className="p-2 text-center text-black dark:text-white">{boqDisplay}</td>
-                        <td className="p-2 text-center text-black dark:text-white">{targetHarian > 0 ? targetHarian.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : '-'}</td>
-                        <td className="p-2 text-center text-black dark:text-white">{actual}</td>
-                        <td className="p-2 text-center text-black dark:text-white">{capaianFisik !== '' ? capaianFisik + '%' : '-'}</td>
-                        <td className="p-2 text-center text-black dark:text-white">{targetBiayaHarianItem > 0 ? targetBiayaHarianItem.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }) : '-'}</td>
-                        <td className="p-2 text-center text-black dark:text-white">{
-                          (() => {
-                            // Hitung biaya = actual * rate (NR/R)
-                            let biaya = 0;
-                            if (item.actualQuantity?.r && item.actualQuantity.r !== 0) {
-                              biaya = item.actualQuantity.r * (item.rates?.r?.rate || 0);
-                            } else if (item.actualQuantity?.nr && item.actualQuantity.nr !== 0) {
-                              biaya = item.actualQuantity.nr * (item.rates?.nr?.rate || 0);
-                            }
-                            return biaya > 0 ? biaya.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }) : '-';
-                          })()
-                        }</td>
-                      </tr>
-                    );
-                  });
-                })()}
-                {/* Baris total */}
-                {(() => {
-                  const filtered = workItems.filter(item => (item.actualQuantity?.nr || 0) !== 0 || (item.actualQuantity?.r || 0) !== 0);
-                  // Total biaya = sum(actual * rate NR/R)
-                  const totalBiaya = filtered.reduce((acc, item) => {
-                    if (item.actualQuantity?.r && item.actualQuantity.r !== 0) {
-                      return acc + item.actualQuantity.r * (item.rates?.r?.rate || 0);
-                    } else if (item.actualQuantity?.nr && item.actualQuantity.nr !== 0) {
-                      return acc + item.actualQuantity.nr * (item.rates?.nr?.rate || 0);
-                    }
-                    return acc;
-                  }, 0);
-                  // Total Target Biaya Harian = total budget SPK / total hari kerja
-                  const totalHariKerja = (spkData.startDate && spkData.endDate)
-                    ? Math.max(1, Math.ceil((new Date(spkData.endDate).getTime() - new Date(spkData.startDate).getTime()) / (1000 * 60 * 60 * 24)))
-                    : 1;
-                  const totalTargetBiayaHarian = spkData.budget && totalHariKerja > 0 ? spkData.budget / totalHariKerja : 0;
-                  // Progress harian = total biaya / total target biaya harian * 100
-                  return (
-                    <tr className="font-bold bg-gray-100 dark:bg-gray-700">
-                      <td className="p-2 text-black dark:text-white" colSpan={2}>Total</td>
-                      <td className="p-2 text-center text-black dark:text-white">-</td>
-                      <td className="p-2 text-center text-black dark:text-white">-</td>
-                      <td className="p-2 text-center text-black dark:text-white">-</td>
-                      <td className="p-2 text-center text-black dark:text-white">{totalTargetBiayaHarian > 0 ? totalTargetBiayaHarian.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }) : '-'}</td>
-                      <td className="p-2 text-center text-black dark:text-white">{totalBiaya > 0 ? totalBiaya.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }) : '-'}</td>
-                    </tr>
-                  );
-                })()}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {/* Summary baru: total target biaya harian, total biaya, progress harian */}
-        {(() => {
-          const filtered = workItems.filter(item => (item.actualQuantity?.nr || 0) !== 0 || (item.actualQuantity?.r || 0) !== 0);
-          // Total biaya = sum(actual * rate NR/R)
-          const totalBiaya = filtered.reduce((acc, item) => {
-            if (item.actualQuantity?.r && item.actualQuantity.r !== 0) {
-              return acc + item.actualQuantity.r * (item.rates?.r?.rate || 0);
-            } else if (item.actualQuantity?.nr && item.actualQuantity.nr !== 0) {
-              return acc + item.actualQuantity.nr * (item.rates?.nr?.rate || 0);
-            }
-            return acc;
-          }, 0);
-          // Total Target Biaya Harian = total budget SPK / total hari kerja
-          const totalHariKerja = (spkData.startDate && spkData.endDate)
-            ? Math.max(1, Math.ceil((new Date(spkData.endDate).getTime() - new Date(spkData.startDate).getTime()) / (1000 * 60 * 60 * 24)))
-            : 1;
-          const totalTargetBiayaHarian = spkData.budget && totalHariKerja > 0 ? spkData.budget / totalHariKerja : 0;
-          // Progress harian = total biaya / total target biaya harian * 100
-          const progressHarian = totalTargetBiayaHarian > 0 ? ((totalBiaya / totalTargetBiayaHarian) * 100).toFixed(2) : '-';
-          return (
-            <div className="mt-4 p-3 rounded bg-orange-50 dark:bg-orange-900/30 text-black dark:text-white text-sm">
-              <div><span className="font-semibold">Total Target Biaya Harian:</span> {totalTargetBiayaHarian > 0 ? totalTargetBiayaHarian.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }) : '-'}</div>
-              <div><span className="font-semibold">Total Biaya:</span> {totalBiaya > 0 ? totalBiaya.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }) : '-'}</div>
-              <div><span className="font-semibold">Progress Harian:</span> {progressHarian !== '-' ? progressHarian + '%' : '-'}</div>
-            </div>
-          );
-        })()}
+        <div className="overflow-y-auto flex-1 max-h-[60vh]">
+          <table className="w-full text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg bg-gray-50 dark:bg-gray-800">
+            <thead>
+              <tr className="bg-gray-100 dark:bg-gray-700">
+                <th className="p-2 text-left text-black dark:text-white">Nama Item</th>
+                <th className="p-2 text-center text-black dark:text-white">NR</th>
+                <th className="p-2 text-center text-black dark:text-white">R</th>
+                <th className="p-2 text-center text-black dark:text-white">Biaya</th>
+              </tr>
+            </thead>
+            <tbody>
+              {workItems.map((wi, idx) => {
+                const valNR = (wi.actualQuantity?.nr || 0) * (wi.rates?.nr?.rate || 0);
+                const valR = (wi.actualQuantity?.r || 0) * (wi.rates?.r?.rate || 0);
+                const cost = valNR + valR;
+                return (
+                  <tr key={idx} className="border-t border-gray-100 dark:border-white/[0.04]">
+                    <td className="p-2 text-black dark:text-white">{String(((wi as any)?.name) ?? ((wi as any)?.itemName) ?? ((wi as any)?.id) ?? '-')}</td>
+                    <td className="p-2 text-center text-black dark:text-white">{wi.actualQuantity?.nr || 0}</td>
+                    <td className="p-2 text-center text-black dark:text-white">{wi.actualQuantity?.r || 0}</td>
+                    <td className="p-2 text-center text-black dark:text-white">
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(cost)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
         <button onClick={onClose} className="mt-6 px-5 py-2 rounded bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold shadow self-end">Tutup</button>
       </div>
     </div>
   );
 }
 
-// Tambahkan komponen tooltip sederhana
-function InfoTooltip({ text }: { text: string }) {
-  return (
-    <span className="relative group cursor-pointer ml-1 align-middle">
-      <span className="text-blue-500">ℹ️</span>
-      <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-max max-w-xs bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-pre-line shadow-lg">
-        {text}
-      </span>
-    </span>
-  );
-}
-
 // Komponen modal detail biaya kategori
 function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean; onClose: () => void; items: CostBreakdownItem[]; date: string; title: string }) {
+  // Accordion BBM per baris Equipment
+  const [expandedEquipmentRows, setExpandedEquipmentRows] = useState<number[]>([]);
   if (!open) return null;
+
   // Tentukan field yang relevan untuk setiap kategori
   let fields: { key: keyof CostBreakdownItem; label: string; isObj?: boolean }[] = [];
   if (title === 'Equipment') {
@@ -229,9 +115,7 @@ function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean
       { key: 'hourlyRate', label: 'Upah/Jam' },
     ];
   } else if (title === 'Other Costs') {
-    fields = [
-      { key: 'description', label: 'Deskripsi' },
-    ];
+    fields = [{ key: 'description', label: 'Deskripsi' }];
   } else if (title === 'Materials') {
     fields = [
       { key: 'material', label: 'Material' },
@@ -239,71 +123,38 @@ function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean
       { key: 'unit', label: 'Unit' },
       { key: 'unitRate', label: 'Harga Satuan' },
     ];
+  } else if (title === 'Work Items') {
+    // Khusus Work Items, fields ditangani terpisah oleh parent; tetap sediakan agar tabel render
+    fields = [];
   }
-  // Untuk equipment, tambahkan kolom detail
+
+  // Subfield untuk object equipment
   const equipmentSubFields = [
     { key: 'equipmentCode', label: 'Code' },
     { key: 'plateOrSerialNo', label: 'No/Serial' },
     { key: 'equipmentType', label: 'Type' },
     { key: 'description', label: 'Deskripsi' },
   ];
-  // Ambil semua cost dari kategori lain jika Work Items
+
+  // Hitung total
   let totalWorkItems = 0;
   let totalCost = 0;
   if (title === 'Work Items') {
-    totalWorkItems = (items as (CostBreakdownItem & { value?: number })[]).reduce((acc, item) => acc + (typeof item.value === 'number' ? item.value : 0), 0);
-    // Ambil semua cost dari material, manpower, equipment, other pada hari/periode ini
-    const allCosts: CostBreakdownItem[] = [];
-    // Ambil dari dailyActivities yang tanggalnya sama dengan date
-    // date di sini sudah dalam format string (misal: 'dd MMM yyyy' atau 'MMMM yyyy')
-    // Gunakan spkData.dailyActivities untuk mencari
-    // Karena modal tidak punya akses spkData, gunakan window._modalDailyActivities jika ada (inject dari parent)
-    let dailyActivities: DailyActivity[] = [];
-    if (typeof window !== 'undefined' && (window as unknown as { _modalDailyActivities?: DailyActivity[] })._modalDailyActivities) {
-      dailyActivities = (window as unknown as { _modalDailyActivities?: DailyActivity[] })._modalDailyActivities ?? [];
-    }
-    const activities = dailyActivities.filter(activity => {
-      const activityDate = new Date(activity.date);
-      if (title === 'Work Items') {
-        // Gunakan format yang sama dengan parent
-        if (date.length === 11) { // 'dd MMM yyyy'
-          return format(activityDate, 'dd MMM yyyy', { locale: id }) === date;
-        } else if (date.includes('-')) { // weekly
-          return (
-            format(startOfWeek(activityDate, { locale: id }), 'dd MMM', { locale: id }) + ' - ' + format(endOfWeek(activityDate, { locale: id }), 'dd MMM yyyy', { locale: id })
-          ) === date;
-        } else { // monthly
-          return format(activityDate, 'MMMM yyyy', { locale: id }) === date;
-        }
-      }
-      return false;
-    });
-    activities.forEach(a => {
-      allCosts.push(...(a.costs?.materials?.items || []));
-      allCosts.push(...(a.costs?.manpower?.items || []));
-      allCosts.push(...(a.costs?.equipment?.items || []));
-      allCosts.push(...(a.costs?.otherCosts?.items || []));
-    });
-    totalCost = allCosts.reduce((acc, item) => acc + (item.cost || 0), 0);
+    totalWorkItems = (items as (CostBreakdownItem & { value?: number })[]).reduce(
+      (acc, item) => acc + (typeof (item as any).value === 'number' ? (item as any).value : 0),
+      0,
+    );
+    totalCost = 0; // dihitung dari kategori lain oleh parent, tampilkan 0 di sini
+  } else if (title === 'Equipment') {
+    // total biaya equipment = rental + bbm
+    totalCost = items.reduce((acc, item) => acc + (item.rentalRatePerDay || 0) + (item.cost || 0), 0);
   } else {
-    // For equipment, calculate total cost including rentalRatePerDay
-    if (title === 'Equipment') {
-      totalCost = items.reduce((acc, item) => {
-        let equipmentCost = item.cost || 0;
-        // Add rentalRatePerDay to the cost if it exists
-        if (item.rentalRatePerDay) {
-          equipmentCost += item.rentalRatePerDay;
-        }
-        return acc + equipmentCost;
-      }, 0);
-    } else {
-      totalCost = items.reduce((acc, item) => acc + (item.cost || 0), 0);
-    }
+    totalCost = items.reduce((acc, item) => acc + (item.cost || 0), 0);
   }
-  const labaRugi = totalWorkItems - totalCost;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 px-[10vw]">
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg max-w-2xl w-full p-6 relative max-h-[90vh] flex flex-col">
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg max-w-4xl w-full p-6 relative max-h-[90vh] flex flex-col">
         <h3 className="text-lg font-semibold mb-4 text-black dark:text-white">Detail {title} ({date})</h3>
         {items.length === 0 ? (
           <p className="text-gray-600 dark:text-gray-300">Tidak ada data pada periode ini.</p>
@@ -313,38 +164,96 @@ function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean
               <table className="w-full text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg bg-gray-50 dark:bg-gray-800">
                 <thead>
                   <tr className="bg-gray-100 dark:bg-gray-700">
-                    {fields.map(f => (
-                      f.isObj && title === 'Equipment'
-                        ? equipmentSubFields.map(sub => (
-                            <th key={sub.key} className="p-2 text-left text-black dark:text-white">{sub.label}</th>
-                          ))
-                        : <th key={f.key as string} className="p-2 text-left text-black dark:text-white">{f.label}</th>
-                    ))}
+                    {title === 'Equipment'
+                      ? equipmentSubFields.map(sub => (
+                          <th key={sub.key} className="p-2 text-left text-black dark:text-white">{sub.label}</th>
+                        ))
+                      : fields.map(f => (
+                          <th key={f.key as string} className="p-2 text-left text-black dark:text-white">{f.label}</th>
+                        ))}
                     <th className="p-2 text-center text-black dark:text-white">Biaya</th>
+                    {title === 'Equipment' && (
+                      <th className="p-2 text-left text-black dark:text-white">BBM</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item, idx) => (
-                    <tr key={idx} className="border-t border-gray-100 dark:border-white/[0.04]">
-                      {fields.map(f => (
-                        f.isObj && title === 'Equipment'
-                          ? equipmentSubFields.map(sub => (
-                              <td key={sub.key} className="p-2 text-black dark:text-white">
-                                {item.equipment && typeof item.equipment[sub.key as keyof typeof item.equipment] !== 'object'
-                                  ? String(item.equipment[sub.key as keyof typeof item.equipment] ?? '')
-                                  : ''}
-                              </td>
-                            ))
-                          : <td key={f.key as string} className="p-2 text-black dark:text-white">{typeof item[f.key] !== 'object' ? String(item[f.key] ?? '') : ''}</td>
-                      ))}
-                      <td className="p-2 text-center text-black dark:text-white">
-                        {title === 'Equipment' 
-                          ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format((item.cost || 0) + (item.rentalRatePerDay || 0))
-                          : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.cost)
-                        }
-                      </td>
-                    </tr>
-                  ))}
+                  {items.map((item, idx) => {
+                    const isEquipment = title === 'Equipment';
+                    const fuelUsed = (item.fuelUsed as unknown as number) || 0;
+                    const fuelPrice = (item.fuelPrice as unknown as number) || 0;
+                    const fuelTotal = fuelUsed * fuelPrice;
+                    const isExpanded = expandedEquipmentRows.includes(idx);
+                    const totalColumns = (isEquipment ? equipmentSubFields.length : fields.length) + 1 + (isEquipment ? 1 : 0);
+
+                    return (
+                      <React.Fragment key={idx}>
+                        <tr className="border-t border-gray-100 dark:border-white/[0.04]">
+                          {isEquipment
+                            ? equipmentSubFields.map(sub => (
+                                <td key={sub.key} className="p-2 text-black dark:text-white">
+                                  {item.equipment && typeof item.equipment[sub.key as keyof typeof item.equipment] !== 'object'
+                                    ? String(item.equipment[sub.key as keyof typeof item.equipment] ?? '')
+                                    : ''}
+                                </td>
+                              ))
+                            : fields.map(f => (
+                                <td key={f.key as string} className="p-2 text-black dark:text-white">{typeof item[f.key] !== 'object' ? String(item[f.key] ?? '') : ''}</td>
+                              ))}
+                          <td className="p-2 text-center text-black dark:text-white">
+                            {isEquipment
+                              ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(((item.rentalRatePerDay as number) || 0) + ((item.cost as number) || 0))
+                              : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format((item.cost as number) || 0)}
+                          </td>
+                          {isEquipment && (
+                            <td className="p-2 text-left">
+                              <button
+                                onClick={() => {
+                                  setExpandedEquipmentRows(isExpanded
+                                    ? expandedEquipmentRows.filter(i => i !== idx)
+                                    : [...expandedEquipmentRows, idx]
+                                  );
+                                }}
+                                className="flex items-center justify-center py-1 px-2 rounded bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                              >
+                                <span className="mr-1 text-xs font-medium text-black dark:text-white">
+                                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fuelTotal)}
+                                </span>
+                                {isExpanded ? (
+                                  <ChevronUpIcon className="w-4 h-4 text-blue-500" />
+                                ) : (
+                                  <ChevronDownIcon className="w-4 h-4 text-blue-500" />
+                                )}
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                        {isEquipment && isExpanded && (
+                          <tr className="bg-blue-50/50 dark:bg-blue-900/10">
+                            <td colSpan={totalColumns} className="p-2">
+                              <div className="pl-4 py-2 border-l-2 border-blue-300 dark:border-blue-700">
+                                <h6 className="font-medium text-xs text-blue-800 dark:text-blue-300 mb-1">Rincian BBM</h6>
+                                <div className="grid grid-cols-3 gap-4 text-xs">
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400">BBM Terpakai</p>
+                                    <p className="font-medium text-black dark:text-white">{fuelUsed} liter</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400">Harga BBM</p>
+                                    <p className="font-medium text-black dark:text-white">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fuelPrice)}/liter</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-600 dark:text-gray-400">Total Biaya BBM</p>
+                                    <p className="font-medium text-black dark:text-white">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fuelTotal)}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -353,10 +262,7 @@ function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean
               {title === 'Work Items' && (
                 <div><span className="font-semibold">Total Work Items:</span> {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalWorkItems)}</div>
               )}
-              <div><span className="font-semibold">Total Cost (Material, Manpower, Equipment, Other):</span> {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalCost)}</div>
-              <div className={`mt-2 font-semibold ${labaRugi >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                Laba/Rugi: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(labaRugi)}
-              </div>
+              <div><span className="font-semibold">Total Cost ({title}):</span> {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalCost)}</div>
             </div>
           </>
         )}
@@ -799,9 +705,9 @@ export default function SPKDetailPage() {
             </table>
           </div>
         </div>
-        <WorkItemDetailsModal open={modalOpen} onClose={() => setModalOpen(false)} workItems={modalWorkItems} date={modalDate} spkData={spkData!} />
+        <WorkItemDetailsModal open={modalOpen} onClose={() => setModalOpen(false)} workItems={modalWorkItems} date={modalDate} />
         <CostDetailsModal open={modalCostOpen} onClose={() => setModalCostOpen(false)} items={modalCostItems} date={modalCostDate} title={modalCostTitle} />
       </div>
     </div>
   );
-} 
+}

@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { DailyActivity, getDailyActivityWithDetails } from "@/services/dailyActivity";
 import { useAuth } from "@/context/AuthContext";
-import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 
 interface DailyReportDetailModalProps {
   isOpen: boolean;
@@ -28,6 +28,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<DailyActivity | null>(null);
+  const [expandedEquipment, setExpandedEquipment] = useState<string[]>([]);
   const { token } = useAuth();
 
   useEffect(() => {
@@ -81,9 +82,19 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
     return sum + ((detail.actualQuantity.nr || 0) * (detail.rates?.nr?.rate || 0) + (detail.actualQuantity.r || 0) * (detail.rates?.r?.rate || 0));
   }, 0);
   
-  // Hitung equipment cost
+  // Hitung equipment cost (rental + fuel)
   const totalEquipment = report.equipmentLogs.reduce((sum, log) => 
     sum + ((log.rentalRatePerDay || 0) + (log.fuelIn * (log.fuelPrice || 0))), 0
+  );
+  
+  // Hitung equipment rental saja (tanpa BBM)
+  const totalEquipmentRental = report.equipmentLogs.reduce((sum, log) => 
+    sum + (log.rentalRatePerDay || 0), 0
+  );
+  
+  // Hitung total BBM saja
+  const totalFuelCost = report.equipmentLogs.reduce((sum, log) => 
+    sum + ((log.fuelIn || 0) * (log.fuelPrice || 0)), 0
   );
   
   // Hitung manpower cost (personCount * hourlyRate * workingHours)
@@ -337,11 +348,17 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
           {/* Breakdown Biaya Detail */}
           <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <h5 className="mb-3 font-medium text-gray-800 dark:text-gray-200">Breakdown Biaya</h5>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Equipment</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Sewa Peralatan</p>
                 <p className="font-semibold text-gray-800 dark:text-gray-200">
-                  {totalEquipment.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                  {totalEquipmentRental.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">BBM</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">
+                  {totalFuelCost.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
                 </p>
               </div>
               <div>
@@ -471,40 +488,93 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                         <tr className="border-b-2 border-gray-300 dark:border-white/20">
                           <th className="px-2 py-2 text-left w-48">Kode</th>
                           <th className="px-2 py-2 text-left w-24">Tipe</th>
-                          <th className="px-2 py-2 text-left w-24">BBM Masuk</th>
-                          <th className="px-2 py-2 text-left w-24">BBM Sisa</th>
                           <th className="px-2 py-2 text-left w-24">Jam Kerja</th>
                           <th className="px-2 py-2 text-left w-24">Tarif/Hari</th>
-                          <th className="px-2 py-2 text-left w-24">Harga BBM</th>
                           <th className="px-2 py-2 text-left w-24">Subtotal</th>
                           <th className="px-2 py-2 text-left w-24">Rusak?</th>
                           <th className="px-2 py-2 text-left w-24">Catatan</th>
+                          <th className="px-2 py-2 text-left w-16">BBM</th>
                         </tr>
                       </thead>
                       <tbody>
                         {report.equipmentLogs.map((log) => {
-                          const subtotal = (log.rentalRatePerDay || 0) + (log.fuelIn * (log.fuelPrice || 0));
+                          const equipmentRental = (log.rentalRatePerDay || 0);
+                          const totalFuelCost = (log.fuelIn || 0) * (log.fuelPrice || 0);
+                          const isExpanded = expandedEquipment.includes(log.id);
+                          
                           return (
-                            <tr key={log.id} className="border-b border-gray-100 dark:border-white/10">
-                              <td className="px-2 py-2">{log.equipment.equipmentCode}</td>
-                              <td className="px-2 py-2">{log.equipment.equipmentType}</td>
-                              <td className="px-2 py-2">{log.fuelIn}</td>
-                              <td className="px-2 py-2">{log.fuelRemaining}</td>
-                              <td className="px-2 py-2">{log.workingHour}</td>
-                              <td className="px-2 py-2">{(log.rentalRatePerDay || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
-                              <td className="px-2 py-2">{(log.fuelPrice || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
-                              <td className="px-2 py-2">{subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
-                              <td className="px-2 py-2">{log.isBrokenReported ? 'Ya' : 'Tidak'}</td>
-                              <td className="px-2 py-2">{log.remarks || '-'}</td>
-                            </tr>
+                            <React.Fragment key={log.id}>
+                              <tr className="border-b border-gray-100 dark:border-white/10">
+                                <td className="px-2 py-2">{log.equipment.equipmentCode}</td>
+                                <td className="px-2 py-2">{log.equipment.equipmentType}</td>
+                                <td className="px-2 py-2">{log.workingHour}</td>
+                                <td className="px-2 py-2">{equipmentRental.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
+                                <td className="px-2 py-2">{equipmentRental.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
+                                <td className="px-2 py-2">{log.isBrokenReported ? 'Ya' : 'Tidak'}</td>
+                                <td className="px-2 py-2">{log.remarks || '-'}</td>
+                                <td className="px-2 py-2">
+                                  <button 
+                                    onClick={() => {
+                                      if (isExpanded) {
+                                        setExpandedEquipment(expandedEquipment.filter(id => id !== log.id));
+                                      } else {
+                                        setExpandedEquipment([...expandedEquipment, log.id]);
+                                      }
+                                    }}
+                                    className="flex items-center justify-center py-1 px-2 rounded bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                                  >
+                                    <span className="mr-1 text-xs font-medium">{totalFuelCost.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                    {isExpanded ? 
+                                      <ChevronUpIcon className="w-4 h-4 text-blue-500" /> : 
+                                      <ChevronDownIcon className="w-4 h-4 text-blue-500" />
+                                    }
+                                  </button>
+                                </td>
+                              </tr>
+                              {isExpanded && (
+                                <tr className="bg-blue-50/50 dark:bg-blue-900/10">
+                                  <td colSpan={8} className="px-2 py-2">
+                                    <div className="pl-4 py-2 border-l-2 border-blue-300 dark:border-blue-700">
+                                      <h6 className="font-medium text-xs text-blue-800 dark:text-blue-300 mb-1">Rincian BBM</h6>
+                                      <div className="grid grid-cols-3 gap-4 text-xs">
+                                        <div>
+                                          <p className="text-gray-600 dark:text-gray-400">BBM Masuk</p>
+                                          <p className="font-medium">{log.fuelIn} liter</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-600 dark:text-gray-400">BBM Sisa</p>
+                                          <p className="font-medium">{log.fuelRemaining} liter</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-600 dark:text-gray-400">BBM Terpakai</p>
+                                          <p className="font-medium">{(log.fuelIn || 0) - (log.fuelRemaining || 0)} liter</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-600 dark:text-gray-400">Harga BBM</p>
+                                          <p className="font-medium">{(log.fuelPrice || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}/liter</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-600 dark:text-gray-400">Total Biaya BBM</p>
+                                          <p className="font-medium">{totalFuelCost.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
                           );
                         })}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-gray-300 dark:border-white/20">
-                          <td colSpan={7} className="px-2 py-2 font-semibold text-right">Total Equipment</td>
+                          <td colSpan={4} className="px-2 py-2 font-semibold text-right">Total Biaya Sewa Peralatan</td>
                           <td className="px-2 py-2 font-bold text-right">
-                            {totalEquipment.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                            {totalEquipmentRental.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                          </td>
+                          <td colSpan={2} className="px-2 py-2 font-semibold text-right">Total BBM</td>
+                          <td className="px-2 py-2 font-bold text-right">
+                            {totalFuelCost.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
                           </td>
                         </tr>
                       </tfoot>

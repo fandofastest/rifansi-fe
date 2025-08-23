@@ -104,10 +104,20 @@ export interface BorrowPitLocation {
   longitude: number;
 }
 
+export interface CostBreakdownOtherItem {
+  costType: string;
+  total: number;
+  count: number;
+}
+
 export interface CostBreakdown {
   totalMaterialCost: number;
   totalManpowerCost: number;
   totalEquipmentCost: number;
+  totalCost?: number;
+  equipmentFuelCost?: number;
+  equipmentRentalCost?: number;
+  otherBreakdown?: CostBreakdownOtherItem[];
   // Legacy fields
   material?: number;
   manpower?: number;
@@ -297,6 +307,14 @@ export const getDashboardSummary = async (): Promise<DashboardSummary> => {
           totalMaterialCost
           totalManpowerCost
           totalEquipmentCost
+          totalCost
+          equipmentFuelCost
+          equipmentRentalCost
+          otherBreakdown {
+            costType
+            total
+            count
+          }
         }
         
         # Equipment Performance

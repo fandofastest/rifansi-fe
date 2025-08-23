@@ -240,7 +240,7 @@ export default function Dashboard() {
             </Card>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4 md:gap-6">        
-            <div className="lg:col-span-7 space-y-4">
+            <div className="lg:col-span-12 space-y-4">
               {/* Monthly Sales Progress card removed */}
               
               <Card>
@@ -248,38 +248,53 @@ export default function Dashboard() {
                   <h3 className="text-lg font-semibold dark:text-white">Cost Breakdown</h3>
                 </CardHeader>
                 <CardBody>
-                  <div className="grid grid-cols-3 gap-4 dark:text-gray-200">
-                    <div className="text-center">
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Materials</h4>
-                      <p className="text-xl font-bold">{formatCurrency(dashboardData.costBreakdown?.totalMaterialCost || 0)}</p>
-                      <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-blue-500 h-full rounded-full" 
-                          style={{ width: `${calculateCostPercentage(dashboardData.costBreakdown?.totalMaterialCost, dashboardData.totalCosts)}%` }}
-                        ></div>
+                  {(() => {
+                    const total = dashboardData.totalCosts || 0;
+                    const material = dashboardData.costBreakdown?.totalMaterialCost || 0;
+                    const manpower = dashboardData.costBreakdown?.totalManpowerCost || 0;
+                    const equipment = (dashboardData.costBreakdown?.equipmentRentalCost ?? dashboardData.costBreakdown?.totalEquipmentCost) || 0;
+                    const bbm = dashboardData.costBreakdown?.equipmentFuelCost || 0;
+                    const other = (dashboardData.costBreakdown?.otherBreakdown || []).reduce((sum, ob) => sum + (ob.total || 0), 0);
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 dark:text-gray-200">
+                        <div className="text-center">
+                          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Materials</h4>
+                          <p className="text-xl font-bold">{formatCurrency(material)}</p>
+                          <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="bg-blue-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(material, total)}%` }}></div>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Manpower</h4>
+                          <p className="text-xl font-bold">{formatCurrency(manpower)}</p>
+                          <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="bg-green-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(manpower, total)}%` }}></div>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Equipment</h4>
+                          <p className="text-xl font-bold">{formatCurrency(equipment)}</p>
+                          <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="bg-amber-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(equipment, total)}%` }}></div>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">BBM</h4>
+                          <p className="text-xl font-bold">{formatCurrency(bbm)}</p>
+                          <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="bg-orange-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(bbm, total)}%` }}></div>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Other</h4>
+                          <p className="text-xl font-bold">{formatCurrency(other)}</p>
+                          <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="bg-purple-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(other, total)}%` }}></div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-center">
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Manpower</h4>
-                      <p className="text-xl font-bold">{formatCurrency(dashboardData.costBreakdown?.totalManpowerCost || 0)}</p>
-                      <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-green-500 h-full rounded-full" 
-                          style={{ width: `${calculateCostPercentage(dashboardData.costBreakdown?.totalManpowerCost, dashboardData.totalCosts)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Equipment</h4>
-                      <p className="text-xl font-bold">{formatCurrency(dashboardData.costBreakdown?.totalEquipmentCost || 0)}</p>
-                      <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-amber-500 h-full rounded-full" 
-                          style={{ width: `${calculateCostPercentage(dashboardData.costBreakdown?.totalEquipmentCost, dashboardData.totalCosts)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </CardBody>
               </Card>
             </div>
