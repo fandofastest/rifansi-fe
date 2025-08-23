@@ -22,6 +22,8 @@ interface MatrixData {
     dailyCost: { nr: number; r: number };
   };
   equipment: number;
+  bbm: number;
+  materials: number;
   manpower: number;
   other: number;
   total: number;
@@ -94,18 +96,23 @@ function WorkItemDetailsModal({
 
 // Komponen modal detail biaya kategori
 function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean; onClose: () => void; items: CostBreakdownItem[]; date: string; title: string }) {
-  // Accordion BBM per baris Equipment
+  // Hapus accordion BBM untuk modal Equipment; tidak diperlukan lagi
   const [expandedEquipmentRows, setExpandedEquipmentRows] = useState<number[]>([]);
   if (!open) return null;
 
   // Tentukan field yang relevan untuk setiap kategori
   let fields: { key: keyof CostBreakdownItem; label: string; isObj?: boolean }[] = [];
   if (title === 'Equipment') {
+    // Modal Equipment sekarang hanya menampilkan biaya rental
     fields = [
       { key: 'equipment', label: 'Equipment', isObj: true },
       { key: 'rentalRatePerDay', label: 'Rental Rate Per Day' },
-      { key: 'fuelUsed', label: 'Fuel Used' },
-      { key: 'fuelPrice', label: 'Fuel Price' },
+    ];
+  } else if (title === 'BBM') {
+    // Modal BBM menampilkan equipment dan total biaya BBM (fuel)
+    fields = [
+      { key: 'equipment', label: 'Equipment', isObj: true },
+      // Kolom detail fuel opsional; cukup tampilkan biaya di kolom Biaya
     ];
   } else if (title === 'Manpower') {
     fields = [
@@ -146,8 +153,11 @@ function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean
     );
     totalCost = 0; // dihitung dari kategori lain oleh parent, tampilkan 0 di sini
   } else if (title === 'Equipment') {
-    // total biaya equipment = rental + bbm
-    totalCost = items.reduce((acc, item) => acc + (item.rentalRatePerDay || 0) + (item.cost || 0), 0);
+    // Total biaya Equipment hanya rental
+    totalCost = items.reduce((acc, item) => acc + (item.rentalRatePerDay || 0), 0);
+  } else if (title === 'BBM') {
+    // Total biaya BBM (fuel) saja
+    totalCost = items.reduce((acc, item) => acc + ((item.cost as number) || 0), 0);
   } else {
     totalCost = items.reduce((acc, item) => acc + (item.cost || 0), 0);
   }
@@ -164,93 +174,69 @@ function CostDetailsModal({ open, onClose, items, date, title }: { open: boolean
               <table className="w-full text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg bg-gray-50 dark:bg-gray-800">
                 <thead>
                   <tr className="bg-gray-100 dark:bg-gray-700">
-                    {title === 'Equipment'
-                      ? equipmentSubFields.map(sub => (
-                          <th key={sub.key} className="p-2 text-left text-black dark:text-white">{sub.label}</th>
-                        ))
+                    {(title === 'Equipment' || title === 'BBM')
+                      ? (
+                        <>
+                          {equipmentSubFields.map(sub => (
+                            <th key={sub.key} className="p-2 text-left text-black dark:text-white">{sub.label}</th>
+                          ))}
+                          {title === 'BBM' && (
+                            <>
+                              <th className="p-2 text-left text-black dark:text-white">BBM Terpakai (L)</th>
+                              <th className="p-2 text-left text-black dark:text-white">Harga BBM</th>
+                            </>
+                          )}
+                        </>
+                      )
                       : fields.map(f => (
                           <th key={f.key as string} className="p-2 text-left text-black dark:text-white">{f.label}</th>
                         ))}
                     <th className="p-2 text-center text-black dark:text-white">Biaya</th>
-                    {title === 'Equipment' && (
-                      <th className="p-2 text-left text-black dark:text-white">BBM</th>
-                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, idx) => {
                     const isEquipment = title === 'Equipment';
+                    const isBBM = title === 'BBM';
                     const fuelUsed = (item.fuelUsed as unknown as number) || 0;
                     const fuelPrice = (item.fuelPrice as unknown as number) || 0;
                     const fuelTotal = fuelUsed * fuelPrice;
                     const isExpanded = expandedEquipmentRows.includes(idx);
-                    const totalColumns = (isEquipment ? equipmentSubFields.length : fields.length) + 1 + (isEquipment ? 1 : 0);
+                    const totalColumns = ((isEquipment || isBBM) ? equipmentSubFields.length + (isBBM ? 2 : 0) : fields.length) + 1;
 
                     return (
                       <React.Fragment key={idx}>
                         <tr className="border-t border-gray-100 dark:border-white/[0.04]">
-                          {isEquipment
-                            ? equipmentSubFields.map(sub => (
-                                <td key={sub.key} className="p-2 text-black dark:text-white">
-                                  {item.equipment && typeof item.equipment[sub.key as keyof typeof item.equipment] !== 'object'
-                                    ? String(item.equipment[sub.key as keyof typeof item.equipment] ?? '')
-                                    : ''}
-                                </td>
-                              ))
+                          {(isEquipment || isBBM)
+                            ? (
+                              <>
+                                {equipmentSubFields.map(sub => (
+                                  <td key={sub.key} className="p-2 text-black dark:text-white">
+                                    {item.equipment && typeof item.equipment[sub.key as keyof typeof item.equipment] !== 'object'
+                                      ? String(item.equipment[sub.key as keyof typeof item.equipment] ?? '')
+                                      : ''}
+                                  </td>
+                                ))}
+                                {isBBM && (
+                                  <>
+                                    <td className="p-2 text-black dark:text-white">{fuelUsed}</td>
+                                    <td className="p-2 text-black dark:text-white">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fuelPrice)}/liter</td>
+                                  </>
+                                )}
+                              </>
+                            )
                             : fields.map(f => (
                                 <td key={f.key as string} className="p-2 text-black dark:text-white">{typeof item[f.key] !== 'object' ? String(item[f.key] ?? '') : ''}</td>
                               ))}
                           <td className="p-2 text-center text-black dark:text-white">
                             {isEquipment
-                              ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(((item.rentalRatePerDay as number) || 0) + ((item.cost as number) || 0))
-                              : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format((item.cost as number) || 0)}
+                              ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(((item.rentalRatePerDay as number) || 0))
+                              : isBBM
+                                ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(((item.cost as number) || fuelTotal || 0))
+                                : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format((item.cost as number) || 0)}
                           </td>
-                          {isEquipment && (
-                            <td className="p-2 text-left">
-                              <button
-                                onClick={() => {
-                                  setExpandedEquipmentRows(isExpanded
-                                    ? expandedEquipmentRows.filter(i => i !== idx)
-                                    : [...expandedEquipmentRows, idx]
-                                  );
-                                }}
-                                className="flex items-center justify-center py-1 px-2 rounded bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50"
-                              >
-                                <span className="mr-1 text-xs font-medium text-black dark:text-white">
-                                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fuelTotal)}
-                                </span>
-                                {isExpanded ? (
-                                  <ChevronUpIcon className="w-4 h-4 text-blue-500" />
-                                ) : (
-                                  <ChevronDownIcon className="w-4 h-4 text-blue-500" />
-                                )}
-                              </button>
-                            </td>
-                          )}
                         </tr>
-                        {isEquipment && isExpanded && (
-                          <tr className="bg-blue-50/50 dark:bg-blue-900/10">
-                            <td colSpan={totalColumns} className="p-2">
-                              <div className="pl-4 py-2 border-l-2 border-blue-300 dark:border-blue-700">
-                                <h6 className="font-medium text-xs text-blue-800 dark:text-blue-300 mb-1">Rincian BBM</h6>
-                                <div className="grid grid-cols-3 gap-4 text-xs">
-                                  <div>
-                                    <p className="text-gray-600 dark:text-gray-400">BBM Terpakai</p>
-                                    <p className="font-medium text-black dark:text-white">{fuelUsed} liter</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-gray-600 dark:text-gray-400">Harga BBM</p>
-                                    <p className="font-medium text-black dark:text-white">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fuelPrice)}/liter</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-gray-600 dark:text-gray-400">Total Biaya BBM</p>
-                                    <p className="font-medium text-black dark:text-white">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(fuelTotal)}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
+                        {/* Tidak ada lagi accordion BBM di modal Equipment */}
                       </React.Fragment>
                     );
                   })}
@@ -377,22 +363,37 @@ export default function SPKDetailPage() {
           }, acc);
         }, { nr: 0, r: 0 });
 
-        const equipment = activities.reduce((acc, activity) => {
-          // Calculate equipment cost including rentalRatePerDay
+        // Pisahkan biaya Equipment Rental dan BBM
+        const equipmentRental = activities.reduce((acc, activity) => {
           const equipmentItems = activity.costs?.equipment?.items || [];
-          const equipmentCost = equipmentItems.reduce((itemAcc, item) => {
-            return itemAcc + (item.cost || 0) + (item.rentalRatePerDay || 0);
+          const rental = equipmentItems.reduce((itemAcc, item) => {
+            return itemAcc + (item.rentalRatePerDay || 0);
           }, 0);
-          return acc + equipmentCost;
+          return acc + rental;
         }, 0);
-        
+
+        const bbm = activities.reduce((acc, activity) => {
+          const equipmentItems = activity.costs?.equipment?.items || [];
+          const fuel = equipmentItems.reduce((itemAcc, item) => {
+            // gunakan item.cost jika tersedia sebagai total BBM; fallback ke fuelUsed * fuelPrice
+            const fuelUsed = (item.fuelUsed as number) || 0;
+            const fuelPrice = (item.fuelPrice as number) || 0;
+            const fuelTotal = (item.cost as number) ?? (fuelUsed * fuelPrice);
+            return itemAcc + (fuelTotal || 0);
+          }, 0);
+          return acc + fuel;
+        }, 0);
+
         const manpower = activities.reduce((acc, activity) => 
           acc + (activity.costs?.manpower?.totalCost || 0), 0);
         
+        const materials = activities.reduce((acc, activity) =>
+          acc + (activity.costs?.materials?.totalCost || 0), 0);
+
         const other = activities.reduce((acc, activity) => 
           acc + (activity.costs?.otherCosts?.totalCost || 0), 0);
 
-        const total = equipment + manpower + other;
+        const total = equipmentRental + bbm + manpower + materials + other;
 
         return {
           date: dateStr,
@@ -403,14 +404,18 @@ export default function SPKDetailPage() {
             dailyProgress,
             dailyCost
           },
-          equipment,
+          equipment: equipmentRental,
+          bbm,
           manpower,
+          materials,
           other,
           total
         };
       }).filter(data => 
         data.workItems.completed > 0 || 
         data.equipment > 0 || 
+        data.bbm > 0 ||
+        data.materials > 0 ||
         data.manpower > 0 || 
         data.other > 0
       );
@@ -608,6 +613,72 @@ export default function SPKDetailPage() {
                     </td>
                   ))}
                 </tr>
+                {/* BBM row under Equipment */}
+                <tr className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <td className="p-4 font-medium text-black dark:text-white">BBM</td>
+                  {matrixData.map((data, index) => (
+                    <td key={index} className="p-4 text-center text-black dark:text-white">
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(data.bbm)}
+                      <button
+                        className="ml-2 px-2 py-1 rounded bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold shadow"
+                        onClick={() => {
+                          const activities = (spkData.dailyActivities || []).filter(activity => {
+                            const activityDate = new Date(activity.date);
+                            if (periodType === 'daily') {
+                              return format(activityDate, 'dd MMM yyyy', { locale: id }) === data.date;
+                            } else if (periodType === 'weekly') {
+                              return (
+                                format(startOfWeek(activityDate, { locale: id }), 'dd MMM', { locale: id }) + ' - ' + format(endOfWeek(activityDate, { locale: id }), 'dd MMM yyyy', { locale: id })
+                              ) === data.date;
+                            } else {
+                              return format(activityDate, 'MMMM yyyy', { locale: id }) === data.date;
+                            }
+                          });
+                          const items = activities.flatMap(a => a.costs?.equipment?.items || []);
+                          setModalCostOpen(true);
+                          setModalCostItems(items);
+                          setModalCostDate(data.date);
+                          setModalCostTitle('BBM');
+                        }}
+                      >
+                        Details
+                      </button>
+                    </td>
+                  ))}
+                </tr>
+                {/* Materials row */}
+                <tr className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <td className="p-4 font-medium text-black dark:text-white">Materials</td>
+                  {matrixData.map((data, index) => (
+                    <td key={index} className="p-4 text-center text-black dark:text-white">
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(data.materials)}
+                      <button
+                        className="ml-2 px-2 py-1 rounded bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold shadow"
+                        onClick={() => {
+                          const activities = (spkData.dailyActivities || []).filter(activity => {
+                            const activityDate = new Date(activity.date);
+                            if (periodType === 'daily') {
+                              return format(activityDate, 'dd MMM yyyy', { locale: id }) === data.date;
+                            } else if (periodType === 'weekly') {
+                              return (
+                                format(startOfWeek(activityDate, { locale: id }), 'dd MMM', { locale: id }) + ' - ' + format(endOfWeek(activityDate, { locale: id }), 'dd MMM yyyy', { locale: id })
+                              ) === data.date;
+                            } else {
+                              return format(activityDate, 'MMMM yyyy', { locale: id }) === data.date;
+                            }
+                          });
+                          const items = activities.flatMap(a => a.costs?.materials?.items || []);
+                          setModalCostOpen(true);
+                          setModalCostItems(items);
+                          setModalCostDate(data.date);
+                          setModalCostTitle('Materials');
+                        }}
+                      >
+                        Details
+                      </button>
+                    </td>
+                  ))}
+                </tr>
                 <tr className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                   <td className="p-4 font-medium text-black dark:text-white">Manpower</td>
                   {matrixData.map((data, index) => (
@@ -681,7 +752,7 @@ export default function SPKDetailPage() {
                   ))}
                 </tr>
                 <tr className="bg-gray-50 dark:bg-white/[0.02] hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
-                  <td className="p-4 font-medium text-black dark:text-white">Total Cost (Equipment, Manpower, Other)</td>
+                  <td className="p-4 font-medium text-black dark:text-white">Total Cost (Equipment, BBM, Manpower, Other)</td>
                   {matrixData.map((data, index) => (
                     <td key={index} className="p-4 text-center font-medium text-black dark:text-white">
                       {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(data.total)}

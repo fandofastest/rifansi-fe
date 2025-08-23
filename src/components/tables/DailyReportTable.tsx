@@ -20,7 +20,7 @@ import Select from "@/components/ui/select/Select";
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
 
-export function DailyReportTable() {
+export function DailyReportTable({ spkId }: { spkId?: string }) {
   const { token, user } = useAuth();
   const [reports, setReports] = useState<DailyActivityListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +71,7 @@ export function DailyReportTable() {
 
   useEffect(() => {
     const fetchReports = async () => {
+      setLoading(true);
       if (!token || !user) return;
       
       try {
@@ -80,6 +81,7 @@ export function DailyReportTable() {
           // PMT and SUPERADMIN can choose area
           data = await getDailyActivityListRange(token, {
             areaId: selectedAreaId || undefined,
+            spkId: spkId || undefined,
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
           });
@@ -87,6 +89,7 @@ export function DailyReportTable() {
           // Other users only see reports from their area
           data = await getDailyActivityListRange(token, {
             areaId: user.area.id,
+            spkId: spkId || undefined,
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
           });
@@ -108,7 +111,7 @@ export function DailyReportTable() {
     };
 
     fetchReports();
-  }, [token, user, canSeeAllReports, selectedAreaId, dateRange]);
+  }, [token, user, canSeeAllReports, selectedAreaId, dateRange, spkId]);
 
   const handleApprove = async (report: DailyActivityListItem) => {
     setReportToAction(report);
@@ -130,12 +133,14 @@ export function DailyReportTable() {
         // PMT and SUPERADMIN can choose area
         data = await getDailyActivityListRange(token, {
           areaId: selectedAreaId || undefined,
+          spkId: spkId || undefined,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
         });
       } else if (user.area?.id) {
         data = await getDailyActivityListRange(token, {
           areaId: user.area.id,
+          spkId: spkId || undefined,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
         });

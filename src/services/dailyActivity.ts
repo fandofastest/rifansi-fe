@@ -961,6 +961,7 @@ const GET_DAILY_ACTIVITY_LIST_RANGE = `
     $areaId: ID
     $userId: ID
     $activityId: ID
+    $spkId: ID
     $startDate: String
     $endDate: String
   ) {
@@ -968,6 +969,7 @@ const GET_DAILY_ACTIVITY_LIST_RANGE = `
       areaId: $areaId
       userId: $userId
       activityId: $activityId
+      spkId: $spkId
       startDate: $startDate
       endDate: $endDate
     ) {
@@ -1033,6 +1035,7 @@ export const getDailyActivityListRange = async (
     areaId?: string;
     userId?: string;
     activityId?: string;
+    spkId?: string;
   }
 ): Promise<DailyActivityListItem[]> => {
   try {
