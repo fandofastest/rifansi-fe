@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { SPKTableReport } from "@/components/tables/SPKTableReport";
 import { useAuth } from "@/context/AuthContext";
-import { getSPKs, SPK } from "@/services/spk";
+import { getSPKListLite, SPKWorkItem } from "@/services/spk";
+
 import { AllItemsModal } from "@/components/spk/AllItemsModal";
 
 export default function ProjectMonitoringSPKListPage() {
@@ -11,17 +12,17 @@ export default function ProjectMonitoringSPKListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
-  const [items, setItems] = useState<SPK["workItems"]>([]);
+  const [items, setItems] = useState<SPKWorkItem[]>([]);
 
   useEffect(() => {
     const fetchSPKs = async () => {
       if (!token) return;
       try {
         setLoading(true);
-        const spks: SPK[] = await getSPKs(token);
-        // Gabungkan semua workItems dari semua SPK
-        const allItems = spks.flatMap(spk => spk.workItems || []);
-        setItems(allItems);
+        // Gunakan versi ringan untuk mengambil daftar SPK
+        await getSPKListLite(token);
+        // Data lite tidak memuat workItems; kosongkan atau isi saat tombol Items diaktifkan dengan fetch detail terpisah
+        setItems([]);
         setError(null);
       } catch (err) {
         console.error('Error fetching SPKs:', err);
