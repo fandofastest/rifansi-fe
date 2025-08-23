@@ -170,10 +170,14 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
         onClose={onClose}
         className="max-w-5xl p-5 bg-white text-gray-900 dark:bg-gray-900 dark:text-white"
       >
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           <h4 className="text-lg font-medium text-gray-800 dark:text-white">
             Detail Laporan Harian
           </h4>
+          {/* SPK Name in header */}
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            SPK: {report.spkDetail?.title || report.spkDetail?.projectName || report.spkDetail?.spkNo || '-'}
+          </p>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Tanggal</p>
@@ -196,6 +200,30 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
               <p className="font-medium">{report.userDetail.fullName}</p>
             </div>
           </div>
+
+          {/* Accordion: Detail SPK */}
+          <AccordionSection id="spk-detail" title="Detail SPK">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Nomor SPK</p>
+                <p className="font-medium">{report.spkDetail?.spkNo || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Nama SPK</p>
+                <p className="font-medium">{report.spkDetail?.title || '-'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Proyek</p>
+                <p className="font-medium">{report.spkDetail?.projectName || '-'}</p>
+              </div>
+              {report.spkDetail?.contractor && (
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400">Kontraktor</p>
+                  <p className="font-medium">{report.spkDetail.contractor}</p>
+                </div>
+              )}
+            </div>
+          </AccordionSection>
 
           {/* Rejection Reason Section */}
           {report.status === "Rejected" && report.rejectionReason && (
