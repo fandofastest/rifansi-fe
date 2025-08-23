@@ -201,6 +201,28 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
             </div>
           </div>
 
+          {/* Laba/Rugi */}
+          <div className="mt-4 p-4 rounded-lg border border-gray-200 dark:border-white/10">
+            <h5 className="mb-3 font-medium">Laba / Rugi</h5>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Total Nilai Aktivitas</p>
+                <p className="font-semibold">{totalNilaiAktivitas.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Total Semua Biaya</p>
+                <p className="font-semibold">{totalCostSelainAktivitas.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <p className="font-medium">Hasil</p>
+              <p className={`font-bold ${labaRugi >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {labaRugi.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })} ({labaRugi >= 0 ? 'Laba' : 'Rugi'})
+              </p>
+            </div>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Rumus: Laba/Rugi = Total Nilai Aktivitas - Total Semua Biaya</p>
+          </div>
+
           {/* Accordion: Detail SPK */}
           <AccordionSection id="spk-detail" title="Detail SPK">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -351,7 +373,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Ringkasan */}
+          {/* Ringkasan Aktivitas */}
           <div className="grid grid-cols-2 gap-4 mt-2">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Total Aktivitas</p>
@@ -360,16 +382,6 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Total Nilai Aktivitas</p>
               <p className="font-semibold">{totalNilaiAktivitas.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Total Biaya</p>
-              <p className="font-semibold">{totalCostSelainAktivitas.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Laba/Rugi</p>
-              <p className="font-semibold">
-                {labaRugi.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })} ({labaRugi >= 0 ? 'Laba' : 'Rugi'})
-              </p>
             </div>
           </div>
 
@@ -418,30 +430,7 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Budget Detail */}
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <h5 className="mb-3 font-medium text-blue-800 dark:text-blue-200">Detail Budget Proyek</h5>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Total Budget</p>
-                <p className="font-semibold text-blue-800 dark:text-blue-200">
-                  {report.spkDetail.budget.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Budget Terpakai</p>
-                <p className="font-semibold text-blue-800 dark:text-blue-200">
-                  {((report.spkDetail.budget * (report.budgetUsage || 0)) / 100).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Sisa Budget</p>
-                <p className="font-semibold text-blue-800 dark:text-blue-200">
-                  {(report.spkDetail.budget - ((report.spkDetail.budget * (report.budgetUsage || 0)) / 100)).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Budget Detail removed as requested */}
 
           {/* Accordion Sections */}
           <div className="mt-4 space-y-2">
