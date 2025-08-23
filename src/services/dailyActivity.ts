@@ -898,3 +898,153 @@ export const getDailyActivityWithDetailsRange = async (
   }
 };
 
+// Lightweight Daily Activity list (no activityDetails, equipment/manpower/material logs, otherCosts, or spkDetail.workItems)
+interface GetDailyActivityListRangeResponse {
+  getDailyActivityWithDetails: DailyActivityListItem[];
+}
+
+export interface DailyActivityListItem {
+  id: string;
+  date: string;
+  area: {
+    id: string;
+    name: string;
+  };
+  weather: string | null;
+  status: string;
+  workStartTime: string;
+  workEndTime: string;
+  startImages: string[];
+  finishImages: string[];
+  closingRemarks: string;
+  isApproved: boolean;
+  approvedBy: {
+    id: string;
+    username: string;
+    fullName: string;
+    email: string;
+  } | null;
+  approvedAt: string | null;
+  rejectionReason: string | null;
+  progressPercentage: number;
+  budgetUsage: number;
+  spkDetail: {
+    id: string;
+    spkNo: string;
+    wapNo: string;
+    title: string;
+    projectName: string;
+    contractor: string;
+    budget: number;
+    startDate: string;
+    endDate: string;
+    workDescription: string;
+    date: string;
+    location: {
+      id: string;
+      name: string;
+    };
+  };
+  userDetail: {
+    id: string;
+    username: string;
+    fullName: string;
+    email: string;
+    phone: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+const GET_DAILY_ACTIVITY_LIST_RANGE = `
+  query GetDailyActivityListRange(
+    $areaId: ID
+    $userId: ID
+    $activityId: ID
+    $startDate: String
+    $endDate: String
+  ) {
+    getDailyActivityWithDetails(
+      areaId: $areaId
+      userId: $userId
+      activityId: $activityId
+      startDate: $startDate
+      endDate: $endDate
+    ) {
+      id
+      date
+      area {
+        id
+        name
+      }
+      weather
+      status
+      workStartTime
+      workEndTime
+      startImages
+      finishImages
+      closingRemarks
+      isApproved
+      approvedBy {
+        id
+        username
+        fullName
+        email
+      }
+      approvedAt
+      rejectionReason
+      progressPercentage
+      budgetUsage
+      spkDetail {
+        id
+        spkNo
+        wapNo
+        title
+        projectName
+        contractor
+        budget
+        startDate
+        endDate
+        workDescription
+        date
+        location {
+          id
+          name
+        }
+      }
+      userDetail {
+        id
+        username
+        fullName
+        email
+        phone
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const getDailyActivityListRange = async (
+  token: string,
+  params: {
+    startDate?: string;
+    endDate?: string;
+    areaId?: string;
+    userId?: string;
+    activityId?: string;
+  }
+): Promise<DailyActivityListItem[]> => {
+  try {
+    const response = await graphQLClient.request<GetDailyActivityListRangeResponse>(
+      GET_DAILY_ACTIVITY_LIST_RANGE,
+      params,
+      { Authorization: `Bearer ${token}` }
+    );
+    return response.getDailyActivityWithDetails;
+  } catch (error) {
+    console.error('Error fetching lightweight daily activities with range:', error);
+    throw error;
+  }
+};
+

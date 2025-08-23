@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getSPKs, getSPKDetailsWithProgress, SPK, SPKDetailWithProgress } from "@/services/spk";
+import { getSPKListLite, getSPKDetailsWithProgress, SPKListItem, SPKDetailWithProgress } from "@/services/spk";
+
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { id } from "date-fns/locale";
 import dynamic from "next/dynamic";
@@ -155,7 +156,7 @@ export default function DailyReportSummaryPage() {
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [spkList, setSPKList] = useState<SPK[]>([]);
+  const [spkList, setSPKList] = useState<SPKListItem[]>([]);
   const [selectedSPK, setSelectedSPK] = useState<string>('');
   const [spkDetails, setSPKDetails] = useState<SPKDetailWithProgress | null>(null);
   const [chartData, setChartData] = useState<ChartData>({
@@ -181,8 +182,8 @@ export default function DailyReportSummaryPage() {
       if (!token) return;
       try {
         setLoading(true);
-        const data = await getSPKs(token);
-        console.log('SPK List:', data);
+        const data = await getSPKListLite(token);
+        console.log('SPK List (lite):', data);
         setSPKList(data);
         setError(null);
       } catch (err) {
@@ -275,13 +276,13 @@ export default function DailyReportSummaryPage() {
         : 0;
       chartData.progressData.push(avgProgress);
 
-      // Budget usage (from work items)
+      // Budget usage (actual costs from aggregated activity.costs totals)
       const totalBudget = activitiesForDate.reduce((sum, activity) => {
-        return sum + activity.workItems.reduce((itemSum, item) => {
-          const nrCost = (item.actualQuantity?.nr || 0) * (item.rates?.nr?.rate || 0);
-          const rCost = (item.actualQuantity?.r || 0) * (item.rates?.r?.rate || 0);
-          return itemSum + nrCost + rCost;
-        }, 0);
+        const equipment = activity.costs?.equipment?.totalCost || 0;
+        const manpower = activity.costs?.manpower?.totalCost || 0;
+        const materials = activity.costs?.materials?.totalCost || 0;
+        const other = activity.costs?.otherCosts?.totalCost || 0;
+        return sum + equipment + manpower + materials + other;
       }, 0);
       chartData.budgetData.push(totalBudget);
 
@@ -538,8 +539,8 @@ export default function DailyReportSummaryPage() {
 
   // Calculate summary statistics
   const totalActivities = spkDetails?.dailyActivities?.length || 0;
-  const totalBudget = spkDetails?.budget || 0;
-  const totalSpent = chartData.budgetData.reduce((sum, val) => sum + val, 0);
+  const totalBudget = spkDetails?.totalProgress?.totalBudget ?? spkDetails?.budget ?? 0;
+  const totalSpent = spkDetails?.totalProgress?.totalSpent ?? chartData.budgetData.reduce((sum, val) => sum + val, 0);
   const avgProgress = spkDetails?.totalProgress?.percentage || 0;
 
   if (loading) return (

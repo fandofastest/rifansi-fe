@@ -7,8 +7,8 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useAuth } from "@/context/AuthContext";
 import { 
-  DailyActivity, 
-  getDailyActivityWithDetailsRange, 
+  DailyActivityListItem,
+  getDailyActivityListRange, 
   approveDailyReport, 
   deleteDailyActivity 
 } from "@/services/dailyActivity";
@@ -22,16 +22,16 @@ type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "succe
 
 export function DailyReportTable() {
   const { token, user } = useAuth();
-  const [reports, setReports] = useState<DailyActivity[]>([]);
+  const [reports, setReports] = useState<DailyActivityListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedActivityId, setSelectedActivityId] = useState<string>("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-  const [reportToAction, setReportToAction] = useState<DailyActivity | null>(null);
+  const [reportToAction, setReportToAction] = useState<DailyActivityListItem | null>(null);
   const [remarks, setRemarks] = useState("");
-  const [reportToDelete, setReportToDelete] = useState<DailyActivity | null>(null);
+  const [reportToDelete, setReportToDelete] = useState<DailyActivityListItem | null>(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
 
   // Area selection states
@@ -74,18 +74,18 @@ export function DailyReportTable() {
       if (!token || !user) return;
       
       try {
-        let data: DailyActivity[];
+        let data: DailyActivityListItem[];
         
         if (canSeeAllReports) {
           // PMT and SUPERADMIN can choose area
-          data = await getDailyActivityWithDetailsRange(token, {
+          data = await getDailyActivityListRange(token, {
             areaId: selectedAreaId || undefined,
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
           });
         } else if (user.area?.id) {
           // Other users only see reports from their area
-          data = await getDailyActivityWithDetailsRange(token, {
+          data = await getDailyActivityListRange(token, {
             areaId: user.area.id,
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
@@ -110,12 +110,12 @@ export function DailyReportTable() {
     fetchReports();
   }, [token, user, canSeeAllReports, selectedAreaId, dateRange]);
 
-  const handleApprove = async (report: DailyActivity) => {
+  const handleApprove = async (report: DailyActivityListItem) => {
     setReportToAction(report);
     setIsApproveModalOpen(true);
   };
 
-  const handleReject = async (report: DailyActivity) => {
+  const handleReject = async (report: DailyActivityListItem) => {
     setReportToAction(report);
     setIsRejectModalOpen(true);
   };
@@ -124,17 +124,17 @@ export function DailyReportTable() {
     if (!token || !user) return;
     
     try {
-      let data: DailyActivity[];
+      let data: DailyActivityListItem[];
       
       if (canSeeAllReports) {
         // PMT and SUPERADMIN can choose area
-        data = await getDailyActivityWithDetailsRange(token, {
+        data = await getDailyActivityListRange(token, {
           areaId: selectedAreaId || undefined,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
         });
       } else if (user.area?.id) {
-        data = await getDailyActivityWithDetailsRange(token, {
+        data = await getDailyActivityListRange(token, {
           areaId: user.area.id,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
@@ -177,11 +177,11 @@ export function DailyReportTable() {
     }
   };
 
-  const handleViewDetail = (report: DailyActivity) => {
+  const handleViewDetail = (report: DailyActivityListItem) => {
     setSelectedActivityId(report.id);
   };
 
-  const handleDelete = async (report: DailyActivity) => {
+  const handleDelete = async (report: DailyActivityListItem) => {
     setReportToDelete(report);
     setIsDeleteModalOpen(true);
   };
@@ -334,9 +334,8 @@ export function DailyReportTable() {
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       <div>
                         <div className="font-medium">{report.area?.name || '-'}</div>
-                        <div className="text-xs text-gray-400">
-                          {report.area?.location?.coordinates?.join(', ') || '-'}
-                        </div>
+                        {/* Coordinates removed in lightweight list response */}
+                        <div className="text-xs text-gray-400">-</div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-start">

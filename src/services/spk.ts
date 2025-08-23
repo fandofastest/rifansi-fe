@@ -297,6 +297,18 @@ export interface SPKDetailWithProgress extends SPK {
   costBreakdown: CostBreakdown;
 }
 
+// Lightweight SPK list item for performant list/dropdown fetching
+export interface SPKListItem {
+  id: string;
+  spkNo: string;
+  projectName: string;
+  title: string;
+}
+
+interface SPKListLiteResponse {
+  spks: SPKListItem[];
+}
+
 const GET_SPKS = `
   query GetSPKs($startDate: String, $endDate: String) {
     spks(startDate: $startDate, endDate: $endDate) {
@@ -358,6 +370,18 @@ const GET_SPKS = `
       }
       createdAt
       updatedAt
+    }
+  }
+`;
+
+// Lightweight SPK list query: only essential fields
+const GET_SPKS_LITE = `
+  query GetSPKsLite($startDate: String, $endDate: String) {
+    spks(startDate: $startDate, endDate: $endDate) {
+      id
+      spkNo
+      projectName
+      title
     }
   }
 `;
@@ -736,6 +760,27 @@ export const getSPKs = async (
     return response.spks;
   } catch (error) {
     console.error('Error fetching SPKs:', error);
+    throw error;
+  }
+};
+
+// Lightweight SPK list service for summary page dropdowns
+export const getSPKListLite = async (
+  token: string,
+  startDate?: string,
+  endDate?: string
+): Promise<SPKListItem[]> => {
+  try {
+    const variables: GetSPKsVariables = {};
+    if (startDate) variables.startDate = startDate;
+    if (endDate) variables.endDate = endDate;
+
+    const response = await graphQLClient.request<SPKListLiteResponse>(GET_SPKS_LITE, variables, {
+      Authorization: `Bearer ${token}`,
+    });
+    return response.spks;
+  } catch (error) {
+    console.error('Error fetching lightweight SPK list:', error);
     throw error;
   }
 };
