@@ -158,6 +158,7 @@ export interface SPKProgress {
   totalBudget: number;
   totalSpent: number;
   remainingBudget: number;
+  totalSales?: number;
 }
 
 export interface WorkItemProgress {
@@ -719,6 +720,7 @@ const GET_SPK_DETAILS_WITH_PROGRESS = `
         totalBudget
         totalSpent
         remainingBudget
+        totalSales
       }
       createdAt
       updatedAt

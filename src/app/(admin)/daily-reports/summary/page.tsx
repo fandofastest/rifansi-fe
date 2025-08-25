@@ -553,7 +553,7 @@ export default function DailyReportSummaryPage() {
   const totalBudget = spkDetails?.totalProgress?.totalBudget ?? spkDetails?.budget ?? 0;
   const totalSpent = spkDetails?.totalProgress?.totalSpent ?? chartData.budgetData.reduce((sum, val) => sum + val, 0);
   const avgProgress = spkDetails?.totalProgress?.percentage || 0;
-  const totalSales = (avgProgress / 100) * totalBudget;
+  const totalSales = spkDetails?.totalProgress?.totalSales ?? (avgProgress / 100) * totalBudget;
 
   // Helpers: short currency and full currency (for tooltip)
   const formatCurrencyFull = (value: number) =>
