@@ -113,6 +113,39 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
     fetchReports();
   }, [token, user, canSeeAllReports, selectedAreaId, dateRange, spkId]);
 
+  // Tooltip state for currency display (mimic chart/summary tooltip)
+  const [tooltip, setTooltip] = useState<{ visible: boolean; x: number; y: number; content: string }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    content: "",
+  });
+  const showTooltip = (e: React.MouseEvent, content: string) => {
+    setTooltip({ visible: true, x: e.clientX + 12, y: e.clientY + 12, content });
+  };
+  const moveTooltip = (e: React.MouseEvent) => {
+    setTooltip((t) => ({ ...t, x: e.clientX + 12, y: e.clientY + 12 }));
+  };
+  const hideTooltip = () => setTooltip((t) => ({ ...t, visible: false }));
+
+  // Helpers: full and short IDR formatting
+  const formatCurrencyFull = (value: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  const formatShortIDR = (value: number) => {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000_000) {
+      return `${(value / 1_000_000_000).toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 1 })} M`;
+    } else if (abs >= 1_000_000) {
+      return `${(value / 1_000_000).toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 1 })} jt`;
+    }
+    return value.toLocaleString("id-ID");
+  };
+
   const handleApprove = async (report: DailyActivityListItem) => {
     setReportToAction(report);
     setIsApproveModalOpen(true);
@@ -314,6 +347,9 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
                     Budget
                   </th>
                   <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                    Nilai Aktivitas
+                  </th>
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                     Aksi
                   </th>
                 </tr>
@@ -372,6 +408,30 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
                         </span>
                       </div>
                     </td>
+                    {/* Nilai Aktivitas column */}
+                    <td className="px-4 py-3 text-start">
+                      {(() => {
+                        const total = (report.activityDetails || []).reduce((sum, ad) => {
+                          const qnr = ad?.actualQuantity?.nr ?? 0;
+                          const qr = ad?.actualQuantity?.r ?? 0;
+                          const rnr = ad?.rates?.nr?.rate ?? 0;
+                          const rr = ad?.rates?.r?.rate ?? 0;
+                          return sum + qnr * rnr + qr * rr;
+                        }, 0);
+                        const display = formatShortIDR(total);
+                        const full = formatCurrencyFull(total);
+                        return (
+                          <div
+                            className="inline-flex items-center gap-2 max-w-[180px] whitespace-nowrap truncate"
+                            onMouseEnter={(e) => showTooltip(e, full)}
+                            onMouseMove={moveTooltip}
+                            onMouseLeave={hideTooltip}
+                          >
+                            <span className="text-theme-sm font-medium text-gray-800 dark:text-white/90 truncate">{display}</span>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="px-4 py-3 text-start">
                       <div className="flex items-center gap-2">
                         <Button
@@ -419,6 +479,16 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
           </div>
         </div>
       </div>
+
+      {/* Floating tooltip */}
+      {tooltip.visible && (
+        <div
+          className="pointer-events-none fixed z-50 px-2 py-1 text-xs rounded-md bg-gray-900 text-white shadow-lg"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
+          {tooltip.content}
+        </div>
+      )}
 
       {/* Detail Modal */}
       <DailyReportDetailModal

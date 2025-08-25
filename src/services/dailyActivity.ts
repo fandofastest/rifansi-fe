@@ -928,6 +928,16 @@ export interface DailyActivityListItem {
   rejectionReason: string | null;
   progressPercentage: number;
   budgetUsage: number;
+  activityDetails?: {
+    actualQuantity: {
+      nr: number;
+      r: number;
+    };
+    rates: {
+      nr: { rate: number };
+      r: { rate: number };
+    };
+  }[];
   spkDetail: {
     id: string;
     spkNo: string;
@@ -997,6 +1007,10 @@ const GET_DAILY_ACTIVITY_LIST_RANGE = `
       rejectionReason
       progressPercentage
       budgetUsage
+      activityDetails {
+        actualQuantity { nr r }
+        rates { nr { rate } r { rate } }
+      }
       spkDetail {
         id
         spkNo

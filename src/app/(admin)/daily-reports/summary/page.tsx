@@ -450,6 +450,17 @@ export default function DailyReportSummaryPage() {
     },
   };
 
+  // Helper: truncate to 2 decimals (no rounding)
+  const truncate2 = (value: number) => Math.trunc(value * 100) / 100;
+
+  // Tooltip state (mimic chart tooltip style)
+  const [tooltip, setTooltip] = useState<{ visible: boolean; x: number; y: number; content: string }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    content: '',
+  });
+
   // Cost Breakdown Chart Options
   const costChartOptions = {
     chart: {
@@ -544,6 +555,33 @@ export default function DailyReportSummaryPage() {
   const avgProgress = spkDetails?.totalProgress?.percentage || 0;
   const totalSales = (avgProgress / 100) * totalBudget;
 
+  // Helpers: short currency and full currency (for tooltip)
+  const formatCurrencyFull = (value: number) =>
+    new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+
+  const formatShortIDR = (value: number) => {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000_000) {
+      // Miliar => M
+      return `${(value / 1_000_000_000).toLocaleString('id-ID', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      })} M`;
+    } else if (abs >= 1_000_000) {
+      // Juta => jt
+      return `${(value / 1_000_000).toLocaleString('id-ID', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      })} jt`;
+    }
+    return value.toLocaleString('id-ID');
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
@@ -609,12 +647,12 @@ export default function DailyReportSummaryPage() {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
               <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Aktivitas</p>
-                    <p className="text-2xl font-bold text-black dark:text-white">{totalActivities}</p>
+                    <p className="text-2xl font-bold text-black dark:text-white whitespace-nowrap truncate leading-tight">{totalActivities}</p>
                   </div>
-                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full shrink-0">
                     <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -622,20 +660,20 @@ export default function DailyReportSummaryPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-                <div className="flex items-center justify-between">
-                  <div>
+              <div
+                className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]"
+                onMouseEnter={(e) => setTooltip({ visible: true, x: e.clientX, y: e.clientY, content: formatCurrencyFull(totalBudget) })}
+                onMouseMove={(e) => setTooltip((t) => ({ ...t, x: e.clientX, y: e.clientY }))}
+                onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Budget</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {new Intl.NumberFormat('id-ID', { 
-                        style: 'currency', 
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(totalBudget)}
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 leading-tight whitespace-nowrap truncate">
+                      {formatShortIDR(totalBudget)}
                     </p>
                   </div>
-                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full shrink-0">
                     <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                     </svg>
@@ -643,20 +681,20 @@ export default function DailyReportSummaryPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-                <div className="flex items-center justify-between">
-                  <div>
+              <div
+                className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]"
+                onMouseEnter={(e) => setTooltip({ visible: true, x: e.clientX, y: e.clientY, content: formatCurrencyFull(totalSpent) })}
+                onMouseMove={(e) => setTooltip((t) => ({ ...t, x: e.clientX, y: e.clientY }))}
+                onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Cost</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                      {new Intl.NumberFormat('id-ID', { 
-                        style: 'currency', 
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(totalSpent)}
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 leading-tight whitespace-nowrap truncate">
+                      {formatShortIDR(totalSpent)}
                     </p>
                   </div>
-                  <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
+                  <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full shrink-0">
                     <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -664,20 +702,20 @@ export default function DailyReportSummaryPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-                <div className="flex items-center justify-between">
-                  <div>
+              <div
+                className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]"
+                onMouseEnter={(e) => setTooltip({ visible: true, x: e.clientX, y: e.clientY, content: formatCurrencyFull(totalSales) })}
+                onMouseMove={(e) => setTooltip((t) => ({ ...t, x: e.clientX, y: e.clientY }))}
+                onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</p>
-                    <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(totalSales)}
+                    <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 leading-tight whitespace-nowrap truncate">
+                      {formatShortIDR(totalSales)}
                     </p>
                   </div>
-                  <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
+                  <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-full shrink-0">
                     <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h4l3 10 4-18 3 8h4" />
                     </svg>
@@ -685,13 +723,20 @@ export default function DailyReportSummaryPage() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-                <div className="flex items-center justify-between">
-                  <div>
+              <div
+                className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]"
+                onMouseEnter={(e) => setTooltip({ visible: true, x: e.clientX, y: e.clientY, content: `${avgProgress.toLocaleString('id-ID', { maximumFractionDigits: 6 })}%` })}
+                onMouseMove={(e) => setTooltip((t) => ({ ...t, x: e.clientX, y: e.clientY }))}
+                onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Progress Total</p>
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{avgProgress.toFixed(1)}%</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 leading-tight whitespace-nowrap truncate">
+                      {truncate2(avgProgress).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+                    </p>
                   </div>
-                  <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                  <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full shrink-0">
                     <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
@@ -699,6 +744,16 @@ export default function DailyReportSummaryPage() {
                 </div>
               </div>
             </div>
+
+            {/* Floating Tooltip (chart-style) */}
+            {tooltip.visible && (
+              <div
+                className="fixed z-50 px-3 py-2 rounded-md text-sm shadow-lg pointer-events-none select-none bg-gray-900 text-white dark:bg-gray-800"
+                style={{ left: tooltip.x + 12, top: tooltip.y + 12 }}
+              >
+                {tooltip.content}
+              </div>
+            )}
 
             {/* Charts */}
             <div className="grid grid-cols-1 gap-6">
