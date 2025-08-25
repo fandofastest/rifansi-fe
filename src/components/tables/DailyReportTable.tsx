@@ -57,8 +57,9 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
         setLoadingAreas(true);
         const data = await getAreas(token);
         setAreas(data);
-        // Set default to user's area if they have one, otherwise "all"
-        setSelectedAreaId(user?.area?.id || "");
+        // Default to "Semua Area" for PMT/SUPERADMIN
+        // Previously this defaulted to user's own area (e.g., Duri), which is not desired.
+        setSelectedAreaId("");
       } catch (err) {
         console.error('Error fetching areas:', err);
       } finally {
