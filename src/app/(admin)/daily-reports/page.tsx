@@ -108,7 +108,7 @@ export default function DailyReportsPage() {
 
         {/* SPK Budget summary when a specific SPK selected */}
         {selectedSpkId && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div
               className="flex items-center gap-4 p-4 rounded-lg border border-gray-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.03]"
             >
@@ -136,6 +136,26 @@ export default function DailyReportsPage() {
                     const spent = spkDetails?.totalProgress?.totalSpent ?? 0;
                     const remaining = spkDetails?.totalProgress?.remainingBudget ?? (total - spent);
                     return formatCurrencyFull(remaining);
+                  })()}
+                </div>
+              </div>
+            </div>
+            <div
+              className="flex items-center gap-4 p-4 rounded-lg border border-gray-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.03]"
+            >
+              <div className="shrink-0 h-10 w-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center dark:bg-indigo-500/10">
+                Sales
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm text-gray-500 dark:text-gray-400">Total Sales</div>
+                <div className="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap truncate">
+                  {loadingSpkDetail ? "Memuat..." : (() => {
+                    const total = spkDetails?.totalProgress?.totalBudget ?? spkDetails?.budget ?? 0;
+                    const percentage = spkDetails?.totalProgress?.percentage ?? 0;
+                    const apiSales = spkDetails?.totalProgress?.totalSales;
+                    const computed = (percentage / 100) * total;
+                    const value = typeof apiSales === 'number' ? apiSales : computed;
+                    return formatCurrencyFull(value);
                   })()}
                 </div>
               </div>
