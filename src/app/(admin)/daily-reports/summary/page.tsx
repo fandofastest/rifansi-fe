@@ -282,11 +282,11 @@ export default function DailyReportSummaryPage() {
       // Budget usage (sum of equipment rental + fuel + manpower + materials + other)
       const totalBudget = activitiesForDate.reduce((sum, activity) => {
         const equipmentItems = activity.costs?.equipment?.items || [];
-        // Equipment rental per day: if workingHours > 0 then days = ceil(workingHours/24)
+        // Equipment rental per day: flat 1 day if any workingHours > 0
         const equipmentRental = equipmentItems.reduce((s, it) => {
           const wh = (it as any)?.workingHours || 0;
           const ratePerDay = (it as any)?.rentalRatePerDay || 0;
-          const days = wh > 0 ? Math.ceil(wh / 24) : 0;
+          const days = wh > 0 ? 1 : 0;
           return s + days * ratePerDay;
         }, 0);
         // Fuel: fuelUsed * fuelPrice
@@ -308,7 +308,7 @@ export default function DailyReportSummaryPage() {
         const rental = items.reduce((s, it) => {
           const wh = (it as any)?.workingHours || 0;
           const ratePerDay = (it as any)?.rentalRatePerDay || 0;
-          const days = wh > 0 ? Math.ceil(wh / 24) : 0;
+          const days = wh > 0 ? 1 : 0;
           return s + days * ratePerDay;
         }, 0);
         return sum + rental;
