@@ -18,6 +18,7 @@ interface ChartData {
   progressData: number[];
   budgetData: number[];
   equipmentData: number[];
+  fuelData: number[];
   manpowerData: number[];
   materialData: number[];
   otherCostsData: number[];
@@ -164,6 +165,7 @@ export default function DailyReportSummaryPage() {
     progressData: [],
     budgetData: [],
     equipmentData: [],
+    fuelData: [],
     manpowerData: [],
     materialData: [],
     otherCostsData: [],
@@ -247,6 +249,7 @@ export default function DailyReportSummaryPage() {
       progressData: [],
       budgetData: [],
       equipmentData: [],
+      fuelData: [],
       manpowerData: [],
       materialData: [],
       otherCostsData: [],
@@ -276,21 +279,51 @@ export default function DailyReportSummaryPage() {
         : 0;
       chartData.progressData.push(avgProgress);
 
-      // Budget usage (actual costs from aggregated activity.costs totals)
+      // Budget usage (sum of equipment rental + fuel + manpower + materials + other)
       const totalBudget = activitiesForDate.reduce((sum, activity) => {
-        const equipment = activity.costs?.equipment?.totalCost || 0;
+        const equipmentItems = activity.costs?.equipment?.items || [];
+        // Equipment rental per day: if workingHours > 0 then days = ceil(workingHours/24)
+        const equipmentRental = equipmentItems.reduce((s, it) => {
+          const wh = (it as any)?.workingHours || 0;
+          const ratePerDay = (it as any)?.rentalRatePerDay || 0;
+          const days = wh > 0 ? Math.ceil(wh / 24) : 0;
+          return s + days * ratePerDay;
+        }, 0);
+        // Fuel: fuelUsed * fuelPrice
+        const fuel = equipmentItems.reduce((s, it) => {
+          const used = it?.fuelUsed || 0;
+          const price = it?.fuelPrice || 0;
+          return s + used * price;
+        }, 0);
         const manpower = activity.costs?.manpower?.totalCost || 0;
         const materials = activity.costs?.materials?.totalCost || 0;
         const other = activity.costs?.otherCosts?.totalCost || 0;
-        return sum + equipment + manpower + materials + other;
+        return sum + equipmentRental + fuel + manpower + materials + other;
       }, 0);
       chartData.budgetData.push(totalBudget);
 
-      // Equipment costs
+      // Equipment costs: workingHours * rentalRatePerDay (exclude fuel)
       const equipmentCosts = activitiesForDate.reduce((sum, activity) => {
-        return sum + (activity.costs?.equipment?.totalCost || 0);
+        const items = activity.costs?.equipment?.items || [];
+        const rental = items.reduce((s, it) => {
+          const wh = (it as any)?.workingHours || 0;
+          const ratePerDay = (it as any)?.rentalRatePerDay || 0;
+          const days = wh > 0 ? Math.ceil(wh / 24) : 0;
+          return s + days * ratePerDay;
+        }, 0);
+        return sum + rental;
       }, 0);
       chartData.equipmentData.push(equipmentCosts);
+
+      // Fuel (BBM) costs
+      const fuelCosts = activitiesForDate.reduce((sum, activity) => {
+        return sum + (activity.costs?.equipment?.items || []).reduce((s, it) => {
+          const used = it?.fuelUsed || 0;
+          const price = it?.fuelPrice || 0;
+          return s + used * price;
+        }, 0);
+      }, 0);
+      chartData.fuelData.push(fuelCosts);
 
       // Manpower costs
       const manpowerCosts = activitiesForDate.reduce((sum, activity) => {
@@ -470,7 +503,7 @@ export default function DailyReportSummaryPage() {
       fontFamily: "Outfit, sans-serif",
       stacked: true,
     },
-    colors: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'],
+    colors: ['#3B82F6', '#F97316', '#10B981', '#F59E0B', '#EF4444'],
     stroke: {
       curve: "smooth" as const,
       width: 2,
@@ -551,7 +584,8 @@ export default function DailyReportSummaryPage() {
   // Calculate summary statistics
   const totalActivities = spkDetails?.dailyActivities?.length || 0;
   const totalBudget = spkDetails?.totalProgress?.totalBudget ?? spkDetails?.budget ?? 0;
-  const totalSpent = spkDetails?.totalProgress?.totalSpent ?? chartData.budgetData.reduce((sum, val) => sum + val, 0);
+  // Use computed total from per-day budget data to match equipment/BBM logic
+  const totalSpent = chartData.budgetData.reduce((sum, val) => sum + val, 0);
   const avgProgress = spkDetails?.totalProgress?.percentage || 0;
   const totalSales = spkDetails?.totalProgress?.totalSales ?? (avgProgress / 100) * totalBudget;
 
@@ -787,6 +821,7 @@ export default function DailyReportSummaryPage() {
                 options={costChartOptions}
                 series={[
                   { name: 'Equipment', data: chartData.equipmentData },
+                  { name: 'BBM', data: chartData.fuelData },
                   { name: 'Manpower', data: chartData.manpowerData },
                   { name: 'Material', data: chartData.materialData },
                   { name: 'Other Costs', data: chartData.otherCostsData },
@@ -811,13 +846,15 @@ export default function DailyReportSummaryPage() {
                   <tbody className="divide-y divide-gray-200 dark:divide-white/[0.05]">
                     {(() => {
                       const totalEquipment = chartData.equipmentData.reduce((sum, val) => sum + val, 0);
+                      const totalFuel = chartData.fuelData.reduce((sum, val) => sum + val, 0);
                       const totalManpower = chartData.manpowerData.reduce((sum, val) => sum + val, 0);
                       const totalMaterial = chartData.materialData.reduce((sum, val) => sum + val, 0);
                       const totalOther = chartData.otherCostsData.reduce((sum, val) => sum + val, 0);
-                      const totalCost = totalEquipment + totalManpower + totalMaterial + totalOther;
+                      const totalCost = totalEquipment + totalFuel + totalManpower + totalMaterial + totalOther;
 
                       return [
                         { name: 'Equipment', value: totalEquipment, color: '#3B82F6' },
+                        { name: 'BBM', value: totalFuel, color: '#F97316' },
                         { name: 'Manpower', value: totalManpower, color: '#10B981' },
                         { name: 'Material', value: totalMaterial, color: '#F59E0B' },
                         { name: 'Other Costs', value: totalOther, color: '#EF4444' },
@@ -855,6 +892,7 @@ export default function DailyReportSummaryPage() {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0,
                         }).format(chartData.equipmentData.reduce((sum, val) => sum + val, 0) + 
+                                  chartData.fuelData.reduce((sum, val) => sum + val, 0) + 
                                   chartData.manpowerData.reduce((sum, val) => sum + val, 0) + 
                                   chartData.materialData.reduce((sum, val) => sum + val, 0) + 
                                   chartData.otherCostsData.reduce((sum, val) => sum + val, 0))}
