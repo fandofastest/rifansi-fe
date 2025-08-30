@@ -5,6 +5,8 @@ import { DailyReportTable } from "@/components/tables/DailyReportTable";
 import Select from "@/components/ui/select/Select";
 import { useAuth } from "@/context/AuthContext";
 import { getSPKListLite, getSPKDetailsWithProgress, SPKDetailWithProgress } from "@/services/spk";
+import { format, subDays } from "date-fns";
+import { id } from "date-fns/locale";
 
 export default function DailyReportsPage() {
   const { token } = useAuth();
@@ -13,6 +15,101 @@ export default function DailyReportsPage() {
   const [loadingSpk, setLoadingSpk] = useState<boolean>(false);
   const [spkDetails, setSpkDetails] = useState<SPKDetailWithProgress | null>(null);
   const [loadingSpkDetail, setLoadingSpkDetail] = useState<boolean>(false);
+  const [totalSales, setTotalSales] = useState<number>(0);
+
+  // Date range state (default last 30 days)
+  const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>(
+    {
+      startDate: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
+      endDate: format(new Date(), 'yyyy-MM-dd'),
+    }
+  );
+
+  // Inline DatePicker (same UX style as summary page)
+  function DatePicker({ 
+    value, 
+    onChange, 
+    placeholder 
+  }: { 
+    value: string; 
+    onChange: (date: string) => void; 
+    placeholder: string; 
+  }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [currentMonth, setCurrentMonth] = useState(new Date(value ? new Date(value) : new Date()));
+
+    const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+    const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+    
+    const days: (number | null)[] = [];
+    for (let i = 0; i < firstDayOfMonth; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
+    const handleDateSelect = (day: number) => {
+      const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+      onChange(format(selectedDate, 'yyyy-MM-dd'));
+      setIsOpen(false);
+    };
+
+    const goToPreviousMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    const goToNextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    const goToToday = () => {
+      const today = new Date();
+      setCurrentMonth(today);
+      onChange(format(today, 'yyyy-MM-dd'));
+      setIsOpen(false);
+    };
+
+    return (
+      <div className="relative min-w-[220px]">
+        <input
+          type="text"
+          value={value ? format(new Date(value), 'dd MMM yyyy', { locale: id }) : ''}
+          placeholder={placeholder}
+          onClick={() => setIsOpen(!isOpen)}
+          readOnly
+          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-black dark:text-white cursor-pointer w-full"
+        />
+        {isOpen && (
+          <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 min-w-[280px]">
+            <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+              <button onClick={goToPreviousMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="font-semibold text-black dark:text-white">{format(currentMonth, 'MMMM yyyy', { locale: id })}</span>
+              <button onClick={goToNextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+              <button onClick={goToToday} className="w-full text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-1 rounded">Hari Ini</button>
+            </div>
+            <div className="grid grid-cols-7 gap-1 p-2">
+              {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (
+                <div key={day} className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1">{day}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1 p-2">
+              {days.map((day, index) => (
+                <button
+                  key={index}
+                  onClick={() => day && handleDateSelect(day)}
+                  disabled={!day}
+                  className={`p-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${!day ? 'invisible' : ''} ${day && value && format(new Date(value), 'yyyy-MM-dd') === format(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day), 'yyyy-MM-dd') ? 'bg-blue-500 text-white hover:bg-blue-600' : 'text-black dark:text-white'}`}
+                >
+                  {day}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // Helpers for IDR formatting
   const formatCurrencyFull = (value: number) =>
@@ -104,6 +201,25 @@ export default function DailyReportsPage() {
               )}
             </Select>
           </div>
+          <div className="flex items-center gap-2">
+            <div>
+              <label className="block mb-1 text-sm text-gray-600 dark:text-gray-300">Tanggal Mulai</label>
+              <DatePicker
+                value={dateRange.startDate}
+                onChange={(val) => setDateRange((prev) => ({ ...prev, startDate: val }))}
+                placeholder="Pilih tanggal mulai"
+              />
+            </div>
+            <span className="mt-6 text-gray-500 dark:text-gray-400">s/d</span>
+            <div>
+              <label className="block mb-1 text-sm text-gray-600 dark:text-gray-300">Tanggal Akhir</label>
+              <DatePicker
+                value={dateRange.endDate}
+                onChange={(val) => setDateRange((prev) => ({ ...prev, endDate: val }))}
+                placeholder="Pilih tanggal akhir"
+              />
+            </div>
+          </div>
         </div>
 
         {/* SPK Budget summary when a specific SPK selected */}
@@ -149,20 +265,18 @@ export default function DailyReportsPage() {
               <div className="min-w-0">
                 <div className="text-sm text-gray-500 dark:text-gray-400">Total Sales</div>
                 <div className="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap truncate">
-                  {loadingSpkDetail ? "Memuat..." : (() => {
-                    const total = spkDetails?.totalProgress?.totalBudget ?? spkDetails?.budget ?? 0;
-                    const percentage = spkDetails?.totalProgress?.percentage ?? 0;
-                    const apiSales = spkDetails?.totalProgress?.totalSales;
-                    const computed = (percentage / 100) * total;
-                    const value = typeof apiSales === 'number' ? apiSales : computed;
-                    return formatCurrencyFull(value);
-                  })()}
+                  {formatCurrencyFull(totalSales)}
                 </div>
               </div>
             </div>
           </div>
         )}
-        <DailyReportTable spkId={selectedSpkId || undefined} />
+        <DailyReportTable 
+          spkId={selectedSpkId || undefined}
+          startDate={dateRange.startDate}
+          endDate={dateRange.endDate}
+          onTotalsChange={({ totalSales }) => setTotalSales(totalSales)}
+        />
       </div>
     </div>
   );

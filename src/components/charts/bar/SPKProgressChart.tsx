@@ -13,7 +13,10 @@ interface SPKData {
   spkNo: string;
   title: string;
   totalProgress?: {
-    budgetUtilizationPercentage: number;
+    // Use percentage as the primary field for charting progress
+    percentage: number;
+    // Keep legacy fields optional for backward compatibility
+    budgetUtilizationPercentage?: number;
     plannedVsActualCostRatio?: number;
   };
 }
@@ -26,7 +29,13 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
   // Extract the relevant data from SPK performance data
   const categories = data.map(spk => spk.spkNo);
   const titles = data.map(spk => spk.title || ''); // Store titles for tooltips
-  const percentages = data.map(spk => spk.totalProgress?.plannedVsActualCostRatio || spk.totalProgress?.budgetUtilizationPercentage || 0);
+  const percentages = data.map(spk =>
+    // Prefer new percentage, fallback to prior fields if necessary
+    spk.totalProgress?.percentage ??
+    spk.totalProgress?.plannedVsActualCostRatio ??
+    spk.totalProgress?.budgetUtilizationPercentage ??
+    0
+  );
   
   // Create colors array based on percentage values
   const colors = percentages.map(percentage => 
@@ -108,7 +117,7 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
     },
     yaxis: {
       title: {
-        text: "Planned vs Actual Cost Ratio (%)",
+        text: "Progress (%)",
         style: {
           fontSize: '12px',
         }
@@ -159,7 +168,7 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
 
   const series = [
     {
-      name: "Utilization",
+      name: "Progress",
       data: percentages,
     },
   ];

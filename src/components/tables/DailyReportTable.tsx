@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 import Button from "@/components/ui/button/Button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useAuth } from "@/context/AuthContext";
 import { 
-  DailyActivityListItem,
-  getDailyActivityListRange, 
+  DailyActivity,
+  getDailyActivityWithDetailsRange,
   approveDailyReport, 
   deleteDailyActivity 
 } from "@/services/dailyActivity";
@@ -20,27 +21,28 @@ import Select from "@/components/ui/select/Select";
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
 
-export function DailyReportTable({ spkId }: { spkId?: string }) {
+export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: { spkId?: string; startDate?: string; endDate?: string; onTotalsChange?: (totals: { totalSales: number }) => void }) {
   const { token, user } = useAuth();
-  const [reports, setReports] = useState<DailyActivityListItem[]>([]);
+  const [reports, setReports] = useState<DailyActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedActivityId, setSelectedActivityId] = useState<string>("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-  const [reportToAction, setReportToAction] = useState<DailyActivityListItem | null>(null);
+  const [reportToAction, setReportToAction] = useState<DailyActivity | null>(null);
   const [remarks, setRemarks] = useState("");
-  const [reportToDelete, setReportToDelete] = useState<DailyActivityListItem | null>(null);
+  const [reportToDelete, setReportToDelete] = useState<DailyActivity | null>(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
 
   // Area selection states
   const [areas, setAreas] = useState<Area[]>([]);
   const [selectedAreaId, setSelectedAreaId] = useState<string>("");
   const [loadingAreas, setLoadingAreas] = useState(false);
+  // Totals
+  const [totalCost, setTotalCost] = useState<number>(0);
 
-  // Tambahkan rentang tanggal (default kosong = semua tanggal)
-  const [dateRange, setDateRange] = useState<{startDate?: string; endDate?: string}>({});
+  // Rentang tanggal dikontrol oleh parent melalui props startDate & endDate
 
   // Cek apakah user adalah admin atau superadmin
   const isAdmin = user?.role?.roleCode && (user?.role?.roleCode === "ADMIN" || user?.role?.roleCode === "SUPERADMIN");
@@ -76,23 +78,21 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
       if (!token || !user) return;
       
       try {
-        let data: DailyActivityListItem[];
+        let data: DailyActivity[];
         
         if (canSeeAllReports) {
           // PMT and SUPERADMIN can choose area
-          data = await getDailyActivityListRange(token, {
+          data = await getDailyActivityWithDetailsRange(token, {
             areaId: selectedAreaId || undefined,
-            spkId: spkId || undefined,
-            startDate: dateRange.startDate,
-            endDate: dateRange.endDate,
+            startDate: startDate,
+            endDate: endDate,
           });
         } else if (user.area?.id) {
           // Other users only see reports from their area
-          data = await getDailyActivityListRange(token, {
+          data = await getDailyActivityWithDetailsRange(token, {
             areaId: user.area.id,
-            spkId: spkId || undefined,
-            startDate: dateRange.startDate,
-            endDate: dateRange.endDate,
+            startDate: startDate,
+            endDate: endDate,
           });
         } else {
           // User has no area assigned
@@ -100,8 +100,28 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
           setLoading(false);
           return;
         }
+        // Client-side filter by SPK if provided
+        if (spkId) {
+          data = (data || []).filter(r => r.spkDetail?.id === spkId);
+        }
         
         setReports(data);
+        // Report totals to parent using Nilai Aktivitas (sum of quantity * rate for NR and R)
+        try {
+          const calcReportValue = (r: DailyActivity) =>
+            (r.activityDetails || []).reduce((s, d) => {
+              const nrQty = d.actualQuantity?.nr || 0;
+              const rQty = d.actualQuantity?.r || 0;
+              const nrRate = d.rates?.nr?.rate || 0;
+              const rRate = d.rates?.r?.rate || 0;
+              return s + nrQty * nrRate + rQty * rRate;
+            }, 0);
+          const totalSales = (data || []).reduce((sum, r) => sum + calcReportValue(r), 0);
+          onTotalsChange?.({ totalSales });
+          // Also compute total cost for local display
+          const tCost = (data || []).reduce((sum, r) => sum + calcCost(r), 0);
+          setTotalCost(tCost);
+        } catch {}
         setError(null);
       } catch (err) {
         console.error('Error fetching reports:', err);
@@ -112,7 +132,7 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
     };
 
     fetchReports();
-  }, [token, user, canSeeAllReports, selectedAreaId, dateRange, spkId]);
+  }, [token, user, canSeeAllReports, selectedAreaId, startDate, endDate, spkId]);
 
   // Tooltip state for currency display (mimic chart/summary tooltip)
   const [tooltip, setTooltip] = useState<{ visible: boolean; x: number; y: number; content: string }>({
@@ -147,12 +167,68 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
     return value.toLocaleString("id-ID");
   };
 
-  const handleApprove = async (report: DailyActivityListItem) => {
+  // Export XLSX of current reports (component scope)
+  const exportXLSX = () => {
+    const rows = reports.map((report) => {
+      const dateObj = getDateObj(report.date);
+      const tanggal = dateObj && !isNaN(dateObj.getTime()) ? format(dateObj, "yyyy-MM-dd") : '';
+      const nilaiAktivitas = (report.activityDetails || []).reduce((sum, ad) => {
+        const qnr = ad?.actualQuantity?.nr ?? 0;
+        const qr = ad?.actualQuantity?.r ?? 0;
+        const rnr = ad?.rates?.nr?.rate ?? 0;
+        const rr = ad?.rates?.r?.rate ?? 0;
+        return sum + qnr * rnr + qr * rr;
+      }, 0);
+      const nilaiCost = calcCost(report);
+      return {
+        Tanggal: tanggal,
+        "Nama Proyek": report.spkDetail?.projectName || '',
+        "Diajukan Oleh": report.userDetail?.fullName || '',
+        Area: report.area?.name || '',
+        Status: report.status || '',
+        "Progress%": (report.progressPercentage || 0).toFixed(1),
+        "Budget%": (report.budgetUsage || 0).toFixed(1),
+        "Nilai Aktivitas (IDR)": Math.round(nilaiAktivitas),
+        "Nilai Cost (IDR)": Math.round(nilaiCost),
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Daily Reports");
+    const start = startDate ? startDate : '';
+    const end = endDate ? endDate : '';
+    XLSX.writeFile(wb, `daily-reports_${start}_${end}.xlsx`);
+  };
+
+  // Compute Nilai Cost from detailed logs
+  const calcCost = (r: DailyActivity) => {
+    const manpower = (r.manpowerLogs || []).reduce((s, m) => {
+      const pcs = m.personCount || 0;
+      const hr = m.hourlyRate || 0;
+      const wh = m.workingHours || 0;
+      return s + pcs * hr * wh;
+    }, 0);
+    const equipment = (r.equipmentLogs || []).reduce((s, e) => {
+      // Equipment hourlyRate is not in the interface; costs counted as daily rental + fuel
+      const rental = e.rentalRatePerDay || 0;
+      const fuel = (e.fuelIn || 0) * (e.fuelPrice || 0);
+      return s + rental + fuel;
+    }, 0);
+    const material = (r.materialUsageLogs || []).reduce((s, mu) => {
+      const qty = mu.quantity || 0;
+      const rate = (mu.unitRate ?? mu.material?.unitRate ?? 0);
+      return s + qty * rate;
+    }, 0);
+    const others = (r.otherCosts || []).reduce((s, o) => s + (o.amount || 0), 0);
+    return manpower + equipment + material + others;
+  };
+
+  const handleApprove = async (report: DailyActivity) => {
     setReportToAction(report);
     setIsApproveModalOpen(true);
   };
 
-  const handleReject = async (report: DailyActivityListItem) => {
+  const handleReject = async (report: DailyActivity) => {
     setReportToAction(report);
     setIsRejectModalOpen(true);
   };
@@ -161,28 +237,44 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
     if (!token || !user) return;
     
     try {
-      let data: DailyActivityListItem[];
+      let data: DailyActivity[];
       
       if (canSeeAllReports) {
         // PMT and SUPERADMIN can choose area
-        data = await getDailyActivityListRange(token, {
+        data = await getDailyActivityWithDetailsRange(token, {
           areaId: selectedAreaId || undefined,
-          spkId: spkId || undefined,
-          startDate: dateRange.startDate,
-          endDate: dateRange.endDate,
+          startDate: startDate,
+          endDate: endDate,
         });
       } else if (user.area?.id) {
-        data = await getDailyActivityListRange(token, {
+        data = await getDailyActivityWithDetailsRange(token, {
           areaId: user.area.id,
-          spkId: spkId || undefined,
-          startDate: dateRange.startDate,
-          endDate: dateRange.endDate,
+          startDate: startDate,
+          endDate: endDate,
         });
       } else {
         return;
       }
+      if (spkId) {
+        data = (data || []).filter(r => r.spkDetail?.id === spkId);
+      }
       
       setReports(data);
+      // Report totals to parent using Nilai Aktivitas (sum of quantity * rate for NR and R)
+      try {
+        const calcReportValue = (r: DailyActivity) =>
+          (r.activityDetails || []).reduce((s, d) => {
+            const nrQty = d.actualQuantity?.nr || 0;
+            const rQty = d.actualQuantity?.r || 0;
+            const nrRate = d.rates?.nr?.rate || 0;
+            const rRate = d.rates?.r?.rate || 0;
+            return s + nrQty * nrRate + rQty * rRate;
+          }, 0);
+        const totalSales = (data || []).reduce((sum, r) => sum + calcReportValue(r), 0);
+        onTotalsChange?.({ totalSales });
+        const tCost = (data || []).reduce((sum, r) => sum + calcCost(r), 0);
+        setTotalCost(tCost);
+      } catch {}
     } catch (err) {
       console.error('Error refreshing data:', err);
     }
@@ -216,11 +308,11 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
     }
   };
 
-  const handleViewDetail = (report: DailyActivityListItem) => {
+  const handleViewDetail = (report: DailyActivity) => {
     setSelectedActivityId(report.id);
   };
 
-  const handleDelete = async (report: DailyActivityListItem) => {
+  const handleDelete = async (report: DailyActivity) => {
     setReportToDelete(report);
     setIsDeleteModalOpen(true);
   };
@@ -318,6 +410,19 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
               <Badge variant="outline" className="text-xs whitespace-nowrap">
                 {reports.length} Laporan
               </Badge>
+              {/* Total Cost summary */}
+              <div
+                className="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap"
+                onMouseEnter={(e) => showTooltip(e, formatCurrencyFull(totalCost))}
+                onMouseMove={moveTooltip}
+                onMouseLeave={hideTooltip}
+              >
+                <span className="font-medium">Total Cost:</span> {formatShortIDR(totalCost)}
+              </div>
+              {/* Export XLSX */}
+              <Button size="sm" variant="outline" onClick={exportXLSX}>
+                Export XLSX
+              </Button>
             </div>
           </div>
         </div>
@@ -349,6 +454,9 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
                   </th>
                   <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                     Nilai Aktivitas
+                  </th>
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                    Nilai Cost
                   </th>
                   <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                     Aksi
@@ -433,6 +541,24 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
                         );
                       })()}
                     </td>
+                    {/* Nilai Cost column */}
+                    <td className="px-4 py-3 text-start">
+                      {(() => {
+                        const cost = calcCost(report);
+                        const display = formatShortIDR(cost);
+                        const full = formatCurrencyFull(cost);
+                        return (
+                          <div
+                            className="inline-flex items-center gap-2 max-w-[180px] whitespace-nowrap truncate"
+                            onMouseEnter={(e) => showTooltip(e, full)}
+                            onMouseMove={moveTooltip}
+                            onMouseLeave={hideTooltip}
+                          >
+                            <span className="text-theme-sm font-medium text-gray-800 dark:text-white/90 truncate">{display}</span>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="px-4 py-3 text-start">
                       <div className="flex items-center gap-2">
                         <Button
@@ -476,6 +602,33 @@ export function DailyReportTable({ spkId }: { spkId?: string }) {
                   </tr>
                 ))}
               </tbody>
+              {/* Totals footer */}
+              <tfoot className="border-t border-gray-100 dark:border-white/[0.05]">
+                <tr>
+                  <td className="px-5 py-3 text-start text-theme-sm text-gray-600 dark:text-gray-300" colSpan={6}>
+                    Total
+                  </td>
+                  <td></td>
+                  <td className="px-4 py-3 text-start text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                    {(() => {
+                      const totalAkt = (reports || []).reduce((sum, report) => {
+                        return sum + (report.activityDetails || []).reduce((s, ad) => {
+                          const qnr = ad?.actualQuantity?.nr ?? 0;
+                          const qr = ad?.actualQuantity?.r ?? 0;
+                          const rnr = ad?.rates?.nr?.rate ?? 0;
+                          const rr = ad?.rates?.r?.rate ?? 0;
+                          return s + qnr * rnr + qr * rr;
+                        }, 0);
+                      }, 0);
+                      return formatCurrencyFull(totalAkt);
+                    })()}
+                  </td>
+                  <td className="px-4 py-3 text-start text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                    {formatCurrencyFull(totalCost)}
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
