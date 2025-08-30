@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { DailyReportTable } from "@/components/tables/DailyReportTable";
 import Select from "@/components/ui/select/Select";
 import { useAuth } from "@/context/AuthContext";
-import { getSPKListLite, getSPKDetailsWithProgress, SPKDetailWithProgress } from "@/services/spk";
+import { getSPKListLite } from "@/services/spk";
 import { format, subDays } from "date-fns";
 import { id } from "date-fns/locale";
 
@@ -13,9 +13,7 @@ export default function DailyReportsPage() {
   const [spkOptions, setSpkOptions] = useState<{ id: string; label: string }[]>([]);
   const [selectedSpkId, setSelectedSpkId] = useState<string>("");
   const [loadingSpk, setLoadingSpk] = useState<boolean>(false);
-  const [spkDetails, setSpkDetails] = useState<SPKDetailWithProgress | null>(null);
-  const [loadingSpkDetail, setLoadingSpkDetail] = useState<boolean>(false);
-  const [totalSales, setTotalSales] = useState<number>(0);
+  
 
   // Date range state (default last 30 days)
   const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>(
@@ -147,26 +145,7 @@ export default function DailyReportsPage() {
     loadSpks();
   }, [token]);
 
-  // Load SPK details when a specific SPK is selected
-  useEffect(() => {
-    const loadSpkDetails = async () => {
-      if (!token || !selectedSpkId) {
-        setSpkDetails(null);
-        return;
-      }
-      try {
-        setLoadingSpkDetail(true);
-        const details = await getSPKDetailsWithProgress(selectedSpkId, token);
-        setSpkDetails(details);
-      } catch (e) {
-        console.error("Failed to load SPK details with progress", e);
-        setSpkDetails(null);
-      } finally {
-        setLoadingSpkDetail(false);
-      }
-    };
-    loadSpkDetails();
-  }, [token, selectedSpkId]);
+  // Removed SPK details auto-fetch and summary cards for performance
 
   return (
     <div className="p-4 sm:p-6 xl:p-10">
@@ -222,60 +201,11 @@ export default function DailyReportsPage() {
           </div>
         </div>
 
-        {/* SPK Budget summary when a specific SPK selected */}
-        {selectedSpkId && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div
-              className="flex items-center gap-4 p-4 rounded-lg border border-gray-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.03]"
-            >
-              <div className="shrink-0 h-10 w-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center dark:bg-blue-500/10">
-                Rp
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm text-gray-500 dark:text-gray-400">Total Budget</div>
-                <div className="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap truncate">
-                  {loadingSpkDetail ? "Memuat..." : formatCurrencyFull(spkDetails?.totalProgress?.totalBudget ?? spkDetails?.budget ?? 0)}
-                </div>
-              </div>
-            </div>
-            <div
-              className="flex items-center gap-4 p-4 rounded-lg border border-gray-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.03]"
-            >
-              <div className="shrink-0 h-10 w-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center dark:bg-emerald-500/10">
-                Sisa
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm text-gray-500 dark:text-gray-400">Sisa Budget</div>
-                <div className="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap truncate">
-                  {loadingSpkDetail ? "Memuat..." : (() => {
-                    const total = spkDetails?.totalProgress?.totalBudget ?? spkDetails?.budget ?? 0;
-                    const spent = spkDetails?.totalProgress?.totalSpent ?? 0;
-                    const remaining = spkDetails?.totalProgress?.remainingBudget ?? (total - spent);
-                    return formatCurrencyFull(remaining);
-                  })()}
-                </div>
-              </div>
-            </div>
-            <div
-              className="flex items-center gap-4 p-4 rounded-lg border border-gray-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.03]"
-            >
-              <div className="shrink-0 h-10 w-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center dark:bg-indigo-500/10">
-                Sales
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm text-gray-500 dark:text-gray-400">Total Sales</div>
-                <div className="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap truncate">
-                  {formatCurrencyFull(totalSales)}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Summary cards removed */}
         <DailyReportTable 
           spkId={selectedSpkId || undefined}
           startDate={dateRange.startDate}
           endDate={dateRange.endDate}
-          onTotalsChange={({ totalSales }) => setTotalSales(totalSales)}
         />
       </div>
     </div>
