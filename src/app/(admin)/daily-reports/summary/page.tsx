@@ -486,13 +486,11 @@ export default function DailyReportSummaryPage() {
   // Helper: truncate to 2 decimals (no rounding)
   const truncate2 = (value: number) => Math.trunc(value * 100) / 100;
 
-  // Tooltip state (mimic chart tooltip style)
-  const [tooltip, setTooltip] = useState<{ visible: boolean; x: number; y: number; content: string }>({
-    visible: false,
-    x: 0,
-    y: 0,
-    content: '',
-  });
+  // Toggle detail view for summary cards (avoid heavy hover handlers)
+  const [showBudgetDetail, setShowBudgetDetail] = useState(false);
+  const [showCostDetail, setShowCostDetail] = useState(false);
+  const [showSalesDetail, setShowSalesDetail] = useState(false);
+  const [showProgressDetail, setShowProgressDetail] = useState(false);
 
   // Cost Breakdown Chart Options
   const costChartOptions = {
@@ -694,18 +692,16 @@ export default function DailyReportSummaryPage() {
                 </div>
               </div>
 
-              <div
-                className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]"
-                onMouseEnter={(e) => setTooltip({ visible: true, x: e.clientX, y: e.clientY, content: formatCurrencyFull(totalBudget) })}
-                onMouseMove={(e) => setTooltip((t) => ({ ...t, x: e.clientX, y: e.clientY }))}
-                onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
-              >
+              <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Budget</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400 leading-tight whitespace-nowrap truncate">
                       {formatShortIDR(totalBudget)}
                     </p>
+                    {showBudgetDetail && (
+                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalBudget)}</p>
+                    )}
                   </div>
                   <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full shrink-0">
                     <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -713,20 +709,26 @@ export default function DailyReportSummaryPage() {
                     </svg>
                   </div>
                 </div>
+                <div className="mt-4">
+                  <button
+                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
+                    onClick={() => setShowBudgetDetail((v) => !v)}
+                  >
+                    {showBudgetDetail ? 'Sembunyikan' : 'Detail'}
+                  </button>
+                </div>
               </div>
 
-              <div
-                className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]"
-                onMouseEnter={(e) => setTooltip({ visible: true, x: e.clientX, y: e.clientY, content: formatCurrencyFull(totalSpent) })}
-                onMouseMove={(e) => setTooltip((t) => ({ ...t, x: e.clientX, y: e.clientY }))}
-                onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
-              >
+              <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Cost</p>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 leading-tight whitespace-nowrap truncate">
                       {formatShortIDR(totalSpent)}
                     </p>
+                    {showCostDetail && (
+                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalSpent)}</p>
+                    )}
                   </div>
                   <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full shrink-0">
                     <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -734,20 +736,26 @@ export default function DailyReportSummaryPage() {
                     </svg>
                   </div>
                 </div>
+                <div className="mt-4">
+                  <button
+                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
+                    onClick={() => setShowCostDetail((v) => !v)}
+                  >
+                    {showCostDetail ? 'Sembunyikan' : 'Detail'}
+                  </button>
+                </div>
               </div>
 
-              <div
-                className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]"
-                onMouseEnter={(e) => setTooltip({ visible: true, x: e.clientX, y: e.clientY, content: formatCurrencyFull(totalSales) })}
-                onMouseMove={(e) => setTooltip((t) => ({ ...t, x: e.clientX, y: e.clientY }))}
-                onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
-              >
+              <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</p>
                     <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 leading-tight whitespace-nowrap truncate">
                       {formatShortIDR(totalSales)}
                     </p>
+                    {showSalesDetail && (
+                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalSales)}</p>
+                    )}
                   </div>
                   <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-full shrink-0">
                     <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -755,20 +763,26 @@ export default function DailyReportSummaryPage() {
                     </svg>
                   </div>
                 </div>
+                <div className="mt-4">
+                  <button
+                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
+                    onClick={() => setShowSalesDetail((v) => !v)}
+                  >
+                    {showSalesDetail ? 'Sembunyikan' : 'Detail'}
+                  </button>
+                </div>
               </div>
 
-              <div
-                className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]"
-                onMouseEnter={(e) => setTooltip({ visible: true, x: e.clientX, y: e.clientY, content: `${avgProgress.toLocaleString('id-ID', { maximumFractionDigits: 6 })}%` })}
-                onMouseMove={(e) => setTooltip((t) => ({ ...t, x: e.clientX, y: e.clientY }))}
-                onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}
-              >
+              <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Progress Total</p>
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 leading-tight whitespace-nowrap truncate">
                       {truncate2(avgProgress).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
                     </p>
+                    {showProgressDetail && (
+                      <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{`${avgProgress.toLocaleString('id-ID', { maximumFractionDigits: 6 })}%`}</p>
+                    )}
                   </div>
                   <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full shrink-0">
                     <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -776,18 +790,18 @@ export default function DailyReportSummaryPage() {
                     </svg>
                   </div>
                 </div>
+                <div className="mt-4">
+                  <button
+                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
+                    onClick={() => setShowProgressDetail((v) => !v)}
+                  >
+                    {showProgressDetail ? 'Sembunyikan' : 'Detail'}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Floating Tooltip (chart-style) */}
-            {tooltip.visible && (
-              <div
-                className="fixed z-50 px-3 py-2 rounded-md text-sm shadow-lg pointer-events-none select-none bg-gray-900 text-white dark:bg-gray-800"
-                style={{ left: tooltip.x + 12, top: tooltip.y + 12 }}
-              >
-                {tooltip.content}
-              </div>
-            )}
+            {/* Tooltip removed; using click-to-toggle details */}
 
             {/* Charts */}
             <div className="grid grid-cols-1 gap-6">
