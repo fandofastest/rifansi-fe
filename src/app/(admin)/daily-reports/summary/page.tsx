@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+
 import { useAuth } from "@/context/AuthContext";
 import { getSPKListLite, getSPKDetailsWithProgress, SPKListItem, SPKDetailWithProgress } from "@/services/spk";
 
@@ -11,6 +12,250 @@ import dynamic from "next/dynamic";
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
+});
+
+const SummaryCards = React.memo(function SummaryCards({
+  totalActivities,
+  totalBudget,
+  totalSpent,
+  totalSales,
+  avgProgress,
+}: {
+  totalActivities: number;
+  totalBudget: number;
+  totalSpent: number;
+  totalSales: number;
+  avgProgress: number;
+}) {
+  const [showBudgetDetail, setShowBudgetDetail] = useState(false);
+  const [showCostDetail, setShowCostDetail] = useState(false);
+  const [showSalesDetail, setShowSalesDetail] = useState(false);
+  const [showProgressDetail, setShowProgressDetail] = useState(false);
+
+  const truncate2 = (value: number) => Math.trunc(value * 100) / 100;
+  const formatCurrencyFull = (value: number) =>
+    new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  const formatShortIDR = (value: number) => {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000_000) {
+      return `${(value / 1_000_000_000).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} M`;
+    } else if (abs >= 1_000_000) {
+      return `${(value / 1_000_000).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} jt`;
+    }
+    return value.toLocaleString('id-ID');
+  };
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Aktivitas</p>
+            <p className="text-2xl font-bold text-black dark:text-white whitespace-nowrap truncate leading-tight">{totalActivities}</p>
+          </div>
+          <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full shrink-0">
+            <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Budget</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400 leading-tight whitespace-nowrap truncate">
+              {formatShortIDR(totalBudget)}
+            </p>
+            {showBudgetDetail && (
+              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalBudget)}</p>
+            )}
+          </div>
+          <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full shrink-0">
+            <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+            </svg>
+          </div>
+        </div>
+        <div className="mt-4">
+          <button
+            className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
+            onClick={() => setShowBudgetDetail((v) => !v)}
+          >
+            {showBudgetDetail ? 'Sembunyikan' : 'Detail'}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Cost</p>
+            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 leading-tight whitespace-nowrap truncate">
+              {formatShortIDR(totalSpent)}
+            </p>
+            {showCostDetail && (
+              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalSpent)}</p>
+            )}
+          </div>
+          <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full shrink-0">
+            <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <div className="mt-4">
+          <button
+            className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
+            onClick={() => setShowCostDetail((v) => !v)}
+          >
+            {showCostDetail ? 'Sembunyikan' : 'Detail'}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</p>
+            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 leading-tight whitespace-nowrap truncate">
+              {formatShortIDR(totalSales)}
+            </p>
+            {showSalesDetail && (
+              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalSales)}</p>
+            )}
+          </div>
+          <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-full shrink-0">
+            <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h4l3 10 4-18 3 8h4" />
+            </svg>
+          </div>
+        </div>
+        <div className="mt-4">
+          <button
+            className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
+            onClick={() => setShowSalesDetail((v) => !v)}
+          >
+            {showSalesDetail ? 'Sembunyikan' : 'Detail'}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Progress Total</p>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 leading-tight whitespace-nowrap truncate">
+              {truncate2(avgProgress).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+            </p>
+            {showProgressDetail && (
+              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{`${avgProgress.toLocaleString('id-ID', { maximumFractionDigits: 6 })}%`}</p>
+            )}
+          </div>
+          <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full shrink-0">
+            <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+        </div>
+        <div className="mt-4">
+          <button
+            className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
+            onClick={() => setShowProgressDetail((v) => !v)}
+          >
+            {showProgressDetail ? 'Sembunyikan' : 'Detail'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Lightweight memoized Chart wrappers to avoid unnecessary re-renders
+type ApexOptions = any;
+type ApexSeries = any;
+
+const ProgressChart = React.memo(function ProgressChart({ options, series }: { options: ApexOptions; series: ApexSeries }) {
+  return (
+    <ReactApexChart options={options} series={series} type="line" height={350} />
+  );
+});
+
+const BudgetChart = React.memo(function BudgetChart({ options, series }: { options: ApexOptions; series: ApexSeries }) {
+  return (
+    <ReactApexChart options={options} series={series} type="bar" height={350} />
+  );
+});
+
+const CostBreakdownChart = React.memo(function CostBreakdownChart({ options, series }: { options: ApexOptions; series: ApexSeries }) {
+  return (
+    <ReactApexChart options={options} series={series} type="area" height={350} />
+  );
+});
+
+const SummaryTable = React.memo(function SummaryTable({ tableTotals }: { tableTotals: {
+  totalEquipment: number; totalFuel: number; totalManpower: number; totalMaterial: number; totalOther: number; totalCost: number; rows: { name: string; value: number; color: string; }[];
+} }) {
+  return (
+    <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
+      <h3 className="text-lg font-semibold text-black dark:text-white mb-4">Ringkasan Keuangan</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-white/[0.02]">
+              <th className="border-b border-gray-200 dark:border-white/[0.05] p-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Kategori</th>
+              <th className="border-b border-gray-200 dark:border-white/[0.05] p-4 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">Total Biaya</th>
+              <th className="border-b border-gray-200 dark:border-white/[0.05] p-4 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">Persentase</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 dark:divide-white/[0.05]">
+            {tableTotals.rows.map((item, index) => (
+              <tr key={index} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                <td className="p-4 text-black dark:text-white">
+                  <div className="flex items-center">
+                    <div 
+                      className="w-3 h-3 rounded-full mr-3" 
+                      style={{ backgroundColor: item.color }}
+                    ></div>
+                    {item.name}
+                  </div>
+                </td>
+                <td className="p-4 text-center text-black dark:text-white">
+                  {new Intl.NumberFormat('id-ID', { 
+                    style: 'currency', 
+                    currency: 'IDR',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(item.value)}
+                </td>
+                <td className="p-4 text-center text-black dark:text-white">
+                  {tableTotals.totalCost > 0 ? ((item.value / tableTotals.totalCost) * 100).toFixed(1) : '0'}%
+                </td>
+              </tr>
+            ))}
+            <tr className="bg-gray-50 dark:bg-white/[0.02] font-semibold">
+              <td className="p-4 text-black dark:text-white">Total</td>
+              <td className="p-4 text-center text-black dark:text-white">
+                {new Intl.NumberFormat('id-ID', { 
+                  style: 'currency', 
+                  currency: 'IDR',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(tableTotals.totalCost)}
+              </td>
+              <td className="p-4 text-center text-black dark:text-white">100%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 });
 
 interface ChartData {
@@ -348,13 +593,16 @@ export default function DailyReportSummaryPage() {
     setChartData(chartData);
   }, [spkDetails, dateRange]);
 
-  // Progress Chart Options
-  const progressChartOptions = {
+  // Progress Chart Options (memoized)
+  const progressChartOptions = useMemo(() => ({
     chart: {
       type: 'line' as const,
       height: 350,
       toolbar: { show: false },
       fontFamily: "Outfit, sans-serif",
+      redrawOnParentResize: false,
+      redrawOnWindowResize: false,
+      animations: { enabled: false },
     },
     colors: ['#10B981'],
     stroke: {
@@ -408,15 +656,22 @@ export default function DailyReportSummaryPage() {
       borderColor: '#E5E7EB',
       strokeDashArray: 5,
     },
-  };
+  }), [chartData.dates]);
 
-  // Budget Chart Options
-  const budgetChartOptions = {
+  const progressSeries = useMemo(() => (
+    [{ name: 'Progress (%)', data: chartData.progressData }]
+  ), [chartData.progressData]);
+
+  // Budget Chart Options (memoized)
+  const budgetChartOptions = useMemo(() => ({
     chart: {
       type: 'bar' as const,
       height: 350,
       toolbar: { show: false },
       fontFamily: "Outfit, sans-serif",
+      redrawOnParentResize: false,
+      redrawOnWindowResize: false,
+      animations: { enabled: false },
     },
     colors: ['#3B82F6'],
     plotOptions: {
@@ -481,7 +736,11 @@ export default function DailyReportSummaryPage() {
       borderColor: '#E5E7EB',
       strokeDashArray: 5,
     },
-  };
+  }), [chartData.dates]);
+
+  const budgetSeries = useMemo(() => (
+    [{ name: 'Budget (IDR)', data: chartData.budgetData }]
+  ), [chartData.budgetData]);
 
   // Helper: truncate to 2 decimals (no rounding)
   const truncate2 = (value: number) => Math.trunc(value * 100) / 100;
@@ -492,14 +751,17 @@ export default function DailyReportSummaryPage() {
   const [showSalesDetail, setShowSalesDetail] = useState(false);
   const [showProgressDetail, setShowProgressDetail] = useState(false);
 
-  // Cost Breakdown Chart Options
-  const costChartOptions = {
+  // Cost Breakdown Chart Options (memoized)
+  const costChartOptions = useMemo(() => ({
     chart: {
       type: 'area' as const,
       height: 350,
       toolbar: { show: false },
       fontFamily: "Outfit, sans-serif",
       stacked: true,
+      redrawOnParentResize: false,
+      redrawOnWindowResize: false,
+      animations: { enabled: false },
     },
     colors: ['#3B82F6', '#F97316', '#10B981', '#F59E0B', '#EF4444'],
     stroke: {
@@ -566,7 +828,47 @@ export default function DailyReportSummaryPage() {
       borderColor: '#E5E7EB',
       strokeDashArray: 5,
     },
-  };
+  }), [chartData.dates]);
+
+  const costSeries = useMemo(() => ([
+    { name: 'Equipment', data: chartData.equipmentData },
+    { name: 'BBM', data: chartData.fuelData },
+    { name: 'Manpower', data: chartData.manpowerData },
+    { name: 'Material', data: chartData.materialData },
+    { name: 'Lainnya', data: chartData.otherCostsData },
+  ]), [
+    chartData.equipmentData,
+    chartData.fuelData,
+    chartData.manpowerData,
+    chartData.materialData,
+    chartData.otherCostsData,
+  ]);
+
+  // Memoized totals for the summary table to avoid heavy recomputation on parent re-renders
+  const tableTotals = useMemo(() => {
+    const totalEquipment = chartData.equipmentData.reduce((sum, val) => sum + val, 0);
+    const totalFuel = chartData.fuelData.reduce((sum, val) => sum + val, 0);
+    const totalManpower = chartData.manpowerData.reduce((sum, val) => sum + val, 0);
+    const totalMaterial = chartData.materialData.reduce((sum, val) => sum + val, 0);
+    const totalOther = chartData.otherCostsData.reduce((sum, val) => sum + val, 0);
+    const totalCost = totalEquipment + totalFuel + totalManpower + totalMaterial + totalOther;
+
+    const rows = [
+      { name: 'Equipment', value: totalEquipment, color: '#3B82F6' },
+      { name: 'BBM', value: totalFuel, color: '#F97316' },
+      { name: 'Manpower', value: totalManpower, color: '#10B981' },
+      { name: 'Material', value: totalMaterial, color: '#F59E0B' },
+      { name: 'Other Costs', value: totalOther, color: '#EF4444' },
+    ];
+
+    return { totalEquipment, totalFuel, totalManpower, totalMaterial, totalOther, totalCost, rows };
+  }, [
+    chartData.equipmentData,
+    chartData.fuelData,
+    chartData.manpowerData,
+    chartData.materialData,
+    chartData.otherCostsData,
+  ]);
 
   const handleDateRangeChange = (type: 'start' | 'end', value: string) => {
     setDateRange(prev => ({
@@ -808,115 +1110,24 @@ export default function DailyReportSummaryPage() {
               {/* Progress Chart */}
               <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
                 <h3 className="text-lg font-semibold text-black dark:text-white mb-4">Progress Harian</h3>
-                <ReactApexChart
-                  options={progressChartOptions}
-                  series={[{ name: 'Progress (%)', data: chartData.progressData }]}
-                  type="line"
-                  height={350}
-                />
+                <ProgressChart options={progressChartOptions} series={progressSeries} />
               </div>
 
               {/* Budget Chart */}
               <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
                 <h3 className="text-lg font-semibold text-black dark:text-white mb-4">Penggunaan Budget</h3>
-                <ReactApexChart
-                  options={budgetChartOptions}
-                  series={[{ name: 'Budget (IDR)', data: chartData.budgetData }]}
-                  type="bar"
-                  height={350}
-                />
+                <BudgetChart options={budgetChartOptions} series={budgetSeries} />
               </div>
             </div>
 
             {/* Cost Breakdown Chart */}
             <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
               <h3 className="text-lg font-semibold text-black dark:text-white mb-4">Breakdown Biaya</h3>
-              <ReactApexChart
-                options={costChartOptions}
-                series={[
-                  { name: 'Equipment', data: chartData.equipmentData },
-                  { name: 'BBM', data: chartData.fuelData },
-                  { name: 'Manpower', data: chartData.manpowerData },
-                  { name: 'Material', data: chartData.materialData },
-                  { name: 'Other Costs', data: chartData.otherCostsData },
-                ]}
-                type="area"
-                height={350}
-              />
+              <CostBreakdownChart options={costChartOptions} series={costSeries} />
             </div>
 
             {/* Summary Table */}
-            <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-              <h3 className="text-lg font-semibold text-black dark:text-white mb-4">Ringkasan Keuangan</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 dark:bg-white/[0.02]">
-                      <th className="border-b border-gray-200 dark:border-white/[0.05] p-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Kategori</th>
-                      <th className="border-b border-gray-200 dark:border-white/[0.05] p-4 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">Total Biaya</th>
-                      <th className="border-b border-gray-200 dark:border-white/[0.05] p-4 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">Persentase</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-white/[0.05]">
-                    {(() => {
-                      const totalEquipment = chartData.equipmentData.reduce((sum, val) => sum + val, 0);
-                      const totalFuel = chartData.fuelData.reduce((sum, val) => sum + val, 0);
-                      const totalManpower = chartData.manpowerData.reduce((sum, val) => sum + val, 0);
-                      const totalMaterial = chartData.materialData.reduce((sum, val) => sum + val, 0);
-                      const totalOther = chartData.otherCostsData.reduce((sum, val) => sum + val, 0);
-                      const totalCost = totalEquipment + totalFuel + totalManpower + totalMaterial + totalOther;
-
-                      return [
-                        { name: 'Equipment', value: totalEquipment, color: '#3B82F6' },
-                        { name: 'BBM', value: totalFuel, color: '#F97316' },
-                        { name: 'Manpower', value: totalManpower, color: '#10B981' },
-                        { name: 'Material', value: totalMaterial, color: '#F59E0B' },
-                        { name: 'Other Costs', value: totalOther, color: '#EF4444' },
-                      ].map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-                          <td className="p-4 text-black dark:text-white">
-                            <div className="flex items-center">
-                              <div 
-                                className="w-3 h-3 rounded-full mr-3" 
-                                style={{ backgroundColor: item.color }}
-                              ></div>
-                              {item.name}
-                            </div>
-                          </td>
-                          <td className="p-4 text-center text-black dark:text-white">
-                            {new Intl.NumberFormat('id-ID', { 
-                              style: 'currency', 
-                              currency: 'IDR',
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0,
-                            }).format(item.value)}
-                          </td>
-                          <td className="p-4 text-center text-black dark:text-white">
-                            {totalCost > 0 ? ((item.value / totalCost) * 100).toFixed(1) : '0'}%
-                          </td>
-                        </tr>
-                      ));
-                    })()}
-                    <tr className="bg-gray-50 dark:bg-white/[0.02] font-semibold">
-                      <td className="p-4 text-black dark:text-white">Total</td>
-                      <td className="p-4 text-center text-black dark:text-white">
-                        {new Intl.NumberFormat('id-ID', { 
-                          style: 'currency', 
-                          currency: 'IDR',
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        }).format(chartData.equipmentData.reduce((sum, val) => sum + val, 0) + 
-                                  chartData.fuelData.reduce((sum, val) => sum + val, 0) + 
-                                  chartData.manpowerData.reduce((sum, val) => sum + val, 0) + 
-                                  chartData.materialData.reduce((sum, val) => sum + val, 0) + 
-                                  chartData.otherCostsData.reduce((sum, val) => sum + val, 0))}
-                      </td>
-                      <td className="p-4 text-center text-black dark:text-white">100%</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <SummaryTable tableTotals={tableTotals} />
           </>
         )}
       </div>
