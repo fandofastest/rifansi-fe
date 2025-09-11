@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+
 import { DailyReportTable } from "@/components/tables/DailyReportTable";
 import Select from "@/components/ui/select/Select";
 import { useAuth } from "@/context/AuthContext";
@@ -13,7 +14,8 @@ export default function DailyReportsPage() {
   const [spkOptions, setSpkOptions] = useState<{ id: string; label: string }[]>([]);
   const [selectedSpkId, setSelectedSpkId] = useState<string>("");
   const [loadingSpk, setLoadingSpk] = useState<boolean>(false);
-  
+  const [totalActivities, setTotalActivities] = useState<number>(0);
+  const [totalSales, setTotalSales] = useState<number>(0);
 
   // Date range state (default last 30 days)
   const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>(
@@ -199,6 +201,17 @@ export default function DailyReportsPage() {
               />
             </div>
           </div>
+          {/* Totals aligned with date pickers (compact badges) */}
+          <div className="mt-2 sm:mt-6 flex gap-3 items-end">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-gray-50 border border-gray-200 text-gray-800 dark:bg-white/[0.03] dark:border-white/[0.06] dark:text-gray-100">
+              <span className="text-xs text-gray-600 dark:text-gray-300">Total Aktivitas</span>
+              <span className="text-base font-semibold">{totalActivities}</span>
+            </div>
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-gray-50 border border-gray-200 text-gray-800 dark:bg-white/[0.03] dark:border-white/[0.06] dark:text-gray-100">
+              <span className="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">Total Nilai Aktivitas</span>
+              <span className="text-base font-semibold whitespace-nowrap">{formatCurrencyFull(totalSales)}</span>
+            </div>
+          </div>
         </div>
 
         {/* Summary cards removed */}
@@ -206,6 +219,7 @@ export default function DailyReportsPage() {
           spkId={selectedSpkId || undefined}
           startDate={dateRange.startDate}
           endDate={dateRange.endDate}
+          onTotalsChange={({ totalActivities, totalSales }) => { setTotalActivities(totalActivities); setTotalSales(totalSales); }}
         />
       </div>
     </div>

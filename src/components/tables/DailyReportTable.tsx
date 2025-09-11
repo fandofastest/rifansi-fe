@@ -21,7 +21,7 @@ import Select from "@/components/ui/select/Select";
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
 
-export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: { spkId?: string; startDate?: string; endDate?: string; onTotalsChange?: (totals: { totalSales: number }) => void }) {
+export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: { spkId?: string; startDate?: string; endDate?: string; onTotalsChange?: (totals: { totalSales: number; totalActivities: number }) => void }) {
   const { token, user } = useAuth();
   const [reports, setReports] = useState<DailyActivityListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +103,7 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
         }
         
         setReports(data);
-        // Report totals to parent using Nilai Aktivitas (sum of quantity * rate for NR and R)
+        // Report totals to parent using Nilai Aktivitas (sum of quantity * rate for NR and R) and count of activities
         try {
           const calcReportValue = (r: DailyActivityListItem) =>
             (r.activityDetails || []).reduce((s, d) => {
@@ -114,7 +114,7 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
               return s + nrQty * nrRate + rQty * rRate;
             }, 0);
           const totalSales = (data || []).reduce((sum, r) => sum + calcReportValue(r), 0);
-          onTotalsChange?.({ totalSales });
+          onTotalsChange?.({ totalSales, totalActivities: data?.length || 0 });
         } catch {}
         setError(null);
       } catch (err) {
@@ -179,8 +179,6 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
         "Diajukan Oleh": report.userDetail?.fullName || '',
         Area: report.area?.name || '',
         Status: report.status || '',
-        "Progress%": (report.progressPercentage || 0).toFixed(1),
-        "Budget%": (report.budgetUsage || 0).toFixed(1),
         "Nilai Aktivitas (IDR)": Math.round(nilaiAktivitas),
       };
     });
@@ -230,7 +228,7 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
       }
       
       setReports(data);
-      // Report totals to parent using Nilai Aktivitas (sum of quantity * rate for NR and R)
+      // Report totals to parent using Nilai Aktivitas (sum of quantity * rate for NR and R) and count of activities
       try {
         const calcReportValue = (r: DailyActivityListItem) =>
           (r.activityDetails || []).reduce((s, d) => {
@@ -241,7 +239,7 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
             return s + nrQty * nrRate + rQty * rRate;
           }, 0);
         const totalSales = (data || []).reduce((sum, r) => sum + calcReportValue(r), 0);
-        onTotalsChange?.({ totalSales });
+        onTotalsChange?.({ totalSales, totalActivities: data?.length || 0 });
       } catch {}
     } catch (err) {
       console.error('Error refreshing data:', err);
@@ -406,12 +404,6 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
                     Status
                   </th>
                   <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                    Progress
-                  </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                    Budget
-                  </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                     Nilai Aktivitas
                   </th>
                   
@@ -448,32 +440,7 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
                     <td className="px-4 py-3 text-start">
                       {getStatusBadge(report.status)}
                     </td>
-                    <td className="px-4 py-3 text-start">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${Math.min(report.progressPercentage || 0, 100)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {(report.progressPercentage || 0).toFixed(1)}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-start">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${Math.min(report.budgetUsage || 0, 100)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {(report.budgetUsage || 0).toFixed(1)}%
-                        </span>
-                      </div>
-                    </td>
+                    
                     {/* Nilai Aktivitas column */}
                     <td className="px-4 py-3 text-start">
                       {(() => {
@@ -484,17 +451,9 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
                           const rr = ad?.rates?.r?.rate ?? 0;
                           return sum + qnr * rnr + qr * rr;
                         }, 0);
-                        const display = formatShortIDR(total);
-                        const full = formatCurrencyFull(total);
+                        const full = formatCurrencyFull(total); // e.g., "Rp 1.234.567"
                         return (
-                          <div
-                            className="inline-flex items-center gap-2 max-w-[180px] whitespace-nowrap truncate"
-                            onMouseEnter={(e) => showTooltip(e, full)}
-                            onMouseMove={moveTooltip}
-                            onMouseLeave={hideTooltip}
-                          >
-                            <span className="text-theme-sm font-medium text-gray-800 dark:text-white/90 truncate">{display}</span>
-                          </div>
+                          <span className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{full}</span>
                         );
                       })()}
                     </td>
@@ -542,30 +501,7 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
                   </tr>
                 ))}
               </tbody>
-              {/* Totals footer */}
-              <tfoot className="border-t border-gray-100 dark:border-white/[0.05]">
-                <tr>
-                  <td className="px-5 py-3 text-start text-theme-sm text-gray-600 dark:text-gray-300" colSpan={5}>
-                    Total
-                  </td>
-                  <td></td>
-                  <td className="px-4 py-3 text-start text-theme-sm font-medium text-gray-800 dark:text-white/90">
-                    {(() => {
-                      const totalAkt = (reports || []).reduce((sum, report) => {
-                        return sum + (report.activityDetails || []).reduce((s, ad) => {
-                          const qnr = ad?.actualQuantity?.nr ?? 0;
-                          const qr = ad?.actualQuantity?.r ?? 0;
-                          const rnr = ad?.rates?.nr?.rate ?? 0;
-                          const rr = ad?.rates?.r?.rate ?? 0;
-                          return s + qnr * rnr + qr * rr;
-                        }, 0);
-                      }, 0);
-                      return formatCurrencyFull(totalAkt);
-                    })()}
-                  </td>
-                  <td></td>
-                </tr>
-              </tfoot>
+              
             </table>
           </div>
         </div>

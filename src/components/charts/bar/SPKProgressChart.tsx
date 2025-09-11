@@ -12,8 +12,10 @@ interface SPKData {
   spkId: string;
   spkNo: string;
   title: string;
+  // New primary progress field from dashboard API
+  progressPercentage?: number;
   totalProgress?: {
-    // Use percentage as the primary field for charting progress
+    // Legacy progress field kept for backward compatibility
     percentage: number;
     // Keep legacy fields optional for backward compatibility
     budgetUtilizationPercentage?: number;
@@ -30,7 +32,9 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
   const categories = data.map(spk => spk.spkNo);
   const titles = data.map(spk => spk.title || ''); // Store titles for tooltips
   const percentages = data.map(spk =>
-    // Prefer new percentage, fallback to prior fields if necessary
+    // Prefer the new top-level progressPercentage from API
+    spk.progressPercentage ??
+    // Fallback to legacy nested fields for compatibility
     spk.totalProgress?.percentage ??
     spk.totalProgress?.plannedVsActualCostRatio ??
     spk.totalProgress?.budgetUtilizationPercentage ??
@@ -76,7 +80,9 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
     dataLabels: {
       enabled: true,
       formatter: function(val: any) {
-        return val + "%";
+        const num = typeof val === 'number' ? val : parseFloat(val);
+        if (isNaN(num)) return '0.00%';
+        return num.toFixed(2) + "%";
       },
       style: {
         fontSize: '12px',
@@ -138,7 +144,7 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
     tooltip: {
       enabled: true,
       y: {
-        formatter: (val: number) => `${val.toFixed(1)}%`,
+        formatter: (val: number) => `${(Number.isFinite(val) ? val : 0).toFixed(2)}%`,
       },
       custom: function({ series, seriesIndex, dataPointIndex, w }: any) {
         const spk = data[dataPointIndex];
@@ -146,7 +152,7 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
           <div class="p-2">
             <div class="font-medium">${spk.spkNo}</div>
             <div class="text-xs mt-1">${spk.title}</div>
-            <div class="text-xs font-semibold mt-1">${series[seriesIndex][dataPointIndex]}%</div>
+            <div class="text-xs font-semibold mt-1">${Number(series[seriesIndex][dataPointIndex]).toFixed(2)}%</div>
           </div>
         `;
       }

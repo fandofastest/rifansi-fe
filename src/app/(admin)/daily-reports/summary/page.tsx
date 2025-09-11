@@ -901,17 +901,21 @@ export default function DailyReportSummaryPage() {
   const formatShortIDR = (value: number) => {
     const abs = Math.abs(value);
     if (abs >= 1_000_000_000) {
-      // Miliar => M
-      return `${(value / 1_000_000_000).toLocaleString('id-ID', {
+      // Display billions as millions using comma separators, e.g., 2,115M for 2,115,036,830
+      return `${(value / 1_000_000).toLocaleString('en-US', {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 1,
-      })} M`;
+        maximumFractionDigits: 0,
+      })}M`;
     } else if (abs >= 1_000_000) {
-      // Juta => jt
-      return `${(value / 1_000_000).toLocaleString('id-ID', {
-        minimumFractionDigits: 0,
+      // Juta => jt, show 1 decimal and use comma as decimal separator (e.g., 25,7 jt)
+      const millions = value / 1_000_000;
+      const en = millions.toLocaleString('en-US', {
+        minimumFractionDigits: 1,
         maximumFractionDigits: 1,
-      })} jt`;
+      });
+      // Convert decimal point to comma for readability per request
+      const withCommaDecimal = en.replace('.', ',');
+      return `${withCommaDecimal} jt`;
     }
     return value.toLocaleString('id-ID');
   };

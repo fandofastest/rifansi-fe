@@ -19,20 +19,38 @@ function calculateCostPercentage(cost: number, total: number): number {
 interface MetricCardProps {
   title: string;
   value: number;
-  format: 'number' | 'currency' | 'percent';
+  format: 'number' | 'currency' | 'percent' | 'shortCurrency';
 }
+
+// Short currency formatter used for dashboard metrics (e.g., 2,115M; 25,7 jt)
+const formatShortIDR = (value: number) => {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000) {
+    // Show billions as millions with comma separators and 'M'
+    return `${(value / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}M`;
+  }
+  if (abs >= 1_000_000) {
+    // Show millions with one decimal and comma decimal separator + ' jt'
+    const millions = value / 1_000_000;
+    const en = millions.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    return `${en.replace('.', ',')} jt`;
+  }
+  return value.toLocaleString('id-ID');
+};
 
 function MetricCard({ title, value, format }: MetricCardProps) {
   let formattedValue = value.toString();
-  
+
   if (format === 'currency') {
     formattedValue = formatCurrency(value);
   } else if (format === 'percent') {
     formattedValue = `${value.toFixed(2)}%`;
+  } else if (format === 'shortCurrency') {
+    formattedValue = formatShortIDR(value);
   } else if (format === 'number' && value > 999) {
     formattedValue = value.toLocaleString();
   }
-  
+
   return (
     <Card>
       <CardBody className="text-center py-4">
@@ -125,7 +143,7 @@ export default function Dashboard() {
         <MetricCard 
           title="Total Budget SPK" 
           value={dashboardData.spkPerformance?.reduce((sum: number, spk: any) => sum + (spk.budget || 0), 0)} 
-          format="currency" 
+          format="shortCurrency" 
         />
         <MetricCard 
           title="% SPK Terhadap Kontrak" 
@@ -140,7 +158,7 @@ export default function Dashboard() {
         <MetricCard 
           title="Total SPK Close" 
           value={dashboardData.totalspkclose?.totalBudgetSpk || 0} 
-          format="currency" 
+          format="shortCurrency" 
         />
       </div>
 
@@ -265,35 +283,40 @@ export default function Dashboard() {
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 dark:text-gray-200">
                         <div className="text-center">
                           <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Materials</h4>
-                          <p className="text-xl font-bold">{formatCurrency(material)}</p>
+                          <p className="text-xl font-bold">{formatShortIDR(material)}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{formatCurrency(material)}</p>
                           <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div className="bg-blue-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(material, total)}%` }}></div>
                           </div>
                         </div>
                         <div className="text-center">
                           <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Manpower</h4>
-                          <p className="text-xl font-bold">{formatCurrency(manpower)}</p>
+                          <p className="text-xl font-bold">{formatShortIDR(manpower)}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{formatCurrency(manpower)}</p>
                           <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div className="bg-green-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(manpower, total)}%` }}></div>
                           </div>
                         </div>
                         <div className="text-center">
                           <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Equipment</h4>
-                          <p className="text-xl font-bold">{formatCurrency(equipment)}</p>
+                          <p className="text-xl font-bold">{formatShortIDR(equipment)}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{formatCurrency(equipment)}</p>
                           <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div className="bg-amber-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(equipment, total)}%` }}></div>
                           </div>
                         </div>
                         <div className="text-center">
                           <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">BBM</h4>
-                          <p className="text-xl font-bold">{formatCurrency(bbm)}</p>
+                          <p className="text-xl font-bold">{formatShortIDR(bbm)}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{formatCurrency(bbm)}</p>
                           <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div className="bg-orange-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(bbm, total)}%` }}></div>
                           </div>
                         </div>
                         <div className="text-center">
                           <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Other</h4>
-                          <p className="text-xl font-bold">{formatCurrency(other)}</p>
+                          <p className="text-xl font-bold">{formatShortIDR(other)}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{formatCurrency(other)}</p>
                           <div className="mt-2 h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div className="bg-purple-500 h-full rounded-full" style={{ width: `${calculateCostPercentage(other, total)}%` }}></div>
                           </div>

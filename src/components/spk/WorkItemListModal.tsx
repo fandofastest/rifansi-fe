@@ -4,6 +4,7 @@ import Button from "@/components/ui/button/Button";
 import { SPK, updateSPKWorkItem, UpdateSPKWorkItemInput } from "@/services/spk";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
+import { EditWorkItemModal } from "@/components/spk/EditWorkItemModal";
 
 interface WorkItemListModalProps {
   isOpen: boolean;
@@ -34,9 +35,23 @@ export const WorkItemListModal: React.FC<WorkItemListModalProps> = ({
 }) => {
   const { token } = useAuth();
   const [editableItems, setEditableItems] = useState<EditableWorkItem[]>([]);
+  const [currentSpk, setCurrentSpk] = useState<SPK | null>(spk);
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [editTarget,
+    setEditTarget] = useState<{
+      workItemId: string;
+      name?: string;
+      unitName?: string;
+      boqVolumeNR: number;
+      boqVolumeR: number;
+      rateNR: number;
+      rateR: number;
+      description: string;
+    } | null>(null);
 
   useEffect(() => {
+    setCurrentSpk(spk || null);
     if (spk?.workItems) {
       // Initialize editable items from spk work items
       const initialEditableItems = spk.workItems.map(item => ({
@@ -52,130 +67,42 @@ export const WorkItemListModal: React.FC<WorkItemListModalProps> = ({
     }
   }, [spk]);
 
-  const handleEditToggle = (workItemId: string) => {
-    setEditableItems(items => items.map(item => 
-      item.workItemId === workItemId 
-        ? { ...item, isEditing: !item.isEditing }
-        : item
-    ));
-  };
-
-  const handleInputChange = (workItemId: string, field: keyof EditableWorkItem, value: string | number) => {
-    setEditableItems(items => items.map(item => 
-      item.workItemId === workItemId 
-        ? { ...item, [field]: typeof value === 'string' && !isNaN(Number(value)) ? Number(value) : value }
-        : item
-    ));
-  };
-
-  const handleApplyChanges = async (workItemId: string) => {
-    if (!spk || !token) return;
-
-    const itemToUpdate = editableItems.find(item => item.workItemId === workItemId);
-    if (!itemToUpdate) return;
-
-    setIsLoading(prev => ({ ...prev, [workItemId]: true }));
-
-    try {
-      const input: UpdateSPKWorkItemInput = {
-        boqVolume: {
-          nr: itemToUpdate.boqVolumeNR,
-          r: itemToUpdate.boqVolumeR
-        },
-        rates: {
-          nr: {
-            rate: itemToUpdate.rateNR,
-            description: ""
-          },
-          r: {
-            rate: itemToUpdate.rateR,
-            description: ""
-          }
-        },
-        description: itemToUpdate.description
-      };
-
-      // Kirim update ke server
-      await updateSPKWorkItem(spk.id, workItemId, input, token);
-      toast.success("Work item updated successfully");
-      
-      // Dapatkan nilai terbaru untuk workItem
-      const updatedBoqVolumeNR = itemToUpdate.boqVolumeNR;
-      const updatedBoqVolumeR = itemToUpdate.boqVolumeR;
-      const updatedRateNR = itemToUpdate.rateNR;
-      const updatedRateR = itemToUpdate.rateR;
-      
-      // Hitung jumlah terbaru
-      const updatedAmount = 
-        (updatedBoqVolumeNR * updatedRateNR) + 
-        (updatedBoqVolumeR * updatedRateR);
-      
-      // Perbarui array workItems di SPK untuk update UI
-      if (spk) {
-        // Update editable items state
-        setEditableItems(prevItems => 
-          prevItems.map(item => 
-            item.workItemId === workItemId 
-              ? {
-                  ...item,
-                  boqVolumeNR: updatedBoqVolumeNR,
-                  boqVolumeR: updatedBoqVolumeR,
-                  rateNR: updatedRateNR,
-                  rateR: updatedRateR,
-                  isEditing: false
-                }
-              : item
-          )
-        );
-        
-        // Update local spk state jika ada
-        const updatedWorkItems = spk.workItems.map(item => {
-          if (item.workItemId === workItemId) {
-            return {
-              ...item,
-              boqVolume: {
-                nr: updatedBoqVolumeNR,
-                r: updatedBoqVolumeR
-              },
-              rates: {
-                nr: {
-                  rate: updatedRateNR,
-                  description: item.rates.nr.description || "Non-Remote Rate"
-                },
-                r: {
-                  rate: updatedRateR,
-                  description: item.rates.r.description || "Remote Rate"
-                }
-              },
-              amount: updatedAmount
-            };
-          }
-          return item;
-        });
-        
-        const updatedSPK: SPK = {
-          ...spk,
-          workItems: updatedWorkItems
-        };
-        
-        // Call the callback untuk update parent component
-        if (onWorkItemUpdated) {
-          onWorkItemUpdated(updatedSPK);
-        }
-      }
-    } catch (error) {
-      console.error('Error updating work item:', error);
-      toast.error("Failed to update work item");
-    } finally {
-      setIsLoading(prev => ({ ...prev, [workItemId]: false }));
-    }
+  // Handle update coming back from EditWorkItemModal
+  const handleUpdatedFromModal = (payload: { workItemId: string; input: UpdateSPKWorkItemInput }) => {
+    if (!currentSpk) return;
+    const { workItemId, input } = payload;
+    const updatedAmount = (input.boqVolume.nr * input.rates.nr.rate) + (input.boqVolume.r * input.rates.r.rate);
+    // Update editable snapshot
+    setEditableItems(prev => prev.map(e => e.workItemId === workItemId ? {
+      ...e,
+      boqVolumeNR: input.boqVolume.nr,
+      boqVolumeR: input.boqVolume.r,
+      rateNR: input.rates.nr.rate,
+      rateR: input.rates.r.rate,
+      description: input.description || e.description,
+      isEditing: false
+    } : e));
+    // Update parent via callback
+    const updatedSPK: SPK = {
+      ...currentSpk,
+      workItems: currentSpk.workItems.map(w => w.workItemId === workItemId ? {
+        ...w,
+        boqVolume: { nr: input.boqVolume.nr, r: input.boqVolume.r },
+        rates: { nr: { rate: input.rates.nr.rate, description: w.rates.nr.description || "" }, r: { rate: input.rates.r.rate, description: w.rates.r.description || "" } },
+        amount: updatedAmount,
+        description: input.description ?? w.description,
+      } : w)
+    };
+    setCurrentSpk(updatedSPK);
+    onWorkItemUpdated?.(updatedSPK);
+    setEditTarget(null);
   };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-[800px] p-5"
+      className="max-w-[1100px] w-full p-5"
     >
       <div className="space-y-4">
         {/* Sticky Header with SPK Details */}
@@ -184,10 +111,10 @@ export const WorkItemListModal: React.FC<WorkItemListModalProps> = ({
             Work Items
           </h4>
           <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-300">
-            <p><span className="font-medium">SPK No:</span> {spk?.spkNo}</p>
-            <p><span className="font-medium">WAP No:</span> {spk?.wapNo}</p>
-            <p><span className="font-medium">Title:</span> {spk?.title}</p>
-            <p><span className="font-medium">Project:</span> {spk?.projectName}</p>
+            <p><span className="font-medium">SPK No:</span> {currentSpk?.spkNo}</p>
+            <p><span className="font-medium">WAP No:</span> {currentSpk?.wapNo}</p>
+            <p><span className="font-medium">Title:</span> {currentSpk?.title}</p>
+            <p><span className="font-medium">Project:</span> {currentSpk?.projectName}</p>
           </div>
           <div className="mt-4 flex justify-end">
             <Button
@@ -199,119 +126,100 @@ export const WorkItemListModal: React.FC<WorkItemListModalProps> = ({
           </div>
         </div>
 
-        {/* Scrollable Work Items List */}
-        <div className="space-y-4 overflow-y-auto" style={{ maxHeight: 400 }}>
-          {spk?.workItems && spk.workItems.length > 0 ? (
-            spk.workItems.map((item, index) => {
-              const editableItem = editableItems.find(ei => ei.workItemId === item.workItemId);
-              const isEditing = editableItem?.isEditing || false;
-              const isUpdating = isLoading[item.workItemId] || false;
-              
-              return (
-                <div key={index} className="p-4 border rounded-lg border-gray-200 dark:border-white/[0.1] bg-white dark:bg-gray-900">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h5 className="font-medium text-gray-800 dark:text-white/90">{item.workItem?.name}</h5>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{item.description}</p>
-                    </div>
-                    <div className="text-right text-gray-800 dark:text-white/90 flex-1">
-                      {!isEditing ? (
-                        <>
-                          <p>Volume: Non-Remote: {item.boqVolume?.nr ?? 0} {item.workItem?.unit?.name}, Remote: {item.boqVolume?.r ?? 0} {item.workItem?.unit?.name}</p>
-                          <p>Non-Remote Rate: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.rates?.nr?.rate || 0)}</p>
-                          <p>Remote Rate: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.rates?.r?.rate || 0)}</p>
-                          <p>Amount: {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.amount || 0)}</p>
-                        </>
-                      ) : (
-                        <>
-                          <div className="mb-2">
-                            <label className="block text-sm font-medium mb-1 text-left">Non-Remote Volume:</label>
-                            <input 
-                              type="number"
-                              value={editableItem?.boqVolumeNR || 0}
-                              onChange={(e) => handleInputChange(item.workItemId, 'boqVolumeNR', e.target.value)}
-                              className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-                            />
-                            <span className="text-xs">{item.workItem?.unit?.name}</span>
-                          </div>
-                          <div className="mb-2">
-                            <label className="block text-sm font-medium mb-1 text-left">Remote Volume:</label>
-                            <input 
-                              type="number"
-                              value={editableItem?.boqVolumeR || 0}
-                              onChange={(e) => handleInputChange(item.workItemId, 'boqVolumeR', e.target.value)}
-                              className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-                            />
-                            <span className="text-xs">{item.workItem?.unit?.name}</span>
-                          </div>
-                          <div className="mb-2">
-                            <label className="block text-sm font-medium mb-1 text-left">Non-Remote Rate (IDR):</label>
-                            <input 
-                              type="number"
-                              value={editableItem?.rateNR || 0}
-                              onChange={(e) => handleInputChange(item.workItemId, 'rateNR', e.target.value)}
-                              className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-                            />
-                          </div>
-                          <div className="mb-2">
-                            <label className="block text-sm font-medium mb-1 text-left">Remote Rate (IDR):</label>
-                            <input 
-                              type="number"
-                              value={editableItem?.rateR || 0}
-                              onChange={(e) => handleInputChange(item.workItemId, 'rateR', e.target.value)}
-                              className="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700"
-                            />
-                          </div>
-                        </>
-                      )}
-                      
-                      <div className="flex justify-end space-x-2 mt-2">
-                        {isEditing ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-                              onClick={() => handleEditToggle(item.workItemId)}
-                              disabled={isUpdating}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={() => handleApplyChanges(item.workItemId)}
-                              disabled={isUpdating}
-                            >
-                              {isUpdating ? 'Updating...' : 'Apply Update'}
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-primary-500 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
-                              onClick={() => handleEditToggle(item.workItemId)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-error-500 border-error-500 hover:bg-error-50 dark:hover:bg-error-900/20"
-                              onClick={() => onRemoveWorkItem(item.workItemId)}
-                            >
-                              Remove
-                            </Button>
-                          </>
-                        )}
+        {/* Scrollable Work Items List - Table */}
+        <div className="overflow-x-auto" style={{ maxHeight: 420 }}>
+          {currentSpk?.workItems && currentSpk.workItems.length > 0 ? (
+            <table className="w-full text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg bg-white dark:bg-gray-900">
+              <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                <tr>
+                  <th className="p-2 text-left text-black dark:text-white w-12">No</th>
+                  <th className="p-2 text-left text-black dark:text-white min-w-[220px]">Work Item</th>
+                  <th className="p-2 text-center text-black dark:text-white" colSpan={2}>Non Remote</th>
+                  <th className="p-2 text-center text-black dark:text-white" colSpan={2}>Remote</th>
+                  <th className="p-2 text-right text-black dark:text-white">Amount</th>
+                  <th className="p-2 text-center text-black dark:text-white w-36">Aksi</th>
+                </tr>
+                <tr className="bg-gray-100 dark:bg-gray-700">
+                  <th></th>
+                  <th></th>
+                  <th className="p-2 text-center text-black dark:text-white">Volume</th>
+                  <th className="p-2 text-center text-black dark:text-white">Rate (Rp)</th>
+                  <th className="p-2 text-center text-black dark:text-white">Volume</th>
+                  <th className="p-2 text-center text-black dark:text-white">Rate (Rp)</th>
+                  <th></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                {currentSpk.workItems.map((item, index) => (
+                  <tr key={item.workItemId}>
+                    <td className="p-2 text-gray-800 dark:text-white/90">{index + 1}</td>
+                    <td className="p-2 text-gray-800 dark:text-white/90">
+                      <div
+                        className="font-medium truncate whitespace-nowrap max-w-[380px]"
+                        title={(item.workItem?.name || '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim()}
+                      >
+                        {(item.workItem?.name || '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim()}
                       </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+                      {(() => {
+                        const desc = (item.description || '').trim();
+                        if (!desc || desc === '-') return null;
+                        return (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate whitespace-nowrap max-w-[380px]" title={desc}>
+                            {desc}
+                          </div>
+                        );
+                      })()}
+                    </td>
+                    <td className="p-2 text-center text-gray-800 dark:text-white/90">{item.boqVolume?.nr ?? 0}</td>
+                    <td className="p-2 text-center text-gray-800 dark:text-white/90">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.rates?.nr?.rate || 0)}</td>
+                    <td className="p-2 text-center text-gray-800 dark:text-white/90">{item.boqVolume?.r ?? 0}</td>
+                    <td className="p-2 text-center text-gray-800 dark:text-white/90">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.rates?.r?.rate || 0)}</td>
+                    <td className="p-2 text-right text-gray-800 dark:text-white/90">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.amount || 0)}</td>
+                    <td className="p-2 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-primary-500 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                          onClick={() => setEditTarget({
+                            workItemId: item.workItemId,
+                            name: item.workItem?.name,
+                            unitName: item.workItem?.unit?.name,
+                            boqVolumeNR: item.boqVolume?.nr || 0,
+                            boqVolumeR: item.boqVolume?.r || 0,
+                            rateNR: item.rates?.nr?.rate || 0,
+                            rateR: item.rates?.r?.rate || 0,
+                            description: item.description || "",
+                          })}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-error-500 border-error-500 hover:bg-error-50 dark:hover:bg-error-900/20"
+                          onClick={() => setDeleteTargetId(item.workItemId)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={6} className="p-2 font-semibold text-right bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200">TOTAL</td>
+                  <td className="p-2 font-semibold text-right bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200">
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(
+                      currentSpk.workItems.reduce((sum, it) => sum + (it.amount || 0), 0)
+                    )}
+                  </td>
+                  <td className="p-2 bg-blue-100 dark:bg-blue-900/30"></td>
+                </tr>
+              </tfoot>
+            </table>
           ) : (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <p>No work items have been added yet.</p>
@@ -320,6 +228,49 @@ export const WorkItemListModal: React.FC<WorkItemListModalProps> = ({
           )}
         </div>
       </div>
+      {/* Edit Work Item Modal */}
+      {spk && editTarget && (
+        <EditWorkItemModal
+          isOpen={!!editTarget}
+          onClose={() => setEditTarget(null)}
+          spk={spk}
+          workItem={editTarget}
+          onUpdated={handleUpdatedFromModal}
+        />
+      )}
+
+      {/* Delete Confirmation Modal for Work Item */}
+      <Modal
+        isOpen={!!deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+        className="max-w-[400px] p-5"
+      >
+        <div className="text-center">
+          <h4 className="mb-4 text-lg font-medium text-gray-800 dark:text-white/90">Hapus Work Item</h4>
+          <p className="mb-6 text-gray-600 dark:text-gray-300">Apakah Anda yakin ingin menghapus work item ini?</p>
+          <div className="flex items-center justify-end gap-3">
+            <Button variant="outline" size="sm" onClick={() => setDeleteTargetId(null)}>Batal</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              className="bg-error-500 hover:bg-error-600"
+              onClick={() => {
+                if (deleteTargetId) {
+                  // Optimistic local update
+                  setCurrentSpk(prev => prev ? ({
+                    ...prev,
+                    workItems: prev.workItems.filter(w => w.workItemId !== deleteTargetId)
+                  }) : prev);
+                  onRemoveWorkItem(deleteTargetId);
+                }
+                setDeleteTargetId(null);
+              }}
+            >
+              Hapus
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Modal>
   );
 }; 
