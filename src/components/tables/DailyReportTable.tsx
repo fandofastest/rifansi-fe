@@ -415,6 +415,7 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
               <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                 {reports.map((report) => (
                   <tr key={report.id}>
+                    {/* Tanggal */}
                     <td className="px-5 py-4 sm:px-6 text-start">
                       <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
                         {(() => {
@@ -424,24 +425,23 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
                         })()}
                       </span>
                     </td>
+                    {/* Nama Proyek */}
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       {report.spkDetail?.projectName}
                     </td>
+                    {/* Diajukan Oleh */}
                     <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                       {report.userDetail?.fullName || "-"}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                      <div>
-                        <div className="font-medium">{report.area?.name || '-'}</div>
-                        {/* Coordinates removed in lightweight list response */}
-                        <div className="text-xs text-gray-400">-</div>
-                      </div>
+                    {/* Lokasi SPK (hanya dari spkDetail.location) */}
+                    <td className="px-4 py-3 text-gray-700 text-start text-theme-sm dark:text-gray-300">
+                      {report.spkDetail?.location?.name || '-'}
                     </td>
+                    {/* Status */}
                     <td className="px-4 py-3 text-start">
                       {getStatusBadge(report.status)}
                     </td>
-                    
-                    {/* Nilai Aktivitas column */}
+                    {/* Nilai Aktivitas */}
                     <td className="px-4 py-3 text-start">
                       {(() => {
                         const total = (report.activityDetails || []).reduce((sum, ad) => {
@@ -451,13 +451,13 @@ export function DailyReportTable({ spkId, startDate, endDate, onTotalsChange }: 
                           const rr = ad?.rates?.r?.rate ?? 0;
                           return sum + qnr * rnr + qr * rr;
                         }, 0);
-                        const full = formatCurrencyFull(total); // e.g., "Rp 1.234.567"
+                        const full = formatCurrencyFull(total);
                         return (
                           <span className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{full}</span>
                         );
                       })()}
                     </td>
-                    
+                    {/* Aksi */}
                     <td className="px-4 py-3 text-start">
                       <div className="flex items-center gap-2">
                         <Button
