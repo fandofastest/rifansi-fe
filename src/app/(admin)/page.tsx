@@ -20,25 +20,29 @@ interface MetricCardProps {
   title: string;
   value: number;
   format: 'number' | 'currency' | 'percent' | 'shortCurrency';
+  detail?: string; // optional small text under the main value
 }
 
 // Short currency formatter used for dashboard metrics (e.g., 2,115M; 25,7 jt)
 const formatShortIDR = (value: number) => {
   const abs = Math.abs(value);
   if (abs >= 1_000_000_000) {
-    // Show billions as millions with comma separators and 'M'
-    return `${(value / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}M`;
+    // Show billions as millions with 'M', floored to avoid rounding up
+    const millionsFloored = Math.floor(abs / 1_000_000);
+    const prefix = value < 0 ? '-' : '';
+    return `${prefix}${millionsFloored.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}M`;
   }
   if (abs >= 1_000_000) {
-    // Show millions with one decimal and comma decimal separator + ' jt'
-    const millions = value / 1_000_000;
-    const en = millions.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    // Show millions with one decimal (0.1 jt), floored and using comma as decimal separator + ' jt'
+    const sign = value < 0 ? -1 : 1;
+    const flooredOneDecimal = Math.floor((abs / 1_000_000) * 10) / 10; // floor to one decimal place
+    const en = (sign * flooredOneDecimal).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     return `${en.replace('.', ',')} jt`;
   }
   return value.toLocaleString('id-ID');
 };
 
-function MetricCard({ title, value, format }: MetricCardProps) {
+function MetricCard({ title, value, format, detail }: MetricCardProps) {
   let formattedValue = value.toString();
 
   if (format === 'currency') {
@@ -56,6 +60,9 @@ function MetricCard({ title, value, format }: MetricCardProps) {
       <CardBody className="text-center py-4">
         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{title}</h3>
         <p className="text-2xl font-bold dark:text-white">{formattedValue}</p>
+        {detail && (
+          <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">{detail}</p>
+        )}
       </CardBody>
     </Card>
   );
@@ -144,6 +151,7 @@ export default function Dashboard() {
           title="Total Budget SPK" 
           value={dashboardData.spkPerformance?.reduce((sum: number, spk: any) => sum + (spk.budget || 0), 0)} 
           format="shortCurrency" 
+          detail={formatCurrency(dashboardData.spkPerformance?.reduce((sum: number, spk: any) => sum + (spk.budget || 0), 0) || 0)}
         />
         <MetricCard 
           title="% SPK Terhadap Kontrak" 
@@ -159,6 +167,7 @@ export default function Dashboard() {
           title="Total SPK Close" 
           value={dashboardData.totalspkclose?.totalBudgetSpk || 0} 
           format="shortCurrency" 
+          detail={formatCurrency(dashboardData.totalspkclose?.totalBudgetSpk || 0)}
         />
       </div>
 

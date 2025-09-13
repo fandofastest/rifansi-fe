@@ -41,12 +41,8 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
     0
   );
   
-  // Create colors array based on percentage values
-  const colors = percentages.map(percentage => 
-    percentage > 90 ? '#ef4444' :  // Red for high (> 90%)
-    percentage > 70 ? '#f59e0b' :  // Amber for medium (70-90%)
-    '#3b82f6'                      // Lighter blue for normal (< 70%) for better contrast with labels
-  );
+  // Use a single uniform color (blue) for all bars
+  const colors = ['#3b82f6'];
 
   // Calculate dynamic height based on number of SPKs
   // Increased height to make bars taller
@@ -71,7 +67,7 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
         columnWidth: data.length > 10 ? "80%" : "70%", // Increased column width for taller appearance
         borderRadius: 3,
         borderRadiusApplication: "end",
-        distributed: true, // For using different colors per bar
+        distributed: false, // Use single color for all bars
         dataLabels: {
           position: 'top',
         },
@@ -181,20 +177,6 @@ export default function SPKProgressChart({ data }: SPKProgressChartProps) {
 
   return (
     <div className="w-full h-full">
-      <div className="flex justify-end mb-2 text-xs">
-        <div className="flex items-center mr-4">
-          <span className="inline-block w-3 h-3 bg-[#465fff] mr-1"></span>
-          <span>Normal (&lt;70%)</span>
-        </div>
-        <div className="flex items-center mr-4">
-          <span className="inline-block w-3 h-3 bg-[#f59e0b] mr-1"></span>
-          <span>Medium (70-90%)</span>
-        </div>
-        <div className="flex items-center">
-          <span className="inline-block w-3 h-3 bg-[#ef4444] mr-1"></span>
-          <span>High (&gt;90%)</span>
-        </div>
-      </div>
       <div className="w-full">
         <ReactApexChart
           options={options}

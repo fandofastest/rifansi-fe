@@ -9,28 +9,30 @@ interface SalesBarChartProps {
   showPlan?: boolean;
 }
 
-// Helper function to format currency in compact way using Indonesian format
+// Helper function to format currency in compact way using Indonesian format (ALWAYS floor)
 function formatCompactCurrency(value: number): string {
-  if (value === 0) return '0';
-  
-  // For values under 1 million (< 1 juta)
-  if (value < 1000000) {
-    return new Intl.NumberFormat('id-ID', {
-      maximumFractionDigits: 2
-    }).format(value / 1000) + ' rb';
+  if (!value) return '0';
+
+  const floorTo = (num: number, decimals: number) => {
+    const factor = Math.pow(10, decimals);
+    return Math.floor(num * factor) / factor;
+  };
+
+  // For values under 1 million (< 1 juta) -> show in thousands (rb), floor to 2 decimals
+  if (value < 1_000_000) {
+    const thousands = floorTo(value / 1_000, 2);
+    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(thousands) + ' rb';
   }
-  
-  // For values between 1 million and 1 billion (1 juta - 1 miliar)
-  if (value < 1000000000) {
-    return new Intl.NumberFormat('id-ID', {
-      maximumFractionDigits: 2
-    }).format(value / 1000000) + ' Jt';
+
+  // For values between 1 million and 1 billion (1 juta - 1 miliar) -> show in millions (Jt), floor to 2 decimals
+  if (value < 1_000_000_000) {
+    const millions = floorTo(value / 1_000_000, 2);
+    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(millions) + ' Jt';
   }
-  
-  // For values in billions (miliar)
-  return new Intl.NumberFormat('id-ID', {
-    maximumFractionDigits: 2
-  }).format(value / 1000000000) + ' M';
+
+  // For values in billions (miliar) -> show in billions (M), floor to 2 decimals
+  const billions = floorTo(value / 1_000_000_000, 2);
+  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(billions) + ' M';
 }
 
 export default function SalesBarChart({ monthlyTrend, showPlan = false }: SalesBarChartProps) {
