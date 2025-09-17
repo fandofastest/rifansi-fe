@@ -599,43 +599,35 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
                   </div>
                 </div>
               )}
-              {/* Manpower Logs */}
+              {/* Manpower log table removed as requested */}
+              {/* Wage Breakdown Table */}
               {report.manpowerLogs && report.manpowerLogs.length > 0 && (
-                <div className="mt-4">
-                  <h5 className="mb-2 font-medium">Log Tenaga Kerja</h5>
+                <div className="mt-6">
+                  <h5 className="mb-2 font-medium">Rincian Upah</h5>
                   <div className="max-h-60 overflow-y-auto overflow-x-auto">
-                    <table className="w-full table-fixed min-w-[900px] text-xs">
+                    <table className="w-full table-fixed min-w-[800px] text-xs">
                       <thead>
                         <tr className="border-b-2 border-gray-300 dark:border-white/20">
-                          <th className="px-2 py-2 text-left w-48">Nama Peran</th>
+                          <th className="px-2 py-2 text-left w-56">Nama Peran</th>
                           <th className="px-2 py-2 text-left w-24">Jumlah Orang</th>
                           <th className="px-2 py-2 text-left w-24">Jam Kerja</th>
-                          <th className="px-2 py-2 text-left w-24">Upah/Jam</th>
-                          <th className="px-2 py-2 text-left w-24">Subtotal</th>
+                          <th className="px-2 py-2 text-right w-36">Upah Harian Dasar</th>
+                          <th className="px-2 py-2 text-right w-32">Upah Lembur</th>
+                          <th className="px-2 py-2 text-right w-36">Total Upah</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {report.manpowerLogs.map((log) => {
-                          const subtotal = (log.workingHours || 0) * (log.hourlyRate || 0) * (log.personCount || 0);
-                          return (
-                            <tr key={log.id} className="border-b border-gray-100 dark:border-white/10">
-                              <td className="px-2 py-2">{log.personnelRole?.roleName || '-'}</td>
-                              <td className="px-2 py-2">{log.personCount}</td>
-                              <td className="px-2 py-2">{log.workingHours || 0}</td>
-                              <td className="px-2 py-2">{(log.hourlyRate || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
-                              <td className="px-2 py-2">{subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
-                            </tr>
-                          );
-                        })}
+                        {report.manpowerLogs.map((log) => (
+                          <tr key={log.id} className="border-b border-gray-100 dark:border-white/10">
+                            <td className="px-2 py-2">{log.personnelRole?.roleName || '-'}</td>
+                            <td className="px-2 py-2">{log.personCount || 0}</td>
+                            <td className="px-2 py-2">{log.workingHours || 0}</td>
+                            <td className="px-2 py-2 text-right">{(log.cost?.upahHarianDasar || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
+                            <td className="px-2 py-2 text-right">{(log.cost?.upahLembur || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
+                            <td className="px-2 py-2 text-right font-semibold">{(log.cost?.totalUpah || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</td>
+                          </tr>
+                        ))}
                       </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 border-gray-300 dark:border-white/20">
-                          <td colSpan={4} className="px-2 py-2 font-semibold text-right">Total Tenaga Kerja</td>
-                          <td className="px-2 py-2 font-bold text-right">
-                            {totalTenagaKerja.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
-                          </td>
-                        </tr>
-                      </tfoot>
                     </table>
                   </div>
                 </div>

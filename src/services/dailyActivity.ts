@@ -170,6 +170,15 @@ export interface ManpowerLog {
   hourlyRate: number;
   workingHours: number;
   personnelRole: PersonnelRole;
+  cost?: {
+    upahHarianDasar: number;
+    upahLembur: number;
+    totalUpah: number;
+    dayType: string;
+    workHours: number;
+    isHoliday: boolean;
+    isWeekend: boolean;
+  };
 }
 
 export interface Material {
@@ -353,6 +362,15 @@ const GET_DAILY_ACTIVITY_WITH_DETAILS = `
             roleName
             description
             isPersonel
+          }
+          cost {
+            upahHarianDasar
+            upahLembur
+            totalUpah
+            dayType
+            workHours
+            isHoliday
+            isWeekend
           }
         }
         materialUsageLogs {
@@ -767,6 +785,15 @@ const GET_DAILY_ACTIVITY_WITH_DETAILS_RANGE = `
             roleName
             description
             isPersonel
+          }
+          cost {
+            upahHarianDasar
+            upahLembur
+            totalUpah
+            dayType
+            workHours
+            isHoliday
+            isWeekend
           }
         }
         materialUsageLogs {
