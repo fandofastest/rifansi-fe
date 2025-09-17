@@ -778,7 +778,7 @@ export default function DailyReportSummaryPage() {
     },
     yaxis: {
       title: {
-        text: 'Budget (IDR)',
+        text: 'Sales (IDR)',
         style: {
           color: '#6B7280',
           fontSize: '14px',
@@ -814,10 +814,10 @@ export default function DailyReportSummaryPage() {
       borderColor: '#E5E7EB',
       strokeDashArray: 5,
     },
-  }), [costChartData.dates]);
+  }), [budgetChartData.dates]);
 
   const budgetSeries = useMemo(() => (
-    [{ name: 'Budget (IDR)', data: budgetChartData.budgetData }]
+    [{ name: 'Sales (IDR)', data: budgetChartData.budgetData }]
   ), [budgetChartData.budgetData]);
 
   // Helper: truncate to 2 decimals (no rounding)
@@ -903,7 +903,7 @@ export default function DailyReportSummaryPage() {
       borderColor: '#E5E7EB',
       strokeDashArray: 5,
     },
-  }), [budgetChartData.dates]);
+  }), [costChartData.dates]);
 
   const costSeries = useMemo(() => ([
     { name: 'Equipment', data: costChartData.equipmentData },
@@ -1212,9 +1212,9 @@ export default function DailyReportSummaryPage() {
                 <ProgressChart options={progressChartOptions} series={progressSeries} />
               </div>
 
-              {/* Budget Chart */}
+              {/* Sales Chart (formerly Budget) */}
               <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">Penggunaan Budget</h3>
+                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">Sales</h3>
                 <div className="flex items-center gap-2 mb-3">
                   <select
                     className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-black dark:text-white"
@@ -1235,7 +1235,7 @@ export default function DailyReportSummaryPage() {
                     ))}
                   </select>
                 </div>
-                <BudgetChart options={budgetChartOptions} series={budgetSeries} />
+                <BudgetChart key={`sales-${budgetFilter.year}-${budgetFilter.month}`} options={budgetChartOptions} series={budgetSeries} />
               </div>
             </div>
 
