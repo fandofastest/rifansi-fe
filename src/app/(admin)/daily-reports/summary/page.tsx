@@ -165,7 +165,7 @@ type ApexSeries = any;
 
 const ProgressChart = React.memo(function ProgressChart({ options, series }: { options: ApexOptions; series: ApexSeries }) {
   return (
-    <ReactApexChart options={options} series={series} type="bar" height={350} />
+    <ReactApexChart options={options} series={series} type="line" height={350} />
   );
 });
 
@@ -574,8 +574,29 @@ export default function DailyReportSummaryPage() {
       const startDateStr = format(start, 'yyyy-MM-dd');
       const endDateStr = format(end, 'yyyy-MM-dd');
       const data = await getSPKDetailsProgressOnly(selectedSPK, token, startDateStr, endDateStr);
+      // Baseline: cumulative sales before this month
+      const prevEnd = new Date(start);
+      prevEnd.setDate(prevEnd.getDate() - 1);
+      const prevEndStr = format(prevEnd, 'yyyy-MM-dd');
+      let baselineSales = 0;
+      if (prevEndStr < startDateStr) {
+        const baselineData = await getSPKDetailsProgressOnly(selectedSPK, token, undefined as any, prevEndStr);
+        baselineSales = (baselineData?.dailyActivities || []).filter((a: any) => a?.status === 'Approved').reduce((sum: number, a: any) => {
+          const workItems = a?.workItems || [];
+          const sales = workItems.reduce((s: number, wi: any) => {
+            const nrQty = wi?.actualQuantity?.nr || 0;
+            const rQty = wi?.actualQuantity?.r || 0;
+            const nrRate = wi?.rates?.nr?.rate || 0;
+            const rRate = wi?.rates?.r?.rate || 0;
+            return s + (nrQty * nrRate) + (rQty * rRate);
+          }, 0);
+          return sum + sales;
+        }, 0);
+      }
       const dates = eachDayOfInterval({ start, end });
       const out: ProgressChartData = { dates: dates.map(d => format(d, 'dd MMM', { locale: id })), progressData: [] };
+      const totalBudget = data?.budget ?? 0;
+      let runningSales = baselineSales;
       dates.forEach(date => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const activities = (data.dailyActivities || []).filter((a: any) => {
@@ -583,15 +604,22 @@ export default function DailyReportSummaryPage() {
           const dStr = format(new Date(a.date), 'yyyy-MM-dd');
           return dStr === dateStr && a.status === 'Approved';
         });
-        const avg = activities.length > 0 ? activities.reduce((sum: number, a: any) => {
-          const workItemProgress = (a.workItems || []).reduce((s: number, it: any) => {
-            const totalVol = (it.boqVolume?.nr || 0) + (it.boqVolume?.r || 0);
-            const doneVol = (it.actualQuantity?.nr || 0) + (it.actualQuantity?.r || 0);
-            return s + (totalVol > 0 ? (doneVol / totalVol) * 100 : 0);
+        // Sales-based daily progress: (dailySales / totalBudget) * 100
+        const dailySales = activities.reduce((sum: number, a: any) => {
+          const workItems = a?.workItems || [];
+          const sales = workItems.reduce((s: number, wi: any) => {
+            const nrQty = wi?.actualQuantity?.nr || 0;
+            const rQty = wi?.actualQuantity?.r || 0;
+            const nrRate = wi?.rates?.nr?.rate || 0;
+            const rRate = wi?.rates?.r?.rate || 0;
+            return s + (nrQty * nrRate) + (rQty * rRate);
           }, 0);
-          return sum + ((a.workItems?.length || 0) > 0 ? workItemProgress / a.workItems.length : 0);
-        }, 0) / activities.length : 0;
-        out.progressData.push(avg);
+          return sum + sales;
+        }, 0);
+        // Cumulative progress: accumulate sales-to-date (including baseline)
+        runningSales += dailySales;
+        const progressPct = totalBudget > 0 ? (runningSales / totalBudget) * 100 : 0;
+        out.progressData.push(progressPct);
       });
       setProgressChartData(out);
     };
@@ -681,7 +709,7 @@ export default function DailyReportSummaryPage() {
   // Progress Chart Options (memoized)
   const progressChartOptions = useMemo(() => ({
     chart: {
-      type: 'bar' as const,
+      type: 'line' as const,
       height: 350,
       toolbar: { show: false },
       fontFamily: "Outfit, sans-serif",
@@ -690,12 +718,12 @@ export default function DailyReportSummaryPage() {
       animations: { enabled: false },
     },
     colors: ['#10B981'],
-    plotOptions: {
-      bar: {
-        horizontal: false,
-        columnWidth: '60%',
-        borderRadius: 4,
-      },
+    stroke: {
+      curve: 'smooth' as const,
+      width: 3,
+    },
+    markers: {
+      size: 3,
     },
     dataLabels: { enabled: false },
     xaxis: {
@@ -709,7 +737,7 @@ export default function DailyReportSummaryPage() {
     },
     yaxis: {
       title: {
-        text: 'Progress (%)',
+        text: 'Progress Kumulatif (%)',
         style: {
           color: '#6B7280',
           fontSize: '14px',
@@ -725,7 +753,7 @@ export default function DailyReportSummaryPage() {
     },
     tooltip: {
       y: {
-        formatter: (value: number) => `${value.toFixed(1)}%`,
+        formatter: (value: number) => `${value.toFixed(2)}%`,
       },
     },
     grid: {
@@ -1186,7 +1214,7 @@ export default function DailyReportSummaryPage() {
             <div className="grid grid-cols-1 gap-6">
               {/* Progress Chart */}
               <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">Progress Harian</h3>
+                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">Progress Kumulatif</h3>
                 <div className="flex items-center gap-2 mb-3">
                   <select
                     className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-black dark:text-white"

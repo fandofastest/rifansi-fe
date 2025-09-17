@@ -728,19 +728,23 @@ const GET_SPK_DETAILS_WITH_PROGRESS = `
   }
 `;
 
-// Lightweight: only fields needed to compute daily progress
+// Lightweight: fields needed to compute sales-based daily progress
 const GET_SPK_DETAILS_PROGRESS_ONLY = `
   query GetSPKDetailsWithProgressBySpkId($spkId: ID!, $startDate: String, $endDate: String) {
     spkDetailsWithProgress(spkId: $spkId, startDate: $startDate, endDate: $endDate) {
       id
+      budget
       dailyActivities {
         id
         date
         status
         workItems {
           id
-          boqVolume { nr r }
           actualQuantity { nr r }
+          rates {
+            nr { rate }
+            r { rate }
+          }
         }
       }
     }
