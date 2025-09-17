@@ -747,7 +747,7 @@ const GET_SPK_DETAILS_PROGRESS_ONLY = `
   }
 `;
 
-// Lightweight: only fields needed to compute budget usage (equipment rental, fuel, manpower, materials, others)
+// Lightweight: fields needed to compute Sales (Nilai Aktivitas) per day
 const GET_SPK_DETAILS_BUDGET_ONLY = `
   query GetSPKDetailsWithProgressBySpkId($spkId: ID!, $startDate: String, $endDate: String) {
     spkDetailsWithProgress(spkId: $spkId, startDate: $startDate, endDate: $endDate) {
@@ -756,18 +756,13 @@ const GET_SPK_DETAILS_BUDGET_ONLY = `
         id
         date
         status
-        costs {
-          equipment {
-            items {
-              workingHours
-              rentalRatePerDay
-              fuelUsed
-              fuelPrice
-            }
+        workItems {
+          id
+          actualQuantity { nr r }
+          rates {
+            nr { rate }
+            r { rate }
           }
-          manpower { totalCost }
-          materials { totalCost }
-          otherCosts { totalCost }
         }
       }
     }

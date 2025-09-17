@@ -616,21 +616,19 @@ export default function DailyReportSummaryPage() {
           const dStr = format(new Date(a.date), 'yyyy-MM-dd');
           return dStr === dateStr && a.status === 'Approved';
         });
-        const totalBudget = activities.reduce((sum: number, a: any) => {
-          const items = a?.costs?.equipment?.items || [];
-          const rental = items.reduce((s: number, it: any) => {
-            const wh = it?.workingHours || 0;
-            const ratePerDay = it?.rentalRatePerDay || 0;
-            const days = wh > 0 ? 1 : 0;
-            return s + days * ratePerDay;
+        // Compute Sales (Nilai Aktivitas) = sum over work items of (qtyNR*rateNR + qtyR*rateR)
+        const totalSalesForDay = activities.reduce((sum: number, a: any) => {
+          const workItems = a?.workItems || [];
+          const sales = workItems.reduce((s: number, wi: any) => {
+            const nrQty = wi?.actualQuantity?.nr || 0;
+            const rQty = wi?.actualQuantity?.r || 0;
+            const nrRate = wi?.rates?.nr?.rate || 0;
+            const rRate = wi?.rates?.r?.rate || 0;
+            return s + (nrQty * nrRate) + (rQty * rRate);
           }, 0);
-          const fuel = items.reduce((s: number, it: any) => (s + (it?.fuelUsed || 0) * (it?.fuelPrice || 0)), 0);
-          const manpower = a?.costs?.manpower?.totalCost || 0;
-          const materials = a?.costs?.materials?.totalCost || 0;
-          const other = a?.costs?.otherCosts?.totalCost || 0;
-          return sum + rental + fuel + manpower + materials + other;
+          return sum + sales;
         }, 0);
-        out.budgetData.push(totalBudget);
+        out.budgetData.push(totalSalesForDay);
       });
       setBudgetChartData(out);
     };
