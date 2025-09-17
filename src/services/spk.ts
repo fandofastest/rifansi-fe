@@ -728,6 +728,79 @@ const GET_SPK_DETAILS_WITH_PROGRESS = `
   }
 `;
 
+// Lightweight: only fields needed to compute daily progress
+const GET_SPK_DETAILS_PROGRESS_ONLY = `
+  query GetSPKDetailsWithProgressBySpkId($spkId: ID!, $startDate: String, $endDate: String) {
+    spkDetailsWithProgress(spkId: $spkId, startDate: $startDate, endDate: $endDate) {
+      id
+      dailyActivities {
+        id
+        date
+        status
+        workItems {
+          id
+          boqVolume { nr r }
+          actualQuantity { nr r }
+        }
+      }
+    }
+  }
+`;
+
+// Lightweight: only fields needed to compute budget usage (equipment rental, fuel, manpower, materials, others)
+const GET_SPK_DETAILS_BUDGET_ONLY = `
+  query GetSPKDetailsWithProgressBySpkId($spkId: ID!, $startDate: String, $endDate: String) {
+    spkDetailsWithProgress(spkId: $spkId, startDate: $startDate, endDate: $endDate) {
+      id
+      dailyActivities {
+        id
+        date
+        status
+        costs {
+          equipment {
+            items {
+              workingHours
+              rentalRatePerDay
+              fuelUsed
+              fuelPrice
+            }
+          }
+          manpower { totalCost }
+          materials { totalCost }
+          otherCosts { totalCost }
+        }
+      }
+    }
+  }
+`;
+
+// Lightweight: cost breakdown per category per day (same selection as budget-only, reused for stacked bars)
+const GET_SPK_DETAILS_COST_ONLY = `
+  query GetSPKDetailsWithProgressBySpkId($spkId: ID!, $startDate: String, $endDate: String) {
+    spkDetailsWithProgress(spkId: $spkId, startDate: $startDate, endDate: $endDate) {
+      id
+      dailyActivities {
+        id
+        date
+        status
+        costs {
+          equipment {
+            items {
+              workingHours
+              rentalRatePerDay
+              fuelUsed
+              fuelPrice
+            }
+          }
+          manpower { totalCost }
+          materials { totalCost }
+          otherCosts { totalCost }
+        }
+      }
+    }
+  }
+`;
+
 export interface UpdateSPKWorkItemInput {
   boqVolume: {
     nr: number;
@@ -933,16 +1006,16 @@ export const updateSpkStatus = async (
   }
 };
 
-  export const getSPKDetailsWithProgress = async (
-    spkId: string,
-    token: string,
-    startDate?: string,
-    endDate?: string
-  ): Promise<SPKDetailWithProgress> => {
-    try {
-      const variables: { spkId: string; startDate?: string; endDate?: string } = { spkId };
-      if (startDate) variables.startDate = startDate;
-      if (endDate) variables.endDate = endDate;
+export const getSPKDetailsWithProgress = async (
+  spkId: string,
+  token: string,
+  startDate?: string,
+  endDate?: string
+): Promise<SPKDetailWithProgress> => {
+  try {
+    const variables: { spkId: string; startDate?: string; endDate?: string } = { spkId };
+    if (startDate) variables.startDate = startDate;
+    if (endDate) variables.endDate = endDate;
 
       const response = await graphQLClient.request<{ spkDetailsWithProgress: SPKDetailWithProgress }>(
         GET_SPK_DETAILS_WITH_PROGRESS,
@@ -955,3 +1028,55 @@ export const updateSpkStatus = async (
       throw error;
     }
   }; 
+
+// Lightweight fetchers for charts (progress-only, budget-only, cost-only)
+export const getSPKDetailsProgressOnly = async (
+  spkId: string,
+  token: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  const variables: { spkId: string; startDate?: string; endDate?: string } = { spkId };
+  if (startDate) variables.startDate = startDate;
+  if (endDate) variables.endDate = endDate;
+  const response = await graphQLClient.request<{ spkDetailsWithProgress: any }>(
+    GET_SPK_DETAILS_PROGRESS_ONLY,
+    variables,
+    { Authorization: `Bearer ${token}` }
+  );
+  return response.spkDetailsWithProgress;
+};
+
+export const getSPKDetailsBudgetOnly = async (
+  spkId: string,
+  token: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  const variables: { spkId: string; startDate?: string; endDate?: string } = { spkId };
+  if (startDate) variables.startDate = startDate;
+  if (endDate) variables.endDate = endDate;
+  const response = await graphQLClient.request<{ spkDetailsWithProgress: any }>(
+    GET_SPK_DETAILS_BUDGET_ONLY,
+    variables,
+    { Authorization: `Bearer ${token}` }
+  );
+  return response.spkDetailsWithProgress;
+};
+
+export const getSPKDetailsCostOnly = async (
+  spkId: string,
+  token: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  const variables: { spkId: string; startDate?: string; endDate?: string } = { spkId };
+  if (startDate) variables.startDate = startDate;
+  if (endDate) variables.endDate = endDate;
+  const response = await graphQLClient.request<{ spkDetailsWithProgress: any }>(
+    GET_SPK_DETAILS_COST_ONLY,
+    variables,
+    { Authorization: `Bearer ${token}` }
+  );
+  return response.spkDetailsWithProgress;
+};

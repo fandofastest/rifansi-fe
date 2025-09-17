@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 
 import { useAuth } from "@/context/AuthContext";
-import { getSPKListLite, getSPKDetailsWithProgress, SPKListItem, SPKDetailWithProgress } from "@/services/spk";
+import { getSPKListLite, getSPKDetailsWithProgress, SPKListItem, SPKDetailWithProgress, getSPKDetailsProgressOnly, getSPKDetailsBudgetOnly, getSPKDetailsCostOnly } from "@/services/spk";
 
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { id } from "date-fns/locale";
@@ -40,12 +40,21 @@ const SummaryCards = React.memo(function SummaryCards({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
-  const formatShortIDR = (value: number) => {
+  // Short formatter with floor rounding for top-line display
+  const formatShortIDRFloor = (value: number) => {
     const abs = Math.abs(value);
     if (abs >= 1_000_000_000) {
-      return `${(value / 1_000_000_000).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} M`;
-    } else if (abs >= 1_000_000) {
-      return `${(value / 1_000_000).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} jt`;
+      // Billions -> show as integer millions with comma thousands separator, floored
+      const millionsFloored = Math.floor(abs / 1_000_000);
+      const prefix = value < 0 ? '-' : '';
+      return `${prefix}${millionsFloored.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}M`;
+    }
+    if (abs >= 1_000_000) {
+      // Millions -> 1 decimal, floored, comma as decimal separator
+      const sign = value < 0 ? -1 : 1;
+      const flooredOneDecimal = Math.floor((abs / 1_000_000) * 10) / 10;
+      const en = (sign * flooredOneDecimal).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      return `${en.replace('.', ',')} jt`;
     }
     return value.toLocaleString('id-ID');
   };
@@ -71,11 +80,9 @@ const SummaryCards = React.memo(function SummaryCards({
           <div className="min-w-0">
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Budget</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400 leading-tight whitespace-nowrap truncate">
-              {formatShortIDR(totalBudget)}
+              {formatShortIDRFloor(totalBudget)}
             </p>
-            {showBudgetDetail && (
-              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalBudget)}</p>
-            )}
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalBudget)}</p>
           </div>
           <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full shrink-0">
             <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,14 +90,7 @@ const SummaryCards = React.memo(function SummaryCards({
             </svg>
           </div>
         </div>
-        <div className="mt-4">
-          <button
-            className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
-            onClick={() => setShowBudgetDetail((v) => !v)}
-          >
-            {showBudgetDetail ? 'Sembunyikan' : 'Detail'}
-          </button>
-        </div>
+        
       </div>
 
       <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
@@ -98,11 +98,9 @@ const SummaryCards = React.memo(function SummaryCards({
           <div className="min-w-0">
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Cost</p>
             <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 leading-tight whitespace-nowrap truncate">
-              {formatShortIDR(totalSpent)}
+              {formatShortIDRFloor(totalSpent)}
             </p>
-            {showCostDetail && (
-              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalSpent)}</p>
-            )}
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalSpent)}</p>
           </div>
           <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full shrink-0">
             <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,14 +108,7 @@ const SummaryCards = React.memo(function SummaryCards({
             </svg>
           </div>
         </div>
-        <div className="mt-4">
-          <button
-            className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
-            onClick={() => setShowCostDetail((v) => !v)}
-          >
-            {showCostDetail ? 'Sembunyikan' : 'Detail'}
-          </button>
-        </div>
+        
       </div>
 
       <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
@@ -125,11 +116,9 @@ const SummaryCards = React.memo(function SummaryCards({
           <div className="min-w-0">
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</p>
             <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 leading-tight whitespace-nowrap truncate">
-              {formatShortIDR(totalSales)}
+              {formatShortIDRFloor(totalSales)}
             </p>
-            {showSalesDetail && (
-              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalSales)}</p>
-            )}
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{formatCurrencyFull(totalSales)}</p>
           </div>
           <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-full shrink-0">
             <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,14 +126,7 @@ const SummaryCards = React.memo(function SummaryCards({
             </svg>
           </div>
         </div>
-        <div className="mt-4">
-          <button
-            className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-white/10"
-            onClick={() => setShowSalesDetail((v) => !v)}
-          >
-            {showSalesDetail ? 'Sembunyikan' : 'Detail'}
-          </button>
-        </div>
+        
       </div>
 
       <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
@@ -183,7 +165,7 @@ type ApexSeries = any;
 
 const ProgressChart = React.memo(function ProgressChart({ options, series }: { options: ApexOptions; series: ApexSeries }) {
   return (
-    <ReactApexChart options={options} series={series} type="line" height={350} />
+    <ReactApexChart options={options} series={series} type="bar" height={350} />
   );
 });
 
@@ -195,7 +177,7 @@ const BudgetChart = React.memo(function BudgetChart({ options, series }: { optio
 
 const CostBreakdownChart = React.memo(function CostBreakdownChart({ options, series }: { options: ApexOptions; series: ApexSeries }) {
   return (
-    <ReactApexChart options={options} series={series} type="area" height={350} />
+    <ReactApexChart options={options} series={series} type="bar" height={350} />
   );
 });
 
@@ -423,6 +405,29 @@ export default function DailyReportSummaryPage() {
     endDate: format(new Date(), 'yyyy-MM-dd'),
   });
 
+  // Per-chart filters and datasets
+  const now = new Date();
+  const [progressFilter, setProgressFilter] = useState<{ month: number; year: number }>({ month: now.getMonth() + 1, year: now.getFullYear() });
+  const [budgetFilter, setBudgetFilter] = useState<{ month: number; year: number }>({ month: now.getMonth() + 1, year: now.getFullYear() });
+  const [costFilter, setCostFilter] = useState<{ month: number; year: number }>({ month: now.getMonth() + 1, year: now.getFullYear() });
+
+  interface ProgressChartData { dates: string[]; progressData: number[] }
+  interface BudgetChartData { dates: string[]; budgetData: number[] }
+  interface CostChartData { dates: string[]; equipmentData: number[]; fuelData: number[]; manpowerData: number[]; materialData: number[]; otherCostsData: number[] }
+
+  const [progressChartData, setProgressChartData] = useState<ProgressChartData>({ dates: [], progressData: [] });
+  const [budgetChartData, setBudgetChartData] = useState<BudgetChartData>({ dates: [], budgetData: [] });
+  const [costChartData, setCostChartData] = useState<CostChartData>({ dates: [], equipmentData: [], fuelData: [], manpowerData: [], materialData: [], otherCostsData: [] });
+
+  // Select options for month/year filters
+  const monthOptions = [
+    { value: 1, label: 'Jan' }, { value: 2, label: 'Feb' }, { value: 3, label: 'Mar' }, { value: 4, label: 'Apr' },
+    { value: 5, label: 'Mei' }, { value: 6, label: 'Jun' }, { value: 7, label: 'Jul' }, { value: 8, label: 'Agu' },
+    { value: 9, label: 'Sep' }, { value: 10, label: 'Okt' }, { value: 11, label: 'Nov' }, { value: 12, label: 'Des' },
+  ];
+  const currentYear = now.getFullYear();
+  const yearOptions = Array.from({ length: 7 }, (_, i) => currentYear - 6 + i);
+
   // Fetch SPK list
   useEffect(() => {
     const fetchSPKList = async () => {
@@ -478,18 +483,13 @@ export default function DailyReportSummaryPage() {
     fetchSPKDetails();
   }, [token, selectedSPK, dateRange.startDate, dateRange.endDate]);
 
-  // Generate chart data from SPK details
+  // Keep main summary chartData generation for totals (based on main date range)
   useEffect(() => {
     if (!spkDetails) return;
-
-    console.log('SPK Details for chart:', spkDetails);
-    
-    // Generate chart data based on date range
     const startDate = new Date(dateRange.startDate);
     const endDate = new Date(dateRange.endDate);
     const dates = eachDayOfInterval({ start: startDate, end: endDate });
-
-    const chartData: ChartData = {
+    const data: ChartData = {
       dates: dates.map(date => format(date, 'dd MMM', { locale: id })),
       progressData: [],
       budgetData: [],
@@ -499,21 +499,15 @@ export default function DailyReportSummaryPage() {
       materialData: [],
       otherCostsData: [],
     };
-
     dates.forEach(date => {
       const dateStr = format(date, 'yyyy-MM-dd');
-      // Find activities for this date (compare ISO string date only)
       const activitiesForDate = (spkDetails.dailyActivities || []).filter(activity => {
         if (!activity.date) return false;
-        // activity.date is ISO string, compare only yyyy-MM-dd
         const activityDateStr = format(new Date(activity.date), 'yyyy-MM-dd');
         return activityDateStr === dateStr;
       });
-
-      // Progress percentage (average)
-      const avgProgress = activitiesForDate.length > 0 
+      const avgProgress = activitiesForDate.length > 0
         ? activitiesForDate.reduce((sum, activity) => {
-            // Calculate average progress from work items
             const workItemProgress = activity.workItems.reduce((itemSum, item) => {
               const totalVolume = (item.boqVolume?.nr || 0) + (item.boqVolume?.r || 0);
               const completedVolume = (item.actualQuantity?.nr || 0) + (item.actualQuantity?.r || 0);
@@ -522,19 +516,15 @@ export default function DailyReportSummaryPage() {
             return sum + (activity.workItems.length > 0 ? (workItemProgress / activity.workItems.length) : 0);
           }, 0) / activitiesForDate.length
         : 0;
-      chartData.progressData.push(avgProgress);
-
-      // Budget usage (sum of equipment rental + fuel + manpower + materials + other)
+      data.progressData.push(avgProgress);
       const totalBudget = activitiesForDate.reduce((sum, activity) => {
         const equipmentItems = activity.costs?.equipment?.items || [];
-        // Equipment rental per day: flat 1 day if any workingHours > 0
         const equipmentRental = equipmentItems.reduce((s, it) => {
           const wh = (it as any)?.workingHours || 0;
           const ratePerDay = (it as any)?.rentalRatePerDay || 0;
           const days = wh > 0 ? 1 : 0;
           return s + days * ratePerDay;
         }, 0);
-        // Fuel: fuelUsed * fuelPrice
         const fuel = equipmentItems.reduce((s, it) => {
           const used = it?.fuelUsed || 0;
           const price = it?.fuelPrice || 0;
@@ -545,9 +535,7 @@ export default function DailyReportSummaryPage() {
         const other = activity.costs?.otherCosts?.totalCost || 0;
         return sum + equipmentRental + fuel + manpower + materials + other;
       }, 0);
-      chartData.budgetData.push(totalBudget);
-
-      // Equipment costs: workingHours * rentalRatePerDay (exclude fuel)
+      data.budgetData.push(totalBudget);
       const equipmentCosts = activitiesForDate.reduce((sum, activity) => {
         const items = activity.costs?.equipment?.items || [];
         const rental = items.reduce((s, it) => {
@@ -558,9 +546,7 @@ export default function DailyReportSummaryPage() {
         }, 0);
         return sum + rental;
       }, 0);
-      chartData.equipmentData.push(equipmentCosts);
-
-      // Fuel (BBM) costs
+      data.equipmentData.push(equipmentCosts);
       const fuelCosts = activitiesForDate.reduce((sum, activity) => {
         return sum + (activity.costs?.equipment?.items || []).reduce((s, it) => {
           const used = it?.fuelUsed || 0;
@@ -568,35 +554,136 @@ export default function DailyReportSummaryPage() {
           return s + used * price;
         }, 0);
       }, 0);
-      chartData.fuelData.push(fuelCosts);
-
-      // Manpower costs
-      const manpowerCosts = activitiesForDate.reduce((sum, activity) => {
-        return sum + (activity.costs?.manpower?.totalCost || 0);
-      }, 0);
-      chartData.manpowerData.push(manpowerCosts);
-
-      // Material costs
-      const materialCosts = activitiesForDate.reduce((sum, activity) => {
-        return sum + (activity.costs?.materials?.totalCost || 0);
-      }, 0);
-      chartData.materialData.push(materialCosts);
-
-      // Other costs
-      const otherCosts = activitiesForDate.reduce((sum, activity) => {
-        return sum + (activity.costs?.otherCosts?.totalCost || 0);
-      }, 0);
-      chartData.otherCostsData.push(otherCosts);
+      data.fuelData.push(fuelCosts);
+      const manpowerCosts = activitiesForDate.reduce((sum, activity) => sum + (activity.costs?.manpower?.totalCost || 0), 0);
+      data.manpowerData.push(manpowerCosts);
+      const materialCosts = activitiesForDate.reduce((sum, activity) => sum + (activity.costs?.materials?.totalCost || 0), 0);
+      data.materialData.push(materialCosts);
+      const otherCosts = activitiesForDate.reduce((sum, activity) => sum + (activity.costs?.otherCosts?.totalCost || 0), 0);
+      data.otherCostsData.push(otherCosts);
     });
-
-    console.log('Generated Chart Data:', chartData);
-    setChartData(chartData);
+    setChartData(data);
   }, [spkDetails, dateRange]);
+
+  // Fetch data for Progress chart only
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!token || !selectedSPK) return;
+      const start = startOfMonth(new Date(progressFilter.year, progressFilter.month - 1, 1));
+      const end = endOfMonth(start);
+      const startDateStr = format(start, 'yyyy-MM-dd');
+      const endDateStr = format(end, 'yyyy-MM-dd');
+      const data = await getSPKDetailsProgressOnly(selectedSPK, token, startDateStr, endDateStr);
+      const dates = eachDayOfInterval({ start, end });
+      const out: ProgressChartData = { dates: dates.map(d => format(d, 'dd MMM', { locale: id })), progressData: [] };
+      dates.forEach(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const activities = (data.dailyActivities || []).filter((a: any) => {
+          if (!a.date) return false;
+          const dStr = format(new Date(a.date), 'yyyy-MM-dd');
+          return dStr === dateStr && a.status === 'Approved';
+        });
+        const avg = activities.length > 0 ? activities.reduce((sum: number, a: any) => {
+          const workItemProgress = (a.workItems || []).reduce((s: number, it: any) => {
+            const totalVol = (it.boqVolume?.nr || 0) + (it.boqVolume?.r || 0);
+            const doneVol = (it.actualQuantity?.nr || 0) + (it.actualQuantity?.r || 0);
+            return s + (totalVol > 0 ? (doneVol / totalVol) * 100 : 0);
+          }, 0);
+          return sum + ((a.workItems?.length || 0) > 0 ? workItemProgress / a.workItems.length : 0);
+        }, 0) / activities.length : 0;
+        out.progressData.push(avg);
+      });
+      setProgressChartData(out);
+    };
+    fetchProgress();
+  }, [token, selectedSPK, progressFilter.month, progressFilter.year]);
+
+  // Fetch data for Budget chart only
+  useEffect(() => {
+    const fetchBudget = async () => {
+      if (!token || !selectedSPK) return;
+      const start = startOfMonth(new Date(budgetFilter.year, budgetFilter.month - 1, 1));
+      const end = endOfMonth(start);
+      const startDateStr = format(start, 'yyyy-MM-dd');
+      const endDateStr = format(end, 'yyyy-MM-dd');
+      const data = await getSPKDetailsBudgetOnly(selectedSPK, token, startDateStr, endDateStr);
+      const dates = eachDayOfInterval({ start, end });
+      const out: BudgetChartData = { dates: dates.map(d => format(d, 'dd MMM', { locale: id })), budgetData: [] };
+      dates.forEach(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const activities = (data.dailyActivities || []).filter((a: any) => {
+          if (!a.date) return false;
+          const dStr = format(new Date(a.date), 'yyyy-MM-dd');
+          return dStr === dateStr && a.status === 'Approved';
+        });
+        const totalBudget = activities.reduce((sum: number, a: any) => {
+          const items = a?.costs?.equipment?.items || [];
+          const rental = items.reduce((s: number, it: any) => {
+            const wh = it?.workingHours || 0;
+            const ratePerDay = it?.rentalRatePerDay || 0;
+            const days = wh > 0 ? 1 : 0;
+            return s + days * ratePerDay;
+          }, 0);
+          const fuel = items.reduce((s: number, it: any) => (s + (it?.fuelUsed || 0) * (it?.fuelPrice || 0)), 0);
+          const manpower = a?.costs?.manpower?.totalCost || 0;
+          const materials = a?.costs?.materials?.totalCost || 0;
+          const other = a?.costs?.otherCosts?.totalCost || 0;
+          return sum + rental + fuel + manpower + materials + other;
+        }, 0);
+        out.budgetData.push(totalBudget);
+      });
+      setBudgetChartData(out);
+    };
+    fetchBudget();
+  }, [token, selectedSPK, budgetFilter.month, budgetFilter.year]);
+
+  // Fetch data for Cost chart only
+  useEffect(() => {
+    const fetchCosts = async () => {
+      if (!token || !selectedSPK) return;
+      const start = startOfMonth(new Date(costFilter.year, costFilter.month - 1, 1));
+      const end = endOfMonth(start);
+      const startDateStr = format(start, 'yyyy-MM-dd');
+      const endDateStr = format(end, 'yyyy-MM-dd');
+      const data = await getSPKDetailsCostOnly(selectedSPK, token, startDateStr, endDateStr);
+      const dates = eachDayOfInterval({ start, end });
+      const out: CostChartData = { dates: dates.map(d => format(d, 'dd MMM', { locale: id })), equipmentData: [], fuelData: [], manpowerData: [], materialData: [], otherCostsData: [] };
+      dates.forEach(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const activities = (data.dailyActivities || []).filter((a: any) => {
+          if (!a.date) return false;
+          const dStr = format(new Date(a.date), 'yyyy-MM-dd');
+          return dStr === dateStr && a.status === 'Approved';
+        });
+        const equipmentCosts = activities.reduce((sum: number, a: any) => {
+          const items = a?.costs?.equipment?.items || [];
+          const rental = items.reduce((s: number, it: any) => {
+            const wh = it?.workingHours || 0;
+            const ratePerDay = it?.rentalRatePerDay || 0;
+            const days = wh > 0 ? 1 : 0;
+            return s + days * ratePerDay;
+          }, 0);
+          return sum + rental;
+        }, 0);
+        const fuelCosts = activities.reduce((sum: number, a: any) => sum + (a?.costs?.equipment?.items || []).reduce((s: number, it: any) => s + (it?.fuelUsed || 0) * (it?.fuelPrice || 0), 0), 0);
+        const manpowerCosts = activities.reduce((sum: number, a: any) => sum + (a?.costs?.manpower?.totalCost || 0), 0);
+        const materialCosts = activities.reduce((sum: number, a: any) => sum + (a?.costs?.materials?.totalCost || 0), 0);
+        const otherCosts = activities.reduce((sum: number, a: any) => sum + (a?.costs?.otherCosts?.totalCost || 0), 0);
+        out.equipmentData.push(equipmentCosts);
+        out.fuelData.push(fuelCosts);
+        out.manpowerData.push(manpowerCosts);
+        out.materialData.push(materialCosts);
+        out.otherCostsData.push(otherCosts);
+      });
+      setCostChartData(out);
+    };
+    fetchCosts();
+  }, [token, selectedSPK, costFilter.month, costFilter.year]);
 
   // Progress Chart Options (memoized)
   const progressChartOptions = useMemo(() => ({
     chart: {
-      type: 'line' as const,
+      type: 'bar' as const,
       height: 350,
       toolbar: { show: false },
       fontFamily: "Outfit, sans-serif",
@@ -605,25 +692,16 @@ export default function DailyReportSummaryPage() {
       animations: { enabled: false },
     },
     colors: ['#10B981'],
-    stroke: {
-      curve: "smooth" as const,
-      width: 3,
-    },
-    fill: {
-      type: 'gradient',
-      gradient: {
-        opacityFrom: 0.3,
-        opacityTo: 0.1,
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '60%',
+        borderRadius: 4,
       },
     },
-    markers: {
-      size: 5,
-      colors: ['#10B981'],
-      strokeColors: '#fff',
-      strokeWidth: 2,
-    },
+    dataLabels: { enabled: false },
     xaxis: {
-      categories: chartData.dates,
+      categories: progressChartData.dates,
       labels: {
         style: {
           colors: '#6B7280',
@@ -656,11 +734,11 @@ export default function DailyReportSummaryPage() {
       borderColor: '#E5E7EB',
       strokeDashArray: 5,
     },
-  }), [chartData.dates]);
+  }), [progressChartData.dates]);
 
   const progressSeries = useMemo(() => (
-    [{ name: 'Progress (%)', data: chartData.progressData }]
-  ), [chartData.progressData]);
+    [{ name: 'Progress (%)', data: progressChartData.progressData }]
+  ), [progressChartData.progressData]);
 
   // Budget Chart Options (memoized)
   const budgetChartOptions = useMemo(() => ({
@@ -690,7 +768,7 @@ export default function DailyReportSummaryPage() {
       colors: ['transparent'],
     },
     xaxis: {
-      categories: chartData.dates,
+      categories: budgetChartData.dates,
       labels: {
         style: {
           colors: '#6B7280',
@@ -736,11 +814,11 @@ export default function DailyReportSummaryPage() {
       borderColor: '#E5E7EB',
       strokeDashArray: 5,
     },
-  }), [chartData.dates]);
+  }), [costChartData.dates]);
 
   const budgetSeries = useMemo(() => (
-    [{ name: 'Budget (IDR)', data: chartData.budgetData }]
-  ), [chartData.budgetData]);
+    [{ name: 'Budget (IDR)', data: budgetChartData.budgetData }]
+  ), [budgetChartData.budgetData]);
 
   // Helper: truncate to 2 decimals (no rounding)
   const truncate2 = (value: number) => Math.trunc(value * 100) / 100;
@@ -754,7 +832,7 @@ export default function DailyReportSummaryPage() {
   // Cost Breakdown Chart Options (memoized)
   const costChartOptions = useMemo(() => ({
     chart: {
-      type: 'area' as const,
+      type: 'bar' as const,
       height: 350,
       toolbar: { show: false },
       fontFamily: "Outfit, sans-serif",
@@ -764,19 +842,16 @@ export default function DailyReportSummaryPage() {
       animations: { enabled: false },
     },
     colors: ['#3B82F6', '#F97316', '#10B981', '#F59E0B', '#EF4444'],
-    stroke: {
-      curve: "smooth" as const,
-      width: 2,
-    },
-    fill: {
-      type: 'gradient',
-      gradient: {
-        opacityFrom: 0.6,
-        opacityTo: 0.1,
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '60%',
+        borderRadius: 4,
       },
     },
+    dataLabels: { enabled: false },
     xaxis: {
-      categories: chartData.dates,
+      categories: costChartData.dates,
       labels: {
         style: {
           colors: '#6B7280',
@@ -828,20 +903,20 @@ export default function DailyReportSummaryPage() {
       borderColor: '#E5E7EB',
       strokeDashArray: 5,
     },
-  }), [chartData.dates]);
+  }), [budgetChartData.dates]);
 
   const costSeries = useMemo(() => ([
-    { name: 'Equipment', data: chartData.equipmentData },
-    { name: 'BBM', data: chartData.fuelData },
-    { name: 'Manpower', data: chartData.manpowerData },
-    { name: 'Material', data: chartData.materialData },
-    { name: 'Lainnya', data: chartData.otherCostsData },
+    { name: 'Equipment', data: costChartData.equipmentData },
+    { name: 'BBM', data: costChartData.fuelData },
+    { name: 'Manpower', data: costChartData.manpowerData },
+    { name: 'Material', data: costChartData.materialData },
+    { name: 'Lainnya', data: costChartData.otherCostsData },
   ]), [
-    chartData.equipmentData,
-    chartData.fuelData,
-    chartData.manpowerData,
-    chartData.materialData,
-    chartData.otherCostsData,
+    costChartData.equipmentData,
+    costChartData.fuelData,
+    costChartData.manpowerData,
+    costChartData.materialData,
+    costChartData.otherCostsData,
   ]);
 
   // Memoized totals for the summary table to avoid heavy recomputation on parent re-renders
@@ -1113,20 +1188,80 @@ export default function DailyReportSummaryPage() {
             <div className="grid grid-cols-1 gap-6">
               {/* Progress Chart */}
               <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-4">Progress Harian</h3>
+                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">Progress Harian</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <select
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-black dark:text-white"
+                    value={progressFilter.month}
+                    onChange={(e) => setProgressFilter(prev => ({ ...prev, month: Number(e.target.value) }))}
+                  >
+                    {monthOptions.map(m => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-black dark:text-white"
+                    value={progressFilter.year}
+                    onChange={(e) => setProgressFilter(prev => ({ ...prev, year: Number(e.target.value) }))}
+                  >
+                    {yearOptions.map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
                 <ProgressChart options={progressChartOptions} series={progressSeries} />
               </div>
 
               {/* Budget Chart */}
               <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-                <h3 className="text-lg font-semibold text-black dark:text-white mb-4">Penggunaan Budget</h3>
+                <h3 className="text-lg font-semibold text-black dark:text-white mb-2">Penggunaan Budget</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <select
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-black dark:text-white"
+                    value={budgetFilter.month}
+                    onChange={(e) => setBudgetFilter(prev => ({ ...prev, month: Number(e.target.value) }))}
+                  >
+                    {monthOptions.map(m => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-black dark:text-white"
+                    value={budgetFilter.year}
+                    onChange={(e) => setBudgetFilter(prev => ({ ...prev, year: Number(e.target.value) }))}
+                  >
+                    {yearOptions.map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
                 <BudgetChart options={budgetChartOptions} series={budgetSeries} />
               </div>
             </div>
 
             {/* Cost Breakdown Chart */}
             <div className="bg-white dark:bg-white/[0.03] p-6 rounded-lg shadow-sm dark:shadow-white/[0.05]">
-              <h3 className="text-lg font-semibold text-black dark:text-white mb-4">Breakdown Biaya</h3>
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-2">Breakdown Biaya</h3>
+              <div className="flex items-center gap-2 mb-3">
+                <select
+                  className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-black dark:text-white"
+                  value={costFilter.month}
+                  onChange={(e) => setCostFilter(prev => ({ ...prev, month: Number(e.target.value) }))}
+                >
+                  {monthOptions.map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <select
+                  className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-black dark:text-white"
+                  value={costFilter.year}
+                  onChange={(e) => setCostFilter(prev => ({ ...prev, year: Number(e.target.value) }))}
+                >
+                  {yearOptions.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
               <CostBreakdownChart options={costChartOptions} series={costSeries} />
             </div>
 

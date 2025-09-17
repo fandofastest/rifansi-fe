@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useEffect, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -36,50 +36,79 @@ export default function DashboardMap({
   zoom = 5 
 }: DashboardMapProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fixLeafletIcon();
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) return <div className="h-[400px] w-full bg-gray-100 dark:bg-gray-800 rounded-lg"></div>;
+  // Observe visibility so we only create the map when the container is laid out
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setIsVisible(entry.isIntersecting);
+      },
+      { root: null, threshold: 0.01 }
+    );
+    observer.observe(el);
+    return () => observer.unobserve(el);
+  }, []);
+
+  // Guard initial render
+  if (!isMounted) {
+    return <div ref={containerRef} className="h-[400px] w-full bg-gray-100 dark:bg-gray-800 rounded-lg" />;
+  }
 
   // If there are locations, center the map on the first one
+  let initialCenter = center;
+  let initialZoom = zoom;
   if (locations.length > 0) {
-    const firstValidLocation = locations.find(loc => loc.latitude && loc.longitude);
+    const firstValidLocation = locations.find(loc => Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude));
     if (firstValidLocation) {
-      center = [firstValidLocation.latitude, firstValidLocation.longitude];
-      zoom = 7; // Closer zoom when we have actual data
+      initialCenter = [firstValidLocation.latitude, firstValidLocation.longitude];
+      initialZoom = 7; // Closer zoom when we have actual data
     }
   }
 
   return (
-    <div className="h-[400px] w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-      <MapContainer 
-        center={center} 
-        zoom={zoom} 
-        style={{ height: '100%', width: '100%' }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {locations.filter(loc => loc.latitude && loc.longitude).map((location) => (
-          <Marker 
-            key={location.id}
-            position={[location.latitude, location.longitude]}
-            icon={getMarkerIcon(location.type)}
-          >
-            <Popup>
-              <div className="dark:bg-gray-800 dark:text-white p-1">
-                <strong>{location.name}</strong>
-                <p>Type: {location.type === 'spk' ? 'SPK Location' : 'Borrow Pit'}</p>
-                <p>Coordinates: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
+    <div ref={containerRef} className="h-[400px] w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+      {/* Only render the MapContainer once visible to avoid Leaflet layout errors */}
+      {isVisible && (
+        <MapContainer 
+          key={`${initialCenter[0]}-${initialCenter[1]}-${initialZoom}`}
+          center={initialCenter} 
+          zoom={initialZoom} 
+          style={{ height: '100%', width: '100%' }}
+        >
+          <InvalidateSizeOnMount />
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          {locations
+            .filter(loc => Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude))
+            .map((location) => (
+              <Marker 
+                key={location.id}
+                position={[location.latitude, location.longitude]}
+                icon={getMarkerIcon(location.type)}
+              >
+                <Popup>
+                  <div className="dark:bg-gray-800 dark:text-white p-1">
+                    <strong>{location.name}</strong>
+                    <p>Type: {location.type === 'spk' ? 'SPK Location' : 'Borrow Pit'}</p>
+                    <p>Coordinates: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+        </MapContainer>
+      )}
     </div>
   );
 }
@@ -112,4 +141,20 @@ function getMarkerIcon(type: string) {
     popupAnchor: [0, -36],
     tooltipAnchor: [16, -28]
   });
+}
+
+// Internal helper component to invalidate map size after mount
+function InvalidateSizeOnMount() {
+  const map = useMap();
+  useEffect(() => {
+    const id = setTimeout(() => {
+      try {
+        map.invalidateSize();
+      } catch (e) {
+        // ignore
+      }
+    }, 0);
+    return () => clearTimeout(id);
+  }, [map]);
+  return null;
 }
