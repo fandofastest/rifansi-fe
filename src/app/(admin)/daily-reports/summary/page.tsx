@@ -723,9 +723,26 @@ export default function DailyReportSummaryPage() {
       width: 3,
     },
     markers: {
-      size: 3,
+      size: 4,
     },
-    dataLabels: { enabled: false },
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number, opts: any) => {
+        const i = opts?.dataPointIndex ?? 0;
+        const seriesData = opts?.w?.config?.series?.[opts?.seriesIndex || 0]?.data || [];
+        const curr = Number.isFinite(val) ? Number(val) : 0;
+        const prev = i > 0 ? (Number.isFinite(seriesData[i - 1]) ? Number(seriesData[i - 1]) : 0) : null;
+        const changed = i === 0 || prev === null ? true : Math.abs(curr - prev) > 1e-6;
+        return changed ? `${curr.toFixed(2)}%` : '';
+      },
+      style: {
+        fontSize: '11px',
+        fontWeight: 700,
+        colors: ['#10B981'],
+      },
+      background: { enabled: false },
+      offsetY: -8,
+    },
     xaxis: {
       categories: progressChartData.dates,
       labels: {
@@ -753,8 +770,19 @@ export default function DailyReportSummaryPage() {
     },
     tooltip: {
       y: {
-        formatter: (value: number) => `${value.toFixed(2)}%`,
+        formatter: (value: number) => `${(Number.isFinite(value) ? value : 0).toFixed(2)}%`,
       },
+      custom: function({ series, seriesIndex, dataPointIndex, w }: any) {
+        const dateLabel = w?.globals?.categoryLabels?.[dataPointIndex] ?? '';
+        const val = Number(series?.[seriesIndex]?.[dataPointIndex] ?? 0);
+        const pct = (Number.isFinite(val) ? val : 0).toFixed(2);
+        return `
+          <div class="p-2">
+            <div class="text-xs text-gray-500">${dateLabel}</div>
+            <div class="text-sm font-semibold">${pct}%</div>
+          </div>
+        `;
+      }
     },
     grid: {
       borderColor: '#E5E7EB',
@@ -772,7 +800,7 @@ export default function DailyReportSummaryPage() {
       type: 'bar' as const,
       height: 350,
       toolbar: { show: false },
-      fontFamily: "Outfit, sans-serif",
+      fontFamily: 'Outfit, sans-serif',
       redrawOnParentResize: false,
       redrawOnWindowResize: false,
       animations: { enabled: false },
@@ -783,10 +811,36 @@ export default function DailyReportSummaryPage() {
         horizontal: false,
         columnWidth: '60%',
         borderRadius: 5,
+        dataLabels: {
+          position: 'top',
+        },
       },
     },
     dataLabels: {
-      enabled: false,
+      enabled: true,
+      formatter: (val: number) => {
+        const v = Number.isFinite(val) ? Number(val) : 0;
+        const abs = Math.abs(v);
+        if (abs >= 1_000_000) {
+          // jutaan, 1 desimal dibulatkan ke bawah, koma sebagai separator desimal
+          const flooredOneDecimal = Math.floor((abs / 1_000_000) * 10) / 10;
+          const en = flooredOneDecimal.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+          return `${en.replace('.', ',')}jt`;
+        }
+        if (abs >= 1000) {
+          // ribuan, 1 desimal dibulatkan ke bawah
+          const flooredOneDecimal = Math.floor((abs / 1000) * 10) / 10;
+          const en = flooredOneDecimal.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+          return `${en.replace('.', ',')}rb`;
+        }
+        return v.toLocaleString('id-ID');
+      },
+      style: {
+        fontSize: '11px',
+        fontWeight: 700,
+        colors: ['#3B82F6'],
+      },
+      offsetY: -20,
     },
     stroke: {
       show: true,
@@ -827,9 +881,9 @@ export default function DailyReportSummaryPage() {
     },
     tooltip: {
       y: {
-        formatter: (value: number) => 
-          new Intl.NumberFormat('id-ID', { 
-            style: 'currency', 
+        formatter: (value: number) =>
+          new Intl.NumberFormat('id-ID', {
+            style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
@@ -909,15 +963,40 @@ export default function DailyReportSummaryPage() {
       },
     },
     tooltip: {
-      y: {
-        formatter: (value: number) => 
-          new Intl.NumberFormat('id-ID', { 
-            style: 'currency', 
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }).format(value),
-      },
+      shared: true,
+      intersect: false,
+      custom: function({ series, dataPointIndex, w }: any) {
+        const names = (w?.config?.series || []).map((s: any) => s?.name || '');
+        const colors = (w?.config?.colors || []);
+        const dateLabel = w?.globals?.categoryLabels?.[dataPointIndex] ?? '';
+        const fmt = (v: number) => new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(Number.isFinite(v) ? v : 0);
+        const rows = names.map((n: string, i: number) => {
+          const val = series?.[i]?.[dataPointIndex] ?? 0;
+          const color = colors?.[i] || '#999';
+          return `
+            <div class="flex items-center justify-between gap-3 py-1">
+              <div class="flex items-center gap-2">
+                <span style="background:${color};" class="inline-block w-2.5 h-2.5 rounded"></span>
+                <span class="text-xs">${n}</span>
+              </div>
+              <span class="text-xs font-medium">${fmt(Number(val))}</span>
+            </div>
+          `;
+        }).join('');
+        const total = (series || []).reduce((s: number, arr: any[]) => s + (Number(arr?.[dataPointIndex]) || 0), 0);
+        return `
+          <div class="p-2">
+            <div class="text-xs text-gray-500 mb-1">${dateLabel}</div>
+            ${rows}
+            <div class="border-t border-gray-200 mt-1 pt-1 text-xs font-semibold">Total: ${fmt(total)}</div>
+          </div>
+        `;
+      }
     },
     legend: {
       position: 'top' as const,

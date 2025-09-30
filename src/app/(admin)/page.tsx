@@ -355,6 +355,7 @@ export default function Dashboard() {
               locations={(dashboardData.spkPerformance || []).map(spk => ({
                 id: spk.spkId,
                 name: spk.title,
+                spkNo: spk.spkNo,
                 latitude: spk.location?.latitude || 0,
                 longitude: spk.location?.longitude || 0,
                 type: 'spk'
