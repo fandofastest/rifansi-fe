@@ -290,6 +290,14 @@ export const DailyReportDetailModal: React.FC<DailyReportDetailModalProps> = ({
             </div>
           )}
 
+          {/* Closing Remarks Section */}
+          {report.closingRemarks && (
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-white/10">
+              <h5 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Catatan Penutup</h5>
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{report.closingRemarks}</p>
+            </div>
+          )}
+
           {/* Progress & Budget Section */}
           <div className="mt-4 grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div>
