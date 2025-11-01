@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -22,6 +22,7 @@ interface LocationMarker {
   latitude: number;
   longitude: number;
   type: 'spk' | 'borrowPit' | string;
+  spkNo?: string;
 }
 
 interface DashboardMapProps {
@@ -38,6 +39,42 @@ export default function DashboardMap({
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Spread overlapping points slightly so all become visible
+  const adjustedLocations = useMemo(() => {
+    const byKey = new Map<string, LocationMarker[]>();
+    const keyOf = (lat: number, lng: number) => `${lat.toFixed(6)}_${lng.toFixed(6)}`;
+    for (const loc of locations) {
+      if (!Number.isFinite(loc.latitude) || !Number.isFinite(loc.longitude)) continue;
+      const key = keyOf(loc.latitude, loc.longitude);
+      const arr = byKey.get(key) || [];
+      arr.push(loc);
+      byKey.set(key, arr);
+    }
+    const out: LocationMarker[] = [];
+    byKey.forEach((group, _key) => {
+      if (group.length === 1) {
+        out.push(group[0]);
+        return;
+      }
+      const n = group.length;
+      const radiusDeg = 0.0003; // ~30m
+      const angleStep = (2 * Math.PI) / n;
+      const baseLat = group[0].latitude;
+      const cosLat = Math.cos((baseLat * Math.PI) / 180);
+      group.forEach((loc, idx) => {
+        const angle = idx * angleStep;
+        const dLat = radiusDeg * Math.cos(angle);
+        const dLng = (radiusDeg * Math.sin(angle)) / (cosLat || 1);
+        out.push({ ...loc, latitude: loc.latitude + dLat, longitude: loc.longitude + dLng });
+      });
+    });
+    // Include any items without finite coords unchanged (they will be filtered later)
+    for (const loc of locations) {
+      if (!Number.isFinite(loc.latitude) || !Number.isFinite(loc.longitude)) out.push(loc);
+    }
+    return out;
+  }, [locations]);
 
   useEffect(() => {
     fixLeafletIcon();
@@ -64,14 +101,14 @@ export default function DashboardMap({
     return <div ref={containerRef} className="h-[400px] w-full bg-gray-100 dark:bg-gray-800 rounded-lg" />;
   }
 
-  // If there are locations, center the map on the first one
+  // If there are locations, set initial center; then FitBoundsOnData will adjust to include all markers
   let initialCenter = center;
   let initialZoom = zoom;
   if (locations.length > 0) {
     const firstValidLocation = locations.find(loc => Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude));
     if (firstValidLocation) {
       initialCenter = [firstValidLocation.latitude, firstValidLocation.longitude];
-      initialZoom = 7; // Closer zoom when we have actual data
+      initialZoom = 7; // initial; will refit to show all markers
     }
   }
 
@@ -86,11 +123,18 @@ export default function DashboardMap({
           style={{ height: '100%', width: '100%' }}
         >
           <InvalidateSizeOnMount />
+          <FitBoundsOnData
+            positions={adjustedLocations
+              .filter(loc => Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude))
+              // Avoid including [0,0] placeholder in bounds
+              .filter(loc => !(loc.latitude === 0 && loc.longitude === 0))
+              .map(loc => [loc.latitude, loc.longitude] as [number, number])}
+          />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {locations
+          {adjustedLocations
             .filter(loc => Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude))
             .map((location) => (
               <Marker 
@@ -98,9 +142,15 @@ export default function DashboardMap({
                 position={[location.latitude, location.longitude]}
                 icon={getMarkerIcon(location.type)}
               >
+                <Tooltip direction="top" opacity={0.9} permanent={false}>
+                  {location.type === 'spk' ? `No SPK: ${location.spkNo ?? location.name}` : location.name}
+                </Tooltip>
                 <Popup>
                   <div className="dark:bg-gray-800 dark:text-white p-1">
                     <strong>{location.name}</strong>
+                    {location.type === 'spk' && (
+                      <p>No SPK: {location.spkNo ?? '-'}</p>
+                    )}
                     <p>Type: {location.type === 'spk' ? 'SPK Location' : 'Borrow Pit'}</p>
                     <p>Coordinates: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</p>
                   </div>
@@ -156,5 +206,22 @@ function InvalidateSizeOnMount() {
     }, 0);
     return () => clearTimeout(id);
   }, [map]);
+  return null;
+}
+
+// Fit bounds to include all provided positions whenever they change
+function FitBoundsOnData({ positions }: { positions: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    if (positions && positions.length > 0) {
+      try {
+        const bounds = L.latLngBounds(positions.map(p => L.latLng(p[0], p[1])));
+        map.fitBounds(bounds, { padding: [40, 40] });
+      } catch (e) {
+        // ignore fit errors
+      }
+    }
+  }, [map, positions]);
   return null;
 }
